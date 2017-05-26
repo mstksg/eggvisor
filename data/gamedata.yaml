@@ -1,0 +1,399 @@
+---
+habitats:
+  - name: Coop
+    capacity: 250
+    prices:
+      - 63.51
+      - 79.72
+      - 99.89
+      - 124
+  - name: Shack
+    capacity: 500
+    prices:
+      - 557
+      - 905
+      - 1414
+      - 2139
+  - name: Super Shack
+    capacity: 1000
+    prices:
+      - 12837
+      - 27088
+      - 52275
+      - 93923
+  - name: Short House
+    capacity: 2000
+    prices:
+      - 313078
+      - 862531
+      - 2025474
+      - 4230815
+  - name: The Standard
+    capacity: 5000
+    prices:
+      - 36.330375e+06
+      - 130.684e+06
+      - 366.922e+06
+      - 872.224e+06
+  - name: Long House
+    capacity: 10000
+    prices:
+      - 1.744e+09
+      - 7.062e+09
+      - 21.364e+09
+      - 53.383e+09
+  - name: Double Decker
+    capacity: 20000
+    prices:
+      - 106.766e+09
+      - 460.301e+09
+      - 1.446e+12
+      - 3.707e+12
+  - name: Warehouse
+    capacity: 50000
+    prices:
+      - 29.456e+12
+      - 131.713e+12
+      - 422.714e+12
+      - 1.097e+15
+  - name: Center
+    capacity: 100000
+    prices:
+      - 2.194e+15
+      - 9.906e+15
+      - 31.943e+15
+      - 83.093e+15
+  - name: Bunker
+    capacity: 200000
+    prices:
+      - 166.187e+15
+      - 752.418e+15
+      - 2.428e+18
+      - 6.318e+18
+  - name: Eggkea
+    capacity: 500000
+    prices:
+      - 50.924e+18
+      - 230.387e+18
+      - 742.340e+18
+      - 1.928e+21
+  - name: HAB 1000
+    capacity: 1000000
+    prices:
+      - 3.856e+21
+      - 17.407e+21
+      - 55.994e+21
+      - 145.258e+21
+  - name: Hangar
+    capacity: 2000000
+    prices:
+      - 290.516e+21
+      - 1.307e+24
+      - 4.17e+24
+      - 10.63e+24
+  - name: Tower
+    capacity: 5000000
+    prices:
+      - 82.190e+24
+      - 338.528e+24
+      - 980.182e+24
+      - 2.294e+27
+  - name: HAB 10000
+    capacity: 10000000
+    prices:
+      - 7.83e+27
+      - 28.686e+27
+      - 76.42e+27
+      - 167.044e+27
+  - name: Eggtopia
+    capacity: 25000000
+    prices:
+      - 2.028e+30
+      - 6.324e+30
+      - 14.716e+30
+      - 30.192e+30
+  - name: Monolith
+    capacity: 50000000
+    prices:
+      - 360.974e+30
+      - 1.292e+33
+      - 3.482e+33
+      - 7.832e+33
+      - 30.192e+33
+  - name: Planet Portal
+    capacity: 100000000
+    prices:
+      - 301.653e+33
+      - 1.148e+36
+      - 3.236e+36
+      - 7.544e+36
+vehicles:
+  - name: Trike
+    capacity: 5000
+    base-price: 17.06
+  - name: Transit
+    capacity: 15000
+    base-price: 1401
+  - name: Pickup
+    capacity: 50000
+    base-price: 101155
+  - name: 10 Foot
+    capacity: 100000
+    base-price: 27532910
+  - name: 24 Foot
+    capacity: 250000
+    base-price: 1.922e+9
+  - name: Semi
+    capacity: 500000
+    base-price: 240.425e+9
+  - name: Double Semi
+    capacity: 1000000
+    base-price: 142.121e+12
+  - name: Future Semi
+    capacity: 5000000
+    base-price: 32.856e+18
+  - name: Mega Semi
+    capacity: 15000000
+    base-price: 29.372e+24
+  - name: Hover Semi
+    capacity: 30000000
+    base-price: 17.132e+27
+  - name: Quantum Transporter
+    capacity: 50000000
+    base-price: 445.802e+27
+research:
+  - tier: 1
+    name: Comfortable Nests
+    description: Increase egg laying rate by <font color="#276EC6">10%</font>
+    maximum: +500%
+    levels: 50
+  - tier: 1
+    name: Nutritional Supplements
+    description: Increase egg value by <font color="#276EC6">25%</font>
+    maximum: +1,000%
+    levels: 40
+  - tier: 1
+    name: Better Incubators
+    description: Hatchery will refill <font color="#276EC6">10%</font> faster
+    maximum: +150%
+    levels: 15
+  - tier: 1
+    name: Excitable Chickens
+    description: <font color="#276EC6">+0.1%</font> egg value bonus for each running chicken
+    maximum: +1%
+    levels: 10
+  - tier: 2
+    name: Hen House Remodel
+    description: Increase capacity of all habs by <font color="#276EC6">5%</font>
+    maximum: +40%
+    levels: 8
+  - tier: 2
+    name: Internal Hatcheries
+    description: Each hen house adds <font color="#276EC6">2</font> additional chickens per minute
+    maximum: +20
+    levels: 10
+  - tier: 2
+    name: Padded Packaging
+    description: Increases earnings per egg by <font color="#276EC6">25%</font>
+    maximum: +750%
+    levels: 30
+  - tier: 2
+    name: Hatchery Expansion
+    description: Increases Hatchery capacity by <font color="#276EC6">10</font>
+    maximum: +100
+    levels: 10
+  - tier: 2
+    name: Bigger Eggs
+    description: <font color="#276EC6">DOUBLES</font> egg value
+    maximum: ×2
+    levels: 1
+  - tier: 3
+    name: Internal Hatchery Upgrades
+    description: Each hen house adds an additional <font color="#276EC6">5</font> chickens/min
+    maximum: +50
+    levels: 10
+  - tier: 3
+    name: Improved Leafsprings
+    description: Increase vehicle capacity by <font color="#276EC6">5%</font>
+    maximum: +150%
+    levels: 30
+  - tier: 3
+    name: Vehicle Reliability
+    description: Increase fleet size by <font color="#276EC6">1</font>
+    maximum: +2
+    levels: 2
+  - tier: 3
+    name: Rooster Booster
+    description: Hatchery will 'refill' <font color="#276EC6">5%</font> faster
+    maximum: +125%
+    levels: 25
+  - tier: 3
+    name: Coordinated Clucking
+    description: Max running chicken bonus increased by <font color="#276EC6">0.1x</font>
+    maximum: ×2.5
+    levels: 25
+  - tier: 4
+    name: Hatchery Rebuild
+    description: Increases Hatchery capacity by <font color="#276EC6">50</font>
+    maximum: +50
+    levels: 1
+  - tier: 4
+    name: USDE Prime Certification
+    description: <font color="#276EC6">TRIPLES</font> egg value
+    maximum: ×3
+    levels: 1
+  - tier: 4
+    name: Hen House A/C
+    description: Increase egg laying rate by <font color="#276EC6">5%</font>
+    maximum: +250%
+    levels: 50
+  - tier: 4
+    name: Super-Feed™ Diet
+    description: Increase egg value by <font color="#276EC6">25%</font>
+    maximum: +875%
+    levels: 35
+  - tier: 4
+    name: Microlux™ Chicken Suites
+    description: Increase capacity of all habs by <font color="#276EC6">5%</font>
+    maximum: +50%
+    levels: 10
+  - tier: 5
+    name: Compact Incubators
+    description: Increases Hatchery capacity by <font color="#276EC6">10</font>
+    maximum: +100
+    levels: 10
+  - tier: 5
+    name: Lightweight Boxes
+    description: Increase vehicle capacity by <font color="#276EC6">10%</font>
+    maximum: +400%
+    levels: 40
+  - tier: 5
+    name: Depot Worker Exoskeletons
+    description: Increase maximum fleet size by <font color="#276EC6">1</font>
+    maximum: +2
+    levels: 2
+  - tier: 5
+    name: Internal Hatchery Expansion
+    description: Each hen house adds an additional <font color="#276EC6">10</font> chickens/min
+    maximum: +150
+    levels: 15
+  - tier: 5
+    name: Improved Genetics
+    description: Increase egg laying rate AND egg value by <font color="#276EC6">15%</font>
+    maximum: +450% +450%
+    levels: 30
+  - tier: 6
+    name: Traffic Management
+    description: Increase vehicle fleet size by <font color="#276EC6">1</font>
+    maximum: +2
+    levels: 2
+  - tier: 6
+    name: Motivational Clucking
+    description: Max running chicken bonus increased by <font color="#276EC6">0.1x</font>
+    maximum: ×4.5
+    levels: 45
+  - tier: 6
+    name: Driver Training
+    description: Increase vehicle speed by <font color="#276EC6">5%</font>
+    maximum: +150%
+    levels: 30
+  - tier: 6
+    name: Shell Fortification
+    description: Increase egg value by <font color="#276EC6">15%</font>
+    maximum: +900%
+    levels: 60
+  - tier: 7
+    name: Egg Loading Bots
+    description: Increase fleet size by <font color="#276EC6">1</font>
+    maximum: +2
+    levels: 2
+  - tier: 7
+    name: Super Alloy Frames
+    description: Increase vehicle capacity by <font color="#276EC6">5%</font>
+    maximum: +250%
+    levels: 50
+  - tier: 7
+    name: Even Bigger Eggs
+    description: <font color="#276EC6">DOUBLES</font> egg value
+    maximum: ×32
+    levels: 5
+  - tier: 7
+    name: Internal Hatchery Expansion
+    description: Each hen house adds an additional <font color="#276EC6">25</font> chickens/min
+    maximum: +750
+    levels: 30
+  - tier: 8
+    name: Quantum Egg Storage
+    description: Increase vehicle capacity by <font color="#276EC6">5%</font>
+    maximum: +100% 
+    levels: 20
+  - tier: 8
+    name: Genetic Purification
+    description: Increases egg value by <font color="#276EC6">10%</font>
+    maximum: +1,000%
+    levels: 100
+  - tier: 8
+    name: Machine Learning Incubators
+    description: Each hen house adds an additional <font color="#276EC6">5</font> chickens/min
+    maximum: +1,250
+    levels: 250
+  - tier: 8
+    name: Time Compression
+    description: Increase egg laying rate by <font color="#276EC6">10%</font>
+    maximum: +200%
+    levels: 20
+  - tier: 9
+    name: Hover Upgrades
+    description: Increase hover vehicle capacity by <font color="#276EC6">5%</font>
+    maximum: +125%
+    levels: 25
+  - tier: 9
+    name: Graviton Coating
+    description: <font color="#276EC6">DOUBLES</font> egg density and thus egg value
+    maximum: ×256
+    levels: 8
+  - tier: 9
+    name: Grav Plating
+    description: Increase capacity of all habs by <font color="#276EC6">2%</font>
+    maximum: +50%
+    levels: 25
+  - tier: 9
+    name: Crystalline Shelling
+    description: Increases egg value by <font color="#276EC6">25%</font>
+    maximum: +2500%
+    levels: +100
+  - tier: 10
+    name: Autonomous Vehicles
+    description: Increase fleet size by <font color="#276EC6">1</font>
+    maximum: +6
+    levels: 6
+  - tier: 10
+    name: Neural Linking
+    description: Each hen house adds an additional <font color="#276EC6">50</font> chickens/min
+    maximum: +1000
+    levels: 20
+  - tier: 10
+    name: Telephatic Will
+    description: Increase egg quality (value) by <font color="#276EC6">25%</font>
+    maximum: +1250%
+    levels: 50
+  - tier: 10
+    name: Enlightened Chickens
+    description: <font color="#276EC6">Quadruple</font> running chicken bonus!
+    maximum: ×64
+    levels: 3
+  - tier: 11
+    name: Dark Containment
+    description: Increase vehicle capacity by <font color="#276EC6">5%</font>
+    maximum: +125%
+    levels: 25
+  - tier: 11
+    name: Atomic Purification
+    description: Increase egg value by <font color="#276EC6">10%</font>
+    maximum: +250%
+    levels: 25
+  - tier: 11
+    name: Multiversal Layering
+    description: <font color="#276EC6">10x</font> egg value
+    maximum: ×100
+    levels: 2
