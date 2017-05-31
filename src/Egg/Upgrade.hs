@@ -15,29 +15,33 @@ module Egg.Upgrade (
   , ResearchStatus(..)
   , scaleAmount
   , hasEffect
-  -- , bonuses
+  , bonuses
   , maxLevel
   , emptyStatus
   , researchBonuses
   , totalBonuses
   , foldResearch
+  , purchaseCommon
   ) where
 
 import           Control.Applicative
+import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.Except
+import           Control.Monad.Trans.State
 import           Data.Aeson.Encoding
 import           Data.Aeson.Types
 import           Data.Foldable
 import           Data.Kind
 import           Data.Yaml
 import           Egg.Types
-import           GHC.Generics        (Generic)
+import           GHC.Generics               (Generic)
 import           GHC.TypeLits
 import           Numeric.Natural
-import qualified Data.HashMap.Lazy   as HM
-import qualified Data.Map            as M
-import qualified Data.Text           as T
-import qualified Data.Text.Encoding  as T
-import qualified Data.Vector         as V
+import qualified Data.HashMap.Lazy          as HM
+import qualified Data.Map                   as M
+import qualified Data.Text                  as T
+import qualified Data.Text.Encoding         as T
+import qualified Data.Vector                as V
 
 data BonusAmount = BAIncrement Double
                  | BAPercent Double
@@ -185,9 +189,8 @@ hasEffect = \case
     BAPercent    p -> p /= 0
     BAMultiplier r -> r /= 1
 
--- -- | Might be a bottleneck
--- bonuses :: M.Map BonusType [BonusAmount] -> Bonuses
--- bonuses = Bonuses . M.filter (not . null) . fmap (filter hasEffect)
+bonuses :: M.Map BonusType [BonusAmount] -> Bonuses
+bonuses = Bonuses . M.filter (not . null) . fmap (filter hasEffect)
 
 maxLevel :: Research a -> Int
 maxLevel = either fromIntegral V.length . rCosts
@@ -217,3 +220,35 @@ researchBonuses Research{..} s = case rBaseBonuses of
 
 totalBonuses :: ResearchData -> ResearchStatus -> Bonuses
 totalBonuses = foldResearch (either researchBonuses researchBonuses)
+
+data ResearchError = REBadTier
+                   | REBadSlot
+                   | REMaxedOut
+  deriving (Show, Eq, Ord)
+
+purchaseCommon
+    :: ResearchData
+    -> Int
+    -> Int
+    -> ResearchStatus
+    -> Either ResearchError (Maybe Double, ResearchStatus)
+purchaseCommon ResearchData{..} t r = runStateT $ do
+    tier <- maybe (lift (Left REBadTier)) return $ rdCommon V.!? t
+    res  <- maybe (lift (Left REBadSlot)) return $ tier     V.!? r
+    currCommon <- gets rsCommon
+    currTier <- maybe (lift (Left REBadTier)) return $ currCommon V.!? t
+    currRes  <- maybe (lift (Left REBadSlot)) return $ currTier   V.!? r
+    let newLevel = currRes + 1
+        updated  = currCommon V.// [(t, currTier V.// [(r, fromIntegral newLevel)])]
+    case rCosts res of
+      Left m | newLevel > m -> lift $ Left REMaxedOut
+             | otherwise    -> do
+                 modify $ \rs -> rs { rsCommon = updated }
+                 return Nothing
+      Right v -> case v V.!? fromIntegral newLevel of
+        Nothing -> lift $ Left REMaxedOut
+        Just p  -> do
+          modify $ \rs -> rs { rsCommon = updated }
+          return (Just p)
+
+
