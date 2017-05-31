@@ -15,14 +15,21 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Egg
+  exposed-modules:     Egg.Types
+                       Egg.Upgrade
   build-depends:       base >= 4.7 && < 5
+                     , aeson
+                     , containers
+                     , dependent-map
                      , finite-typelits
                      , singletons
-                     , type-combinators
-                     , dependent-map
-                     , vector-sized
+                     , text
                      , transformers
+                     , type-combinators
+                     , unordered-containers
+                     , vector
+                     , vector-sized
+                     , yaml
   default-language:    Haskell2010
 
 -- executable eggvisor-exe

@@ -45,20 +45,6 @@ $(promote [d|
     _  -> 0
   |])
 
--- type family NumUpgrades n where
---     NumUpgrades 0  = 4
---     NumUpgrades 1  = 5
---     NumUpgrades 2  = 5
---     NumUpgrades 3  = 5
---     NumUpgrades 4  = 5
---     NumUpgrades 5  = 4
---     NumUpgrades 6  = 4
---     NumUpgrades 7  = 4
---     NumUpgrades 8  = 4
---     NumUpgrades 9  = 4
---     NumUpgrades 10 = 3
---     NumUpgrades n  = 0
-
 newtype (:.~:) :: (l -> Type) -> (k ~> l) -> k -> Type where
     CompTyFun :: f (Apply g a) -> (f :.~: g) a
 
