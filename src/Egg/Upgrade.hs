@@ -14,6 +14,8 @@ module Egg.Upgrade (
   , ResearchData(..)
   , ResearchStatus(..)
   , scaleAmount
+  , hasEffect
+  , bonuses
   , maxLevel
   , emptyStatus
   , researchBonuses
@@ -91,6 +93,7 @@ data ResearchStatus =
     ResearchStatus { rsCommon :: V.Vector (V.Vector Natural)
                    , rsEpic   :: V.Vector Natural
                    }
+  deriving Show
 
 bonusAmountParseOptions :: Options
 bonusAmountParseOptions = defaultOptions
@@ -126,7 +129,8 @@ instance ToJSONKey BonusType where
 
 instance Monoid Bonuses where
     mempty = Bonuses M.empty
-    mappend (Bonuses x) (Bonuses y) = Bonuses (M.unionWith (++) x y)
+    mappend (Bonuses x) (Bonuses y) =
+      bonuses (M.unionWith (++) x y)
 
 instance FromJSON a => FromJSON (Research a) where
     parseJSON = withObject "Research" $ \v ->
@@ -174,6 +178,16 @@ scaleAmount n = \case
     BAIncrement  i -> BAIncrement  (fromIntegral n * i)
     BAPercent    p -> BAPercent    (fromIntegral n * p)
     BAMultiplier r -> BAMultiplier (r ^ n)
+
+hasEffect :: BonusAmount -> Bool
+hasEffect = \case
+    BAIncrement  i -> i /= 0
+    BAPercent    p -> p /= 0
+    BAMultiplier r -> r /= 1
+
+-- | Might be a bottleneck
+bonuses :: M.Map BonusType [BonusAmount] -> Bonuses
+bonuses = Bonuses . M.filter (not . null) . fmap (filter hasEffect)
 
 maxLevel :: Research a -> Int
 maxLevel = either fromIntegral V.length . rCosts
