@@ -167,282 +167,522 @@ research:
       levels: 50
       effects:
         - bonus: laying-rate
-          increment: 10
+          amount:
+            value: 10
+            type: percent
     - name: Nutritional Supplements
       description: Increase egg value by 25%
       levels: 40
       effects:
         - bonus: egg-value
-          increment: 25
+          amount:
+            value: 25
+            type: percent
     - name: Better Incubators
       description: Hatchery will refill 10% faster
       levels: 15
       effects:
         - bonus: hatchery-rate
-          increment: 10
+          amount:
+            value: 10
+            type: percent
     - name: Excitable Chickens
       description: +0.1% egg value bonus for each running chicken
       levels: 10
       effects:
         - bonus: running-bonus
-          increment: 0.1
+          amount:
+            value: 0.1
+            type: increment
   - - name: Hen House Remodel
       description: Increase capacity of all habs by 5%
       levels: 8
       effects:
         - bonus: hab-capacity
-          increment: 5
+          amount:
+            value: 5
+            type: percent
     - name: Internal Hatcheries
       description: Each hen house adds 2 additional chickens per minute
       levels: 10
       effects:
         - bonus: internal-hatchery
-          increment: 2
+          amount:
+            value: 2
+            type: increment
     - name: Padded Packaging
       description: Increases earnings per egg by 25%
       levels: 30
       effects:
         - bonus: egg-value
-          increment: 25
+          amount:
+            value: 25
+            type: percent
     - name: Hatchery Expansion
       description: Increases Hatchery capacity by 10
       levels: 10
       effects:
         - bonus: hatchery-capacity
-          increment: 10
+          amount:
+            value: 10
+            type: increment
     - name: Bigger Eggs
       description: DOUBLES egg value
       levels: 1
       effects:
-        - bonus: egg-value-multiplier
-          increment: 2
+        - bonus: egg-value
+          amount:
+            value: 2
+            type: multiplier
   - - name: Internal Hatchery Upgrades
       description: Each hen house adds an additional 5 chickens/min
       levels: 10
       effects:
         - bonus: internal-hatchery
-          increment: 5
+          amount:
+            value: 5
+            type: percent
     - name: Improved Leafsprings
       description: Increase vehicle capacity by 5%
       levels: 30
       effects:
         - bonus: vehicle-capacity
-          increment: 5
+          amount:
+            value: 5
+            type: percent
     - name: Vehicle Reliability
       description: Increase fleet size by 1
       levels: 2
       effects:
         - bonus: fleet-size
-          increment: 1
+          amount:
+            value: 1
+            type: increment
     - name: Rooster Booster
       description: Hatchery will refill 5% faster
       levels: 25
       effects:
         - bonus: hatchery-rate
-          increment: 5
+          amount:
+            value: 5
+            type: percent
     - name: Coordinated Clucking
       description: Max running chicken bonus increased by 0.1x
       levels: 25
       effects:
         - bonus: max-running-bonus
-          increment: 0.1
+          amount:
+            value: 0.1
+            type: increment
   - - name: Hatchery Rebuild
       description: Increases Hatchery capacity by 50
       levels: 1
       effects:
         - bonus: hatchery-capacity
-          increment: 50
+          amount:
+            value: 50
+            type: increment
     - name: USDE Prime Certification
       description: TRIPLES egg value
       levels: 1
       effects:
-        - bonus: egg-value-multiplier
-          increment: 3
+        - bonus: egg-value
+          amount:
+            value: 3
+            type: multiplier
     - name: Hen House A/C
       description: Increase egg laying rate by 5%
       levels: 50
       effects:
         - bonus: laying-rate
-          increment: 5
+          amount:
+            value: 5
+            type: percent
     - name: Super-Feed™ Diet
       description: Increase egg value by 25%
       levels: 35
       effects:
         - bonus: egg-value
-          increment: 25
+          amount:
+            value: 25
+            type: percent
     - name: Microlux™ Chicken Suites
       description: Increase capacity of all habs by 5%
       levels: 10
       effects:
         - bonus: hab-capacity
-          increment: 5
+          amount:
+            value: 5
+            type: percent
   - - name: Compact Incubators
       description: Increases Hatchery capacity by 10
       levels: 10
       effects:
         - bonus: hatchery-capacity
-          increment: 10
+          amount:
+            value: 10
+            type: increment
     - name: Lightweight Boxes
       description: Increase vehicle capacity by 10%
       levels: 40
       effects:
         - bonus: vehicle-capacity
-          increment: 10
+          amount:
+            value: 10
+            type: percent
     - name: Depot Worker Exoskeletons
       description: Increase maximum fleet size by 1
       levels: 2
       effects:
         - bonus: fleet-size
-          increment: 1
+          amount:
+            value: 1
+            type: increment
     - name: Internal Hatchery Expansion
       description: Each hen house adds an additional 10 chickens/min
       levels: 15
       effects:
         - bonus: internal-hatchery
-          increment: 10
+          amount:
+            value: 10
+            type: increment
     - name: Improved Genetics
       description: Increase egg laying rate AND egg value by 15%
       levels: 30
       effects:
         - bonus: laying-rate
-          increment: 15
+          amount:
+            value: 15
+            type: percent
         - bonus: egg-value
-          increment: 15
+          amount:
+            value: 15
+            type: percent
   - - name: Traffic Management
       description: Increase vehicle fleet size by 1
       levels: 2
       effects:
         - bonus: fleet-size
-          increment: 1
+          amount:
+            value: 1
+            type: increment
     - name: Motivational Clucking
       description: Max running chicken bonus increased by 0.1x
       levels: 45
       effects:
         - bonus: max-running-bonus
-          increment: 0.1
+          amount:
+            value: 0.1
+            type: increment
     - name: Driver Training
       description: Increase vehicle speed by 5%
       levels: 30
       effects:
         - bonus: vehicle-speed
-          increment: 5
+          amount:
+            value: 5
+            type: percent
     - name: Shell Fortification
       description: Increase egg value by 15%
       levels: 60
       effects:
         - bonus: egg-value
-          increment: 15
+          amount:
+            value: 15
+            type: percent
   - - name: Egg Loading Bots
       description: Increase fleet size by 1
       levels: 2
       effects:
         - bonus: fleet-size
-          increment: 1
+          amount:
+            value: 1
+            type: increment
     - name: Super Alloy Frames
       description: Increase vehicle capacity by 5%
       levels: 50
       effects:
         - bonus: vehicle-capacity
-          increment: 5
+          amount:
+            value: 5
+            type: percent
     - name: Even Bigger Eggs
       description: DOUBLES egg value
       levels: 5
       effects:
-        - bonus: egg-value-multiplier
-          increment: 2
+        - bonus: egg-value
+          amount:
+            value: 2
+            type: multiplier
     - name: Internal Hatchery Expansion
       description: Each hen house adds an additional 25 chickens/min
       levels: 30
       effects:
         - bonus: internal-hatchery
-          increment: 25
+          amount:
+            value: 25
+            type: increment
   - - name: Quantum Egg Storage
       description: Increase vehicle capacity by 5%
       levels: 20
       effects:
         - bonus: vehicle-capacity
-          increment: 5
+          amount:
+            value: 5
+            type: percent
     - name: Genetic Purification
       description: Increases egg value by 10%
       levels: 100
       effects:
         - bonus: egg-value
-          increment: 10
+          amount:
+            value: 10
+            type: percent
     - name: Machine Learning Incubators
       description: Each hen house adds an additional 5 chickens/min
       levels: 250
       effects:
         - bonus: internal-hatchery
-          increment: 5
+          amount:
+            value: 5
+            type: increment
     - name: Time Compression
       description: Increase egg laying rate by 10%
       levels: 20
       effects:
         - bonus: laying-rate
-          increment: 10
+          amount:
+            value: 10
+            type: percent
   - - name: Hover Upgrades
       description: Increase hover vehicle capacity by 5%
       levels: 25
       effects:
-        - bonus: vehicle-capacity
-          increment: 5
+        - bonus: hover-vehicle-capacity
+          amount:
+            value: 5
+            type: percent
     - name: Graviton Coating
       description: DOUBLES egg density and thus egg value
       levels: 8
       effects:
         - bonus: egg-value
-          increment: 2
+          amount:
+            value: 2
+            type: multiplier
     - name: Grav Plating
       description: Increase capacity of all habs by 2%
       levels: 25
       effects:
         - bonus: hab-capacity
-          increment: 2
+          amount:
+            value: 2
+            type: percent
     - name: Crystalline Shelling
       description: Increases egg value by 25%
       levels: +100
       effects:
         - bonus: egg-value
-          increment: 25
+          amount:
+            value: 25
+            type: percent
   - - name: Autonomous Vehicles
       description: Increase fleet size by 1
       levels: 6
       effects:
         - bonus: fleet-size
-          increment: 1
+          amount:
+            value: 1
+            type: increment
     - name: Neural Linking
       description: Each hen house adds an additional 50 chickens/min
       levels: 20
       effects:
         - bonus: internal-hatchery
-          increment: 50
+          amount:
+            value: 50
+            type: increment
     - name: Telephatic Will
       description: Increase egg quality (value) by 25%
       levels: 50
       effects:
         - bonus: egg-value
-          increment: 25
+          amount:
+            value: 25
+            type: percent
     - name: Enlightened Chickens
       description: Quadruple running chicken bonus!
       levels: 3
       effects:
-        - bonus: running-bonus-multiplier
-          increment: 4
+        - bonus: running-bonus
+          amount:
+            value: 4
+            type: multiplier
   - - name: Dark Containment
       description: Increase vehicle capacity by 5%
       levels: 25
       effects:
         - bonus: vehicle-capacity
-          increment: 5
+          amount:
+            value: 5
+            type: percent
     - name: Atomic Purification
       description: Increase egg value by 10%
       levels: 25
       effects:
         - bonus: egg-value
-          increment: 10
+          amount:
+            value: 10
+            type: percent
     - name: Multiversal Layering
       description: 10x egg value
       levels: 2
       effects:
-        - bonus: egg-value-multiplier
-          increment: 10
+        - bonus: egg-value
+          amount:
+            value: 10
+            type: multiplier
+epic:
+  - name: Hold to Hatch
+    description: Hold chicken button for +2 chickens per second
+    effects:
+      - bonus: holding-hatch
+        amount:
+          value: 2
+          type: increment
+    costs: [10, 34, 58, 82, 106, 130, 154, 178, 202, 226]
+  - name: Epic Hatchery
+    description: Increase hatechery refill rate by 10%
+    effects:
+      - bonus: hatchery-rate
+        amount:
+          value: 10
+          type: percent
+    costs: [2, 51, 101, 151, 201, 251, 301, 351, 401, 451, 501, 550, 600, 650, 700, 750, 800, 850, 900, 950]
+  - name: Epic Int. Hatcheries
+    description: Increase internal hatchery rate by 5%
+    effects:
+      - bonus: internal-hatchery
+        amount:
+          value: 5
+          type: percent
+    costs: [25, 73, 122, 171, 220, 268, 317, 366, 415, 463, 512, 561, 610, 658, 707, 756, 805, 853, 902, 951]
+  - name: Video Doubler Time
+    description: Increase internal hatchery rate by 5%
+    effects:
+      - bonus: video-doubler-time
+        amount:
+          value: 30
+          type: increment
+    costs: [25, 231, 437, 643, 850, 1056, 1262, 1468, 1675, 1881, 2087, 2293]
+  - name: Epic Clucking
+    description: +0.1% egg value bonus for each running chicken
+    effects:
+      - bonus: running-bonus
+        amount:
+          value: 0.1
+          type: increment
+    costs: [50, 95, 140, 185, 230, 275, 320, 365, 410, 455]
+  - name: Epic Multiplier
+    description: Increase max running chicken bonus by 0.2x!
+    effects:
+      - bonus: max-running-bonus
+        amount:
+          value: 0.2
+          type: increment
+    costs: [10, 29, 49, 69, 89, 109, 129, 149, 168, 188, 208, 228, 248, 268, 288, 308, 327, 347, 367, 387, 407, 427, 447, 466, 486, 506, 526, 546, 566, 586, 606, 625, 645, 665, 685, 705, 725, 745, 764, 784, 804, 824, 844, 864, 884, 904, 923, 943, 963, 983, 1003, 1023, 1043, 1062, 1082, 1102, 1122, 1142, 1162, 1182, 1202, 1221, 1241, 1261, 1281, 1301, 1321, 1341, 1360, 1380, 1400, 1420, 1440, 1460, 1480]
+  - name: Cheaper Contractors
+    description: Reduce hen house and silo build costs by 5%
+    effects:
+      - bonus: build-costs
+        amount:
+          value: -5.0
+          type: percent
+    costs: [20, 68, 116, 164, 212, 260, 308, 356, 404, 452]
+  - name: Bust Unions
+    description: Reduce vehicle hire costs by 5%
+    effects:
+      - bonus: vehicle-costs
+        amount:
+          value: -5.0
+          type: percent
+    costs: [20, 68, 116, 164, 212, 260, 308, 356, 404, 452]
+  - name: Lab Upgrade
+    description: Reduce research costs by 5%
+    effects:
+      - bonus: research-costs
+        amount:
+          value: -5.0
+          type: percent
+    costs: [25, 47, 70, 92, 115, 137, 160, 182, 205, 227]
+  - name: Silo Quality
+    description: Increase silo quality by 2%
+    effects:
+      - bonus: silo-quality
+        amount:
+          value: 2
+          type: percent
+    costs: [100, 130, 160, 190, 220, 250, 280, 310, 340, 370]
+  - name: Internal Hatchery Sharing
+    description: Full habs' internal hatcheries send +10% chicks to other habs
+    effects:
+      - bonus: internal-hatchery-sharing
+        amount:
+          value: 10
+          type: percent
+    costs: [250, 475, 700, 925, 1150, 1375, 1600, 1825, 2050, 2275]
+  - name: Internal Hatchery Calm
+    description: Increase internal hatchery rate by 10% while away
+    effects:
+      - bonus: internal-hatchery-calm
+        amount:
+          value: 10
+          type: percent
+    costs: [10, 109, 209, 308, 408, 507, 607, 706, 806, 905, 1005, 1104, 1204, 1303, 1403, 1502, 1602, 1701, 1801, 1900]
+  - name: Accounting Tricks
+    description: Increase farm valuation by 5%
+    effects:
+      - bonus: farm-value
+        amount:
+          value: 5
+          type: percent
+    costs: [25, 223, 422, 621, 820, 1018, 1217, 1416, 1615, 1813, 2012, 2211, 2410, 2608, 2807, 3006, 3205, 3403, 3602, 3801]
+  - name: Soul Food
+    description: Increase bonus per soul egg by +1%
+    effects:
+      - bonus: soul-egg-bonus
+        amount:
+          value: 1
+          type: percent
+    costs: [100, 127, 155, 183, 211, 239, 267, 295, 322, 350, 378, 406, 434, 462, 490, 517, 545, 573, 601, 629, 657, 685, 712, 740, 768, 796, 824, 852, 880, 907, 935, 963, 991, 1019, 1047, 1075, 1102, 1130, 1158, 1186, 1214, 1242, 1270, 1297, 1325, 1353, 1381, 1409, 1437, 1465, 1492, 1520, 1548, 1576, 1604, 1632, 1660, 1687, 1715, 1743, 1771, 1799, 1827, 1855, 1882, 1910, 1938, 1966, 1994, 2022, 2050, 2077, 2105, 2133, 2161, 2189, 2217, 2245, 2272, 2300, 2328, 2356, 2384, 2412, 2440, 2467, 2495, 2523, 2551, 2579, 2607, 2635, 2662, 2690, 2718, 2746, 2774, 2802, 2830, 2857, 2885, 2913, 2941, 2969, 2997, 3025, 3052, 3080, 3108, 3136, 3164, 3192, 3220, 3247, 3275, 3303, 3331, 3359, 3387, 3415, 3442, 3470, 3498, 3526, 3554, 3582, 3610, 3637, 3665, 3693, 3721, 3749, 3777, 3805, 3832, 3860, 3888, 3916, 3944, 3972]
+  - name: Prestive Bonus
+    description: Earn +10% soul eggs when you prestige
+    effects:
+      - bonus: prestige-eggs
+        amount:
+          value: 10
+          type: percent
+    costs: [4000, 4100, 4200, 4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300, 5400, 5500, 5600, 5700, 5800, 5900]
+  - name: Drone Rewards
+    description: Increase your chances for bigger drone rewards by 10%
+    effects:
+      - bonus: drone-rewards
+        amount:
+          value: 10
+          type: percent
+    costs: [100, 345, 590, 835, 1080, 1325, 1570, 1815, 2060, 2305, 2550, 2795, 3040, 3285, 3530, 3775, 4020, 4265, 4510, 4755]
+  - name: Transportation Lobbyists
+    description: Increase vehicle capacity by 5%
+    effects:
+      - bonus: vehicle-capacity
+        amount:
+          value: 5
+          type: percent
+    costs: [250, 362, 475, 587, 700, 812, 925, 1037, 1150, 1262, 1375, 1487, 1600, 1712, 1825, 1937, 2050, 2162, 2275, 2387]
+  - name: Warp Shift
+    description: Increases long warp time by 1 hour.
+    effects:
+      - bonus: long-warp-time
+        amount:
+          value: 1
+          type: increment
