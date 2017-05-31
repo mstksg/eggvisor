@@ -15,7 +15,7 @@ module Egg.Upgrade (
   , ResearchStatus(..)
   , scaleAmount
   , hasEffect
-  , bonuses
+  -- , bonuses
   , maxLevel
   , emptyStatus
   , researchBonuses
@@ -130,7 +130,7 @@ instance ToJSONKey BonusType where
 instance Monoid Bonuses where
     mempty = Bonuses M.empty
     mappend (Bonuses x) (Bonuses y) =
-      bonuses (M.unionWith (++) x y)
+      Bonuses (M.unionWith (++) x y)
 
 instance FromJSON a => FromJSON (Research a) where
     parseJSON = withObject "Research" $ \v ->
@@ -185,9 +185,9 @@ hasEffect = \case
     BAPercent    p -> p /= 0
     BAMultiplier r -> r /= 1
 
--- | Might be a bottleneck
-bonuses :: M.Map BonusType [BonusAmount] -> Bonuses
-bonuses = Bonuses . M.filter (not . null) . fmap (filter hasEffect)
+-- -- | Might be a bottleneck
+-- bonuses :: M.Map BonusType [BonusAmount] -> Bonuses
+-- bonuses = Bonuses . M.filter (not . null) . fmap (filter hasEffect)
 
 maxLevel :: Research a -> Int
 maxLevel = either fromIntegral V.length . rCosts
@@ -211,6 +211,7 @@ foldResearch f ResearchData{..} ResearchStatus{..} = mconcat
     foldZip f x y = fold $ V.zipWith f x y
 
 researchBonuses :: Research a -> Natural -> Bonuses
+researchBonuses _ 0 = Bonuses M.empty
 researchBonuses Research{..} s = case rBaseBonuses of
     Bonuses m -> Bonuses $ map (scaleAmount s) <$> m
 
