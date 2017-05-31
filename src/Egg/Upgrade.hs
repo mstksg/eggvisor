@@ -16,11 +16,15 @@ module Egg.Upgrade (
   , scaleAmount
   , maxLevel
   , emptyStatus
+  , researchBonuses
+  , totalBonuses
+  , foldResearch
   ) where
 
 import           Control.Applicative
 import           Data.Aeson.Encoding
 import           Data.Aeson.Types
+import           Data.Foldable
 import           Data.Kind
 import           Data.Yaml
 import           Egg.Types
@@ -165,7 +169,7 @@ instance ToJSON ResearchData where
         ]
 
 
-scaleAmount :: Integer -> BonusAmount -> BonusAmount
+scaleAmount :: Natural -> BonusAmount -> BonusAmount
 scaleAmount n = \case
     BAIncrement  i -> BAIncrement  (fromIntegral n * i)
     BAPercent    p -> BAPercent    (fromIntegral n * p)
@@ -177,3 +181,24 @@ maxLevel = either fromIntegral V.length . rCosts
 emptyStatus :: ResearchData -> ResearchStatus
 emptyStatus ResearchData{..} =
     ResearchStatus (fmap (0 <$) rdCommon) (0 <$ rdEpic)
+
+foldResearch
+    :: Monoid b
+    => (Either (Research Double) (Research Integer) -> Natural -> b)
+    -> ResearchData
+    -> ResearchStatus
+    -> b
+foldResearch f ResearchData{..} ResearchStatus{..} = mconcat
+    [ (foldZip . foldZip) (f . Left) rdCommon rsCommon
+    , foldZip (f . Right) rdEpic rsEpic
+    ]
+  where
+    foldZip :: Monoid c => (a -> b -> c) -> V.Vector a -> V.Vector b -> c
+    foldZip f x y = fold $ V.zipWith f x y
+
+researchBonuses :: Research a -> Natural -> Bonuses
+researchBonuses Research{..} s = case rBaseBonuses of
+    Bonuses m -> Bonuses $ map (scaleAmount s) <$> m
+
+totalBonuses :: ResearchData -> ResearchStatus -> Bonuses
+totalBonuses = foldResearch (either researchBonuses researchBonuses)
