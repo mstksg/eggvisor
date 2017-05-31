@@ -21,6 +21,7 @@ library
                      , aeson
                      , containers
                      , dependent-map
+                     , dependent-sum
                      , finite-typelits
                      , singletons
                      , text

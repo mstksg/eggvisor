@@ -7,6 +7,15 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Egg.Upgrade (
+    BonusAmount(..)
+  , BonusType(..)
+  , Bonuses(..)
+  , Research(..)
+  , ResearchData(..)
+  , ResearchStatus(..)
+  , scaleAmount
+  , maxLevel
+  , emptyStatus
   ) where
 
 import           Control.Applicative
@@ -17,6 +26,7 @@ import           Data.Yaml
 import           Egg.Types
 import           GHC.Generics        (Generic)
 import           GHC.TypeLits
+import           Numeric.Natural
 import qualified Data.HashMap.Lazy   as HM
 import qualified Data.Map            as M
 import qualified Data.Text           as T
@@ -27,27 +37,6 @@ data BonusAmount = BAIncrement Double
                  | BAPercent Double
                  | BAMultiplier Double
   deriving (Show, Eq, Ord, Generic)
-
-bonusAmountParseOptions :: Options
-bonusAmountParseOptions = defaultOptions
-    { sumEncoding = TaggedObject
-                      { tagFieldName      = "type"
-                      , contentsFieldName = "value"
-                      }
-    , constructorTagModifier = camelTo2 '-' . drop 2
-    }
-
-instance FromJSON BonusAmount where
-    parseJSON  = genericParseJSON  bonusAmountParseOptions
-instance ToJSON BonusAmount where
-    toJSON     = genericToJSON     bonusAmountParseOptions
-    toEncoding = genericToEncoding bonusAmountParseOptions
-
-scaleAmount :: Integer -> BonusAmount -> BonusAmount
-scaleAmount n = \case
-    BAIncrement  i -> BAIncrement  (fromIntegral n * i)
-    BAPercent    p -> BAPercent    (fromIntegral n * p)
-    BAMultiplier r -> BAMultiplier (r ^ n)
 
 data BonusType =
         BTBuildCosts
@@ -77,6 +66,43 @@ data BonusType =
       | BTVehicleSpeed
   deriving (Show, Eq, Ord, Generic)
 
+newtype Bonuses = Bonuses { bMap :: M.Map BonusType [BonusAmount] }
+    deriving (Show, Eq, Ord)
+
+data Research a =
+    Research { rName        :: T.Text
+             , rDescription :: T.Text
+             , rBaseBonuses :: Bonuses
+             , rCosts       :: Either Natural (V.Vector a)
+             }
+  deriving (Show, Eq, Ord)
+
+data ResearchData =
+    ResearchData { rdCommon :: V.Vector (V.Vector (Research Double))
+                 , rdEpic   :: V.Vector (Research Integer)
+                 }
+  deriving Show
+
+data ResearchStatus =
+    ResearchStatus { rsCommon :: V.Vector (V.Vector Natural)
+                   , rsEpic   :: V.Vector Natural
+                   }
+
+bonusAmountParseOptions :: Options
+bonusAmountParseOptions = defaultOptions
+    { sumEncoding = TaggedObject
+                      { tagFieldName      = "type"
+                      , contentsFieldName = "value"
+                      }
+    , constructorTagModifier = camelTo2 '-' . drop 2
+    }
+
+instance FromJSON BonusAmount where
+    parseJSON  = genericParseJSON  bonusAmountParseOptions
+instance ToJSON BonusAmount where
+    toJSON     = genericToJSON     bonusAmountParseOptions
+    toEncoding = genericToEncoding bonusAmountParseOptions
+
 bonusTypeParseOptions :: Options
 bonusTypeParseOptions = defaultOptions
     { sumEncoding = UntaggedValue
@@ -94,23 +120,9 @@ instance ToJSONKey BonusType where
     toJSONKey = toJSONKeyText $
         T.pack . constructorTagModifier bonusTypeParseOptions . show
 
-data Bonus = Bonus { bType :: BonusType, bAmt :: BonusAmount }
-    deriving (Show, Eq, Ord)
-
-newtype Bonuses = Bonuses { bMap :: M.Map BonusType [BonusAmount] }
-    deriving (Show, Eq, Ord)
-
 instance Monoid Bonuses where
     mempty = Bonuses M.empty
     mappend (Bonuses x) (Bonuses y) = Bonuses (M.unionWith (++) x y)
-
-data Research a =
-    Research { rName        :: T.Text
-             , rDescription :: T.Text
-             , rBaseBonuses :: Bonuses
-             , rCosts       :: Either Int (V.Vector a)
-             }
-  deriving (Show, Eq, Ord)
 
 instance FromJSON a => FromJSON (Research a) where
     parseJSON = withObject "Research" $ \v ->
@@ -138,12 +150,6 @@ instance ToJSON a => ToJSON (Research a) where
                          Right cs -> "costs"  .= cs
         ]
 
-data ResearchData =
-    ResearchData { rdCommon :: V.Vector (V.Vector (Research Double))
-                 , rdEpic   :: V.Vector (Research Integer)
-                 }
-  deriving Show
-
 instance FromJSON ResearchData where
     parseJSON = withObject "ResearchData" $ \v ->
       ResearchData <$> v .: "research"
@@ -157,3 +163,17 @@ instance ToJSON ResearchData where
         [ "research" .= rdCommon
         , "epic"     .= rdEpic
         ]
+
+
+scaleAmount :: Integer -> BonusAmount -> BonusAmount
+scaleAmount n = \case
+    BAIncrement  i -> BAIncrement  (fromIntegral n * i)
+    BAPercent    p -> BAPercent    (fromIntegral n * p)
+    BAMultiplier r -> BAMultiplier (r ^ n)
+
+maxLevel :: Research a -> Int
+maxLevel = either fromIntegral V.length . rCosts
+
+emptyStatus :: ResearchData -> ResearchStatus
+emptyStatus ResearchData{..} =
+    ResearchStatus (fmap (0 <$) rdCommon) (0 <$ rdEpic)
