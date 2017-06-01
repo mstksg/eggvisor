@@ -1,15 +1,17 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ConstraintKinds     #-}
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE EmptyCase           #-}
-{-# LANGUAGE GADTs               #-}
-{-# LANGUAGE LambdaCase          #-}
-{-# LANGUAGE PolyKinds           #-}
-{-# LANGUAGE RankNTypes          #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies        #-}
-{-# LANGUAGE TypeInType          #-}
-{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE AllowAmbiguousTypes   #-}
+{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE EmptyCase             #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PolyKinds             #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeInType            #-}
+{-# LANGUAGE TypeOperators         #-}
 
 module Data.Type.Combinator.Util (
     HasLen(..)
@@ -24,6 +26,7 @@ module Data.Type.Combinator.Util (
   , someSum
   , ixProd
   , _Flip
+  , sumProd
   ) where
 
 import           Control.Lens hiding ((:<), Index)
@@ -126,8 +129,35 @@ ixProd = \case
 _Flip :: Lens (Flip f a b) (Flip f c d) (f b a) (f d c)
 _Flip f (Flip x) = Flip <$> f x
 
--- sumProd
---     :: (Sum f :&: Prod g) as -> Sum (f :&: g) as
+sumProd
+    :: Functor h
+    => (forall a. (f :&: g) a -> h ((f :&: g) a))
+    -> (Sum f :&: Prod g) as
+    -> h ((Sum f :&: Prod g) as)
+sumProd f = uncurryFan $ \case
+    InL x  -> \case
+      y :< ys -> (InL .&. (:< ys)) <$> f (x :&: y)
+    InR xs -> \case
+      y :< ys -> (InR .&. (y  :<)) <$> sumProd f (xs :&: ys)
+
+instance Field1 ((f :&: g) a) ((h :&: g) a) (f a) (h a) where
+    _1 f (x :&: y) = (:&: y) <$> f x
+
+instance Field2 ((f :&: g) a) ((f :&: h) a) (g a) (h a) where
+    _2 f (x :&: y) = (x :&:) <$> f y
+
+-- sumProd = \case
+--     InL x -> \f -> \case
+--       y :< ys -> (:< ys) . fanSnd <$> f (x :&: y)
+--     InR xs -> \f -> \case
+--       y :< ys -> (y :<) <$> sumProd xs f ys
+
+-- sumProd :: (Sum f :&: Prod g) as -> Sum (f :&: g) as
+
+-- sumProd :: Sum f as -> Lens' (Prod g as) (Sum (f :&: g) as)
+-- sumProd = \case
+--     InL x -> \f -> \case
+--       y :< ys -> f (InL (x :&: y)) <&> _
 
 -- sumProd :: Sum f as -> Lens' (Prod g as) (Some (f :&: g))
 -- sumProd = \case

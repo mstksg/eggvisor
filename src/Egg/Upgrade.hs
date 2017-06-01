@@ -1,18 +1,20 @@
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE GADTs                #-}
-{-# LANGUAGE KindSignatures       #-}
-{-# LANGUAGE LambdaCase           #-}
-{-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE RankNTypes           #-}
-{-# LANGUAGE RecordWildCards      #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TypeApplications     #-}
-{-# LANGUAGE TypeOperators        #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE ViewPatterns         #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE KindSignatures        #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE TypeSynonymInstances  #-}
+{-# LANGUAGE ViewPatterns          #-}
+{-# OPTIONS_GHC -fno-warn-partial-type-signatures #-}
 
 module Egg.Upgrade (
     BonusAmount(..)
@@ -21,6 +23,7 @@ module Egg.Upgrade (
   , Research(..)
   , ResearchData(..)
   , ResearchStatus(..)
+  , ResearchIx(..)
   , scaleAmount
   , hasEffect
   , bonuses
@@ -29,21 +32,18 @@ module Egg.Upgrade (
   , researchBonuses
   , totalBonuses
   , foldResearch
-  -- , purchaseCommon
+  , purchaseResearch
+  , researchIxData
+  , researchIxStatus
   ) where
 
 import           Control.Applicative hiding      (some)
-import           Control.Lens hiding             ((.=))
-import           Control.Monad
-import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.Except
-import           Control.Monad.Trans.State
+import           Control.Lens hiding             ((.=), ix)
 import           Data.Aeson.Encoding
 import           Data.Aeson.Types
 import           Data.Dependent.Sum
 import           Data.Finite
 import           Data.Foldable
-import           Data.Function
 import           Data.Kind
 import           Data.Singletons
 import           Data.Singletons.Prelude hiding  (Flip)
@@ -52,21 +52,15 @@ import           Data.Type.Combinator
 import           Data.Type.Combinator.Singletons
 import           Data.Type.Combinator.Util
 import           Data.Type.Conjunction
-import           Data.Type.Index
 import           Data.Type.Product               as TCP
 import           Data.Type.Sum
 import           Data.Type.Vector
-import           Data.Yaml
-import           Egg.Types
 import           GHC.Generics                    (Generic)
-import           GHC.TypeLits
 import           Numeric.Natural
 import           Type.Class.Higher
 import           Type.Class.Witness
-import qualified Data.HashMap.Lazy               as HM
 import qualified Data.Map                        as M
 import qualified Data.Text                       as T
-import qualified Data.Text.Encoding              as T
 import qualified Data.Vector                     as V
 import qualified Data.Vector.Sized               as SV
 
@@ -133,8 +127,8 @@ data ResearchStatus :: [Nat] -> Nat -> Type where
   deriving (Show, Eq, Ord)
 
 data ResearchIx :: [Nat] -> Nat -> Type -> Type where
-    RICommon :: Prod Finite tiers -> ResearchIx tiers epic Double
-    RIEpic   :: Finite epic       -> ResearchIx tiers epic Integer
+    RICommon :: Sum Finite tiers -> ResearchIx tiers epic Double
+    RIEpic   :: Finite epic      -> ResearchIx tiers epic Integer
 
 bonusAmountParseOptions :: Options
 bonusAmountParseOptions = defaultOptions
@@ -214,9 +208,9 @@ instance FromJSON SomeResearchData where
 
 instance ToJSON SomeResearchData where
     toJSON = \case
-        s :=> Uncur r -> toJSON r
+        _ :=> Uncur r -> toJSON r
     toEncoding = \case
-        s :=> Uncur r -> toEncoding r
+        _ :=> Uncur r -> toEncoding r
 instance ToJSON (ResearchData tiers epic) where
     toJSON ResearchData{..} = object
         [ "research" .= TCP.toList (SV.fromSized . getFlip) rdCommon
@@ -271,95 +265,40 @@ researchBonuses Research{..} s = case rBaseBonuses of
 totalBonuses :: ResearchData tiers epic -> ResearchStatus tiers epic -> Bonuses
 totalBonuses = foldResearch (either researchBonuses researchBonuses)
 
-purchaseCommon
-    :: forall tiers epic. Every KnownNat tiers
+purchaseResearch
+    :: (KnownNat epic, SingI tiers)
     => ResearchData tiers epic
-    -> Sum Finite tiers
+    -> ResearchIx tiers epic a
     -> ResearchStatus tiers epic
-    -> (Maybe Double, ResearchStatus tiers epic)
-purchaseCommon ResearchData{..} ix rs0 =
-    some (sumSome pickedTier) $ \(tier :&: ((Flip d :&: Flip s) :&: slot)) ->
-      case every @_ @KnownNat tier of
-        Wit -> flip (_rsCommon . ixProd tier . _Flip . ixSV slot) rs0 $ \currLevel ->
-          case rCosts (SV.index d slot) of
-            Left m   -> if currLevel < m
-              then (Just 0 , currLevel + 1)
-              else (Nothing, currLevel)
-            Right cs -> case cs V.!? fromIntegral (currLevel + 1) of
-              Just c  -> (Just c , currLevel + 1)
-              Nothing -> (Nothing, currLevel)
-  where
-    pickedTier
-        :: Sum ((Flip SV.Vector (Research Double) :&: Flip SV.Vector Natural) :&: Finite) tiers
-    pickedTier = tagSum (zipP (rdCommon :&: rsCommon rs0)) ix
-
-purchaseEpic
-    :: forall tiers epic. KnownNat epic
-    => ResearchData tiers epic
-    -> Finite epic
-    -> ResearchStatus tiers epic
-    -> (Maybe Integer, ResearchStatus tiers epic)
-purchaseEpic ResearchData{..} ix rs0 = flip (_rsEpic . ixSV ix) rs0 $ \currLevel ->
-    case rCosts (SV.index rdEpic ix) of
+    -> (Maybe a, ResearchStatus tiers epic)
+purchaseResearch rd ix = researchIxStatus ix $ \currLevel ->
+    case view (researchIxData ix . to rCosts) rd of
       Left m   -> if currLevel < m
-        then (Just 0 , currLevel + 1)
+        then (Just 0 , currLevel + 1) \\ researchIxNum ix
         else (Nothing, currLevel)
       Right cs -> case cs V.!? fromIntegral (currLevel + 1) of
         Just c  -> (Just c , currLevel + 1)
         Nothing -> (Nothing, currLevel)
 
+researchIxNum :: ResearchIx tiers epic a -> Wit (Num a)
+researchIxNum = \case
+    RICommon _ -> Wit
+    RIEpic   _ -> Wit
+
 ixSV :: KnownNat n => Finite n -> Lens' (SV.Vector n a) a
 ixSV ix f v = (\x -> v SV.// [(fromIntegral ix, x)]) <$> f (SV.index v ix)
 
--- purchaseCommon ResearchData{..} t r = runStateT $ do
---     tier <- maybe (lift (Left REBadTier)) return $ rdCommon V.!? t
---     res  <- maybe (lift (Left REBadSlot)) return $ tier     V.!? r
---     currCommon <- gets rsCommon
---     currTier <- maybe (lift (Left REBadTier)) return $ currCommon V.!? t
---     currRes  <- maybe (lift (Left REBadSlot)) return $ currTier   V.!? r
---     let newLevel = currRes + 1
---         updated  = currCommon V.// [(t, currTier V.// [(r, fromIntegral newLevel)])]
---     case rCosts res of
---       Left m | newLevel > m -> lift $ Left REMaxedOut
---              | otherwise    -> do
---                  modify $ \rs -> rs { rsCommon = updated }
---                  return Nothing
---       Right v -> case v V.!? fromIntegral newLevel of
---         Nothing -> lift $ Left REMaxedOut
---         Just p  -> do
---           modify $ \rs -> rs { rsCommon = updated }
---           return (Just p)
+_rdCommon :: Lens (ResearchData t1 e)
+                  (ResearchData t2 e)
+                  (Prod (Flip SV.Vector (Research Double)) t1)
+                  (Prod (Flip SV.Vector (Research Double)) t2)
+_rdCommon f rd = (\v -> rd { rdCommon = v }) <$> f (rdCommon rd)
 
-
--- -- data ResearchError = REBadTier
--- --                    | REBadSlot
--- --                    | REMaxedOut
--- --   deriving (Show, Eq, Ord)
-
--- -- purchaseCommon
--- --     :: ResearchData
--- --     -> Int
--- --     -> Int
--- --     -> ResearchStatus
--- --     -> Either ResearchError (Maybe Double, ResearchStatus)
--- -- purchaseCommon ResearchData{..} t r = runStateT $ do
--- --     tier <- maybe (lift (Left REBadTier)) return $ rdCommon V.!? t
--- --     res  <- maybe (lift (Left REBadSlot)) return $ tier     V.!? r
--- --     currCommon <- gets rsCommon
--- --     currTier <- maybe (lift (Left REBadTier)) return $ currCommon V.!? t
--- --     currRes  <- maybe (lift (Left REBadSlot)) return $ currTier   V.!? r
--- --     let newLevel = currRes + 1
--- --         updated  = currCommon V.// [(t, currTier V.// [(r, fromIntegral newLevel)])]
--- --     case rCosts res of
--- --       Left m | newLevel > m -> lift $ Left REMaxedOut
--- --              | otherwise    -> do
--- --                  modify $ \rs -> rs { rsCommon = updated }
--- --                  return Nothing
--- --       Right v -> case v V.!? fromIntegral newLevel of
--- --         Nothing -> lift $ Left REMaxedOut
--- --         Just p  -> do
--- --           modify $ \rs -> rs { rsCommon = updated }
--- --           return (Just p)
+_rdEpic :: Lens (ResearchData t e1)
+                (ResearchData t e2)
+                (SV.Vector e1 (Research Integer))
+                (SV.Vector e2 (Research Integer))
+_rdEpic f rd = (\v -> rd { rdEpic = v }) <$> f (rdEpic rd)
 
 _rsCommon :: Lens (ResearchStatus t1 e)
                   (ResearchStatus t2 e)
@@ -367,7 +306,31 @@ _rsCommon :: Lens (ResearchStatus t1 e)
                   (Prod (Flip SV.Vector Natural) t2)
 _rsCommon f rs = (\v -> rs { rsCommon = v }) <$> f (rsCommon rs)
 
-        -- :: { rdCommon :: Prod (Flip SV.Vector (Research Double)) tiers
-
 _rsEpic :: Lens (ResearchStatus t e1) (ResearchStatus t e2) (SV.Vector e1 Natural) (SV.Vector e2 Natural)
 _rsEpic f rs = (\v -> rs { rsEpic = v }) <$> f (rsEpic rs)
+
+researchIxData
+    :: (KnownNat epic, SingI tiers)
+    => ResearchIx tiers epic a
+    -> Lens' (ResearchData tiers epic) (Research a)
+researchIxData = \case
+    RICommon ix -> \f ->
+      let g :: forall a. _ a -> _ (_ a)
+          g x@(slot :&: (_ :&: SNat)) = (_2 . _1 . _Flip . ixSV slot) f x
+      in  _rdCommon $ \rs -> map1 fanFst . fanSnd
+            <$> sumProd g (ix :&: zipP (rs :&: singProd sing))
+    RIEpic ix   -> _rdEpic . ixSV ix
+
+researchIxStatus
+    :: (KnownNat epic, SingI tiers)
+    => ResearchIx tiers epic a
+    -> Lens' (ResearchStatus tiers epic) Natural
+researchIxStatus = \case
+    RICommon ix -> \f ->
+      let g :: forall a. ()
+            => (Finite :&: (Flip SV.Vector Natural :&: Sing)) a
+            -> _ ((Finite :&: (Flip SV.Vector Natural :&: Sing)) a)
+          g x@(slot :&: (_ :&: SNat)) = (_2 . _1 . _Flip . ixSV slot) f x
+      in  _rsCommon $ \rs -> map1 fanFst . fanSnd
+            <$> sumProd g (ix :&: zipP (rs :&: singProd sing))
+    RIEpic ix   -> _rsEpic . ixSV ix
