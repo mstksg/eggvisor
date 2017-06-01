@@ -17,7 +17,9 @@ library
   hs-source-dirs:      src
   exposed-modules:     Egg.Types
                        Egg.Upgrade
+                       Egg.Habitat
   other-modules:       Data.Type.Combinator.Util
+                       Data.Vector.Sized.Util
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , containers

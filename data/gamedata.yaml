@@ -1,128 +1,128 @@
 ---
 habitats:
   - name: Coop
-    capacity: 250
-    prices:
+    base-capacity: 250
+    costs:
       - 63.51
       - 79.72
       - 99.89
       - 124
   - name: Shack
-    capacity: 500
-    prices:
+    base-capacity: 500
+    costs:
       - 557
       - 905
       - 1414
       - 2139
   - name: Super Shack
-    capacity: 1000
-    prices:
+    base-capacity: 1000
+    costs:
       - 12837
       - 27088
       - 52275
       - 93923
   - name: Short House
-    capacity: 2000
-    prices:
+    base-capacity: 2000
+    costs:
       - 313078
       - 862531
       - 2025474
       - 4230815
   - name: The Standard
-    capacity: 5000
-    prices:
+    base-capacity: 5000
+    costs:
       - 36.330375e+06
       - 130.684e+06
       - 366.922e+06
       - 872.224e+06
   - name: Long House
-    capacity: 10000
-    prices:
+    base-capacity: 10000
+    costs:
       - 1.744e+09
       - 7.062e+09
       - 21.364e+09
       - 53.383e+09
   - name: Double Decker
-    capacity: 20000
-    prices:
+    base-capacity: 20000
+    costs:
       - 106.766e+09
       - 460.301e+09
       - 1.446e+12
       - 3.707e+12
   - name: Warehouse
-    capacity: 50000
-    prices:
+    base-capacity: 50000
+    costs:
       - 29.456e+12
       - 131.713e+12
       - 422.714e+12
       - 1.097e+15
   - name: Center
-    capacity: 100000
-    prices:
+    base-capacity: 100000
+    costs:
       - 2.194e+15
       - 9.906e+15
       - 31.943e+15
       - 83.093e+15
   - name: Bunker
-    capacity: 200000
-    prices:
+    base-capacity: 200000
+    costs:
       - 166.187e+15
       - 752.418e+15
       - 2.428e+18
       - 6.318e+18
   - name: Eggkea
-    capacity: 500000
-    prices:
+    base-capacity: 500000
+    costs:
       - 50.924e+18
       - 230.387e+18
       - 742.340e+18
       - 1.928e+21
   - name: HAB 1000
-    capacity: 1000000
-    prices:
+    base-capacity: 1000000
+    costs:
       - 3.856e+21
       - 17.407e+21
       - 55.994e+21
       - 145.258e+21
   - name: Hangar
-    capacity: 2000000
-    prices:
+    base-capacity: 2000000
+    costs:
       - 290.516e+21
       - 1.307e+24
       - 4.17e+24
       - 10.63e+24
   - name: Tower
-    capacity: 5000000
-    prices:
+    base-capacity: 5000000
+    costs:
       - 82.190e+24
       - 338.528e+24
       - 980.182e+24
       - 2.294e+27
   - name: HAB 10000
-    capacity: 10000000
-    prices:
+    base-capacity: 10000000
+    costs:
       - 7.83e+27
       - 28.686e+27
       - 76.42e+27
       - 167.044e+27
   - name: Eggtopia
-    capacity: 25000000
-    prices:
+    base-capacity: 25000000
+    costs:
       - 2.028e+30
       - 6.324e+30
       - 14.716e+30
       - 30.192e+30
   - name: Monolith
-    capacity: 50000000
-    prices:
+    base-capacity: 50000000
+    costs:
       - 360.974e+30
       - 1.292e+33
       - 3.482e+33
       - 7.832e+33
       - 30.192e+33
   - name: Planet Portal
-    capacity: 100000000
-    prices:
+    base-capacity: 100000000
+    costs:
       - 301.653e+33
       - 1.148e+36
       - 3.236e+36

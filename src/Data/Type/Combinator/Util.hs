@@ -1,17 +1,24 @@
-{-# LANGUAGE AllowAmbiguousTypes   #-}
-{-# LANGUAGE ConstraintKinds       #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE EmptyCase             #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE LambdaCase            #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE PolyKinds             #-}
-{-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeInType            #-}
-{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE AllowAmbiguousTypes    #-}
+{-# LANGUAGE ConstraintKinds        #-}
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE DeriveGeneric          #-}
+{-# LANGUAGE EmptyCase              #-}
+{-# LANGUAGE FlexibleContexts       #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE GADTs                  #-}
+{-# LANGUAGE LambdaCase             #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE PolyKinds              #-}
+{-# LANGUAGE RankNTypes             #-}
+{-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE StandaloneDeriving     #-}
+{-# LANGUAGE TypeApplications       #-}
+{-# LANGUAGE TypeFamilies           #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
+{-# LANGUAGE TypeInType             #-}
+{-# LANGUAGE TypeOperators          #-}
+{-# LANGUAGE UndecidableInstances   #-}
+{-# OPTIONS_GHC -fno-warn-orphans   #-}
 
 module Data.Type.Combinator.Util (
     HasLen(..)
@@ -27,20 +34,30 @@ module Data.Type.Combinator.Util (
   , ixProd
   , _Flip
   , sumProd
+  , for1
+  , Replicate
+  , vecToProd
+  , vecToAnyProd
   ) where
 
-import           Control.Lens hiding ((:<), Index)
+import           Control.Lens hiding    ((:<), Index, Traversable2(..), Traversable1(..))
+import           Data.Aeson
+import           Data.Aeson.Types
+import           Data.Foldable          as F
 import           Data.Kind
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
 import           Data.Type.Index
 import           Data.Type.Length
 import           Data.Type.Nat
-import           Data.Type.Product
+import           Data.Type.Product      as TCP
 import           Data.Type.Sum
 import           Data.Type.Vector
+import           GHC.Generics           (Generic)
 import           Type.Class.Higher
+import           Type.Class.Known
 import           Type.Class.Witness
+import           Type.Family.Constraint
 import           Type.Family.List
 import           Type.Family.Nat
 
@@ -117,7 +134,7 @@ someSum = withSome (uncurryFan go)
     go :: forall bs a. Index bs a -> f a -> Sum f bs
     go = \case
       IZ   -> InL
-      IS i -> \x -> InR (go i x)
+      IS i -> InR . go i
 
 ixProd :: Index as a -> Lens' (Prod f as) (f a)
 ixProd = \case
@@ -163,3 +180,82 @@ instance Field2 ((f :&: g) a) ((f :&: h) a) (g a) (h a) where
 -- sumProd = \case
 --     InL x -> \f -> \case
 --       y :< ys -> f (Some (x :&: y)) <&> \case Some (x' :&: y') -> y' :< ys
+
+instance (Known Nat n, FromJSON a) => FromJSON (Vec n a) where
+    parseJSON o = do
+      xs <- parseJSON o
+      case listVec known xs of
+        Nothing -> fail "Bad number of items in list."
+        Just ys -> return ys
+instance ToJSON a => ToJSON (Vec n a) where
+    toJSON     = toJSON . F.toList
+    toEncoding = toEncoding . F.toList
+
+instance (Every (Comp FromJSON f) as, Known Length as) => FromJSON (Prod f as) where
+    parseJSON = withArray "Prod f as" (go TCP.indices . F.toList)
+      where
+        go  :: forall bs. ()
+            => Prod (Index as) bs
+            -> [Value]
+            -> Parser (Prod f bs)
+        go = \case
+          Ø -> \case
+            []  -> return Ø
+            _:_ -> fail "Too many items in array"
+          i :< is -> \case
+            []   -> fail "Too few items in array"
+            x:xs -> (:<) <$> (parseJSON x \\ every @_ @(Comp FromJSON f) i)
+                         <*> go is xs
+instance Every (Comp ToJSON f) as => ToJSON (Prod f as) where
+    toJSON = toJSON . ifoldMap1 (\i x -> [toJSON x] \\ every @_ @(Comp ToJSON f) i)
+    toEncoding = toEncoding . toJSON @(Prod f as)
+
+deriving instance Generic (Flip a b c)
+
+instance ToJSON (f b a) => ToJSON (Flip f a b)
+instance FromJSON (f b a) => FromJSON (Flip f a b)
+
+listVec :: Nat n -> [a] -> Maybe (Vec n a)
+listVec = \case
+    Z_ -> \case
+      [] -> Just ØV
+      _  -> Nothing
+    S_ n -> \case
+      [] -> Nothing
+      x:xs -> do
+        ys <- listVec n xs
+        return (x :+ ys)
+
+for1
+    :: (Applicative h, Traversable1 t)
+    => t f b
+    -> (forall a. f a -> h (g a))
+    -> h (t g b)
+for1 x f = traverse1 f x
+
+type family Replicate (n :: N) (a :: k) = (as :: [k]) | as -> n where
+    Replicate 'Z     a = '[]
+    Replicate ('S n) a = a ': Replicate n a
+
+vecToProd
+    :: VecT n f a
+    -> Prod f (Replicate n a)
+vecToProd = \case
+    ØV      -> Ø
+    x :* xs -> x :< vecToProd xs
+
+vecToAnyProd
+    :: Vec n a
+    -> HasLen n as
+    -> Prod (C a) as
+vecToAnyProd = \case
+    ØV        -> \case
+      HLZ -> Ø
+    I x :* xs -> \case
+      HLS hl -> C x :< vecToAnyProd xs hl
+
+instance Known (HasLen 'Z) '[] where
+    known = HLZ
+instance Known (HasLen n) as => Known (HasLen ('S n)) (a ': as) where
+    known = HLS known
+

@@ -25,8 +25,8 @@ module Egg.Upgrade (
   , BonusType(..), AsBonusType(..)
   , Bonuses(..), _Bonuses
   , Research(..), HasResearch(..)
-  , ResearchData(..), rdCommon, rdEpic
-  , ResearchStatus(..), rsCommon, rsEpic
+  , ResearchData(..), rdCommon, rdEpic, SomeResearchData
+  , ResearchStatus(..), rsCommon, rsEpic, SomeResearchStatus
   , ResearchIx(..)
   , scaleAmount
   , hasEffect
@@ -39,10 +39,11 @@ module Egg.Upgrade (
   , purchaseResearch
   , researchIxData
   , researchIxStatus
+  , withSomeResearch
   ) where
 
 import           Control.Applicative hiding      (some)
-import           Control.Lens hiding             ((.=), ix)
+import           Control.Lens hiding             ((.=), ix, (:<))
 import           Data.Aeson.Encoding
 import           Data.Aeson.Types
 import           Data.Dependent.Sum
@@ -59,10 +60,13 @@ import           Data.Type.Conjunction
 import           Data.Type.Product               as TCP
 import           Data.Type.Sum
 import           Data.Type.Vector
+import           Data.Vector.Sized.Util
 import           GHC.Generics                    (Generic)
 import           Numeric.Natural
 import           Type.Class.Higher
+import           Type.Class.Known
 import           Type.Class.Witness
+import           Type.Family.Nat
 import qualified Data.Map                        as M
 import qualified Data.Text                       as T
 import qualified Data.Vector                     as V
@@ -153,6 +157,8 @@ data ResearchStatus :: [Nat] -> Nat -> Type where
 
 makeLenses ''ResearchStatus
 
+type SomeResearchStatus = DSum Sing (Uncur ResearchStatus)
+
 -- | A safe index for a given research item, usable with 'ResearchData' and
 -- 'ResearchStatus'.
 data ResearchIx :: [Nat] -> Nat -> Type -> Type where
@@ -234,12 +240,30 @@ instance FromJSON SomeResearchData where
         f   :: V.Vector (Research Double)
             -> Some (Sing :&: Flip SV.Vector (Research Double))
         f xs = SV.withSized xs $ \xsV -> Some (SNat :&: Flip xsV)
-
 instance ToJSON SomeResearchData where
     toJSON = \case
         _ :=> Uncur r -> toJSON r
     toEncoding = \case
         _ :=> Uncur r -> toEncoding r
+instance (SingI tiers, KnownNat epic) => FromJSON (ResearchData tiers epic) where
+    parseJSON = withObject "ResearchData" $ \v -> do
+        res   <- v .: "research"
+        resV  <- go sing res
+        epics <- v .: "epic"
+        epicsV <- case SV.toSized epics of
+          Nothing -> fail "Bad number of items in list."
+          Just eV -> return eV
+        return $ ResearchData resV epicsV
+      where
+        go :: Sing ts -> [Value] -> Parser (Prod (Flip SV.Vector (Research Double)) ts)
+        go = \case
+          SNil -> \case
+            []  -> return Ø
+            _:_ -> fail "Too many items in list"
+          SNat `SCons` ss -> \case
+            []   -> fail "Too few items in list"
+            x:xs -> (:<) <$> parseJSON x <*> go ss xs
+        
 instance ToJSON (ResearchData tiers epic) where
     toJSON ResearchData{..} = object
         [ "research" .= TCP.toList (SV.fromSized . getFlip) _rdCommon
@@ -350,10 +374,15 @@ researchIxStatus
     -> Lens' (ResearchStatus tiers epic) Natural
 researchIxStatus = \case
     RICommon ix -> \f ->
-      let g :: forall a. ()
-            => (Finite :&: (Flip SV.Vector Natural :&: Sing)) a
-            -> _ ((Finite :&: (Flip SV.Vector Natural :&: Sing)) a)
+      let g :: forall a. _ a -> _ (_ a)
           g x@(slot :&: (_ :&: SNat)) = (_2 . _1 . _Flip . ixSV slot) f x
       in  rsCommon $ \rs -> map1 fanFst . fanSnd
             <$> sumProd g (ix :&: zipP (rs :&: singProd sing))
     RIEpic ix   -> rsEpic . ixSV ix
+
+withSomeResearch
+    :: DSum Sing (Uncur res)
+    -> (forall tiers epic. (KnownNat epic, SingI tiers) => res tiers epic -> r)
+    -> r
+withSomeResearch = \case
+    STuple2 sTs SNat :=> Uncur r -> \f -> withSingI sTs $ f r
