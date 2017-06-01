@@ -23,7 +23,7 @@
 module Egg.Upgrade (
     BonusAmount(..), AsBonusAmount(..)
   , BonusType(..), AsBonusType(..)
-  , Bonuses(..), bMap
+  , Bonuses(..), _Bonuses
   , Research(..), HasResearch(..)
   , ResearchData(..), rdCommon, rdEpic
   , ResearchStatus(..), rsCommon, rsEpic
@@ -108,7 +108,7 @@ makeClassyPrisms ''BonusType
 newtype Bonuses = Bonuses { _bMap :: M.Map BonusType [BonusAmount] }
     deriving (Show, Eq, Ord)
 
-makeLenses ''Bonuses
+makePrisms ''Bonuses
 makeWrapped ''Bonuses
 
 data Research a =
