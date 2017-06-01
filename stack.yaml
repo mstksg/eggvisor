@@ -37,6 +37,11 @@ resolver: lts-8.15
 # will not be run. This is useful for tweaking upstream packages.
 packages:
 - '.'
+- location:
+    git: git@github.com:mstksg/type-combinators-singletons.git
+    commit: 8bd05539987692ee745f0d78b83e5d72c7af21c4
+  extra-dep: true
+
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps: []
