@@ -68,9 +68,17 @@ import qualified Data.Text                       as T
 import qualified Data.Vector                     as V
 import qualified Data.Vector.Sized               as SV
 
-data BonusAmount = BAIncrement Double
-                 | BAPercent Double
-                 | BAMultiplier Double
+data BonusAmount
+    -- | Bonus adds an absolute amount.  Scales by multiplication, and
+    -- compounds by addition.
+    = BAIncrement Double
+    -- | Bonus adds a percentage point multiplier.  Scales by
+    -- multiplication (three 10% buffs is a 15% buff) and compounds by
+    -- appropriate multiplication.
+    | BAPercent Double
+    -- | Bonus multiplies by a given ratio.  Scales by exponentiation
+    -- (three 2x buffs is a 8x buff) and compounds by multiplication.
+    | BAMultiplier Double
   deriving (Show, Eq, Ord, Generic)
 
 makeClassyPrisms ''BonusAmount
@@ -115,6 +123,8 @@ data Research a =
     Research { _rName        :: T.Text
              , _rDescription :: T.Text
              , _rBaseBonuses :: Bonuses
+             -- | 'Left' if no cost data, just giving the maximum level.
+             -- 'Right' with cost data.
              , _rCosts       :: Either Natural (V.Vector a)
              }
   deriving (Show, Eq, Ord)
@@ -143,6 +153,8 @@ data ResearchStatus :: [Nat] -> Nat -> Type where
 
 makeLenses ''ResearchStatus
 
+-- | A safe index for a given research item, usable with 'ResearchData' and
+-- 'ResearchStatus'.
 data ResearchIx :: [Nat] -> Nat -> Type -> Type where
     RICommon :: Sum Finite tiers -> ResearchIx tiers epic Double
     RIEpic   :: Finite epic      -> ResearchIx tiers epic Integer
@@ -239,28 +251,35 @@ instance ToJSON (ResearchData tiers epic) where
         ]
 
 
+-- | Scales a bonus amount by a "level".
 scaleAmount :: Natural -> BonusAmount -> BonusAmount
 scaleAmount n = \case
     BAIncrement  i -> BAIncrement  (fromIntegral n * i)
     BAPercent    p -> BAPercent    (fromIntegral n * p)
     BAMultiplier r -> BAMultiplier (r ^ n)
 
+-- | Tells whether or not a bonus amount creates any actual effect.
 hasEffect :: BonusAmount -> Bool
 hasEffect = \case
     BAIncrement  i -> i /= 0
     BAPercent    p -> p /= 0
     BAMultiplier r -> r /= 1
 
+-- | A "smart constructor" that clears bonuses with no effect.
 bonuses :: M.Map BonusType [BonusAmount] -> Bonuses
 bonuses = Bonuses . M.filter (not . null) . fmap (filter hasEffect)
 
+-- | Maximum level for a given research.
 maxLevel :: Research a -> Int
 maxLevel = either fromIntegral V.length . _rCosts
 
+-- | Empty status (no research).
 emptyStatus :: ResearchData tiers epic -> ResearchStatus tiers epic
 emptyStatus ResearchData{..} =
     ResearchStatus (map1 (mapFlip (0 <$)) _rdCommon) (0 <$ _rdEpic)
 
+-- | Zips together all research data and research statuses into an
+-- accumulator.
 foldResearch
     :: Monoid b
     => (Either (Research Double) (Research Integer) -> Natural -> b)
@@ -274,14 +293,19 @@ foldResearch f ResearchData{..} ResearchStatus{..} = mconcat
     , fold $ SV.zipWith (f . Right) _rdEpic _rsEpic
     ]
 
+-- | Bonuses from a given 'Research' at a given level.  Assumes no "maximum
+-- level".
 researchBonuses :: Research a -> Natural -> Bonuses
 researchBonuses _ 0 = Bonuses M.empty
-researchBonuses Research{..} s = case _rBaseBonuses of
-    Bonuses m -> Bonuses $ map (scaleAmount s) <$> m
+researchBonuses r l = over (_Bonuses . traverse . traverse) (scaleAmount l)
+                        $ _rBaseBonuses r
 
+-- | Total bonuses from a given 'ResearchStatus'.
 totalBonuses :: ResearchData tiers epic -> ResearchStatus tiers epic -> Bonuses
 totalBonuses = foldResearch (either researchBonuses researchBonuses)
 
+-- | Purchase research at a given index, incrementing the counter in the
+-- 'ResearchStatus'.  Returns 'Nothing' if research is already maxed out.
 purchaseResearch
     :: (KnownNat epic, SingI tiers)
     => ResearchData tiers epic
@@ -297,6 +321,7 @@ purchaseResearch rd ix = researchIxStatus ix $ \currLevel ->
         Just c  -> (Just c , currLevel + 1)
         Nothing -> (Nothing, currLevel)
 
+-- | Get a 'Num' instance from a 'ResearchIx'.
 researchIxNum :: ResearchIx tiers epic a -> Wit (Num a)
 researchIxNum = \case
     RICommon _ -> Wit
@@ -305,6 +330,7 @@ researchIxNum = \case
 ixSV :: KnownNat n => Finite n -> Lens' (SV.Vector n a) a
 ixSV ix f v = (\x -> v SV.// [(fromIntegral ix, x)]) <$> f (SV.index v ix)
 
+-- | A lens into a 'ResearchData', given the appropriate index.
 researchIxData
     :: (KnownNat epic, SingI tiers)
     => ResearchIx tiers epic a
@@ -317,6 +343,7 @@ researchIxData = \case
             <$> sumProd g (ix :&: zipP (rs :&: singProd sing))
     RIEpic ix   -> rdEpic . ixSV ix
 
+-- | A lens into a 'ResearchStatus', given the appropriate index.
 researchIxStatus
     :: (KnownNat epic, SingI tiers)
     => ResearchIx tiers epic a
