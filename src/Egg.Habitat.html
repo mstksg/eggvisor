@@ -1,0 +1,172 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds             #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric         #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances     #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase            #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings     #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE RankNTypes            #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE RecordWildCards       #-}</span><span>
+</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables   #-}</span><span>
+</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE TemplateHaskell       #-}</span><span>
+</span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE TupleSections         #-}</span><span>
+</span><a name="line-12"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies          #-}</span><span>
+</span><a name="line-13"></a><span class="hs-pragma">{-# LANGUAGE TypeSynonymInstances  #-}</span><span>
+</span><a name="line-14"></a><span>
+</span><a name="line-15"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Habitat</span><span> </span><span class="hs-special">(</span><span>
+</span><a name="line-16"></a><span>    </span><a href="Egg.Habitat.html#Hab"><span class="hs-identifier hs-type">Hab</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habName"><span class="hs-identifier hs-var">habName</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habBaseCapacity"><span class="hs-identifier hs-var">habBaseCapacity</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habCosts"><span class="hs-identifier hs-var">habCosts</span></a><span>
+</span><a name="line-17"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#HabData"><span class="hs-identifier hs-type">HabData</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#_HabData"><span class="hs-identifier hs-var">_HabData</span></a><span>
+</span><a name="line-18"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#SomeHabData"><span class="hs-identifier hs-type">SomeHabData</span></a><span>
+</span><a name="line-19"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#HabStatus"><span class="hs-identifier hs-type">HabStatus</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#hsSlots"><span class="hs-identifier hs-var">hsSlots</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#hsContents"><span class="hs-identifier hs-var">hsContents</span></a><span>
+</span><a name="line-20"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#initHabStatus"><span class="hs-identifier hs-var">initHabStatus</span></a><span>
+</span><a name="line-21"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#baseCapacity"><span class="hs-identifier hs-var">baseCapacity</span></a><span>
+</span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#slotValue"><span class="hs-identifier hs-var">slotValue</span></a><span>
+</span><a name="line-23"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habHistory"><span class="hs-identifier hs-var">habHistory</span></a><span>
+</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habPrice"><span class="hs-identifier hs-var">habPrice</span></a><span>
+</span><a name="line-25"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#upgradeHab"><span class="hs-identifier hs-var">upgradeHab</span></a><span>
+</span><a name="line-26"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-27"></a><span>
+</span><a name="line-28"></a><span>
+</span><a name="line-29"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span> </span><span class="hs-keyword">hiding</span><span>        </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-var">.=</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-30"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span>
+</span><a name="line-31"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span class="hs-operator">.</span><span class="hs-identifier">Trans</span><span class="hs-operator">.</span><span class="hs-identifier">Writer</span><span>
+</span><a name="line-32"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span><span>
+</span><a name="line-33"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Dependent</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
+</span><a name="line-34"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span>
+</span><a name="line-35"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Maybe</span><span>
+</span><a name="line-36"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Monoid</span><span>
+</span><a name="line-37"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
+</span><a name="line-38"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
+</span><a name="line-39"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Tuple</span><span>
+</span><a name="line-40"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Combinator.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-41"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Fin</span><span>
+</span><a name="line-42"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>           </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
+</span><a name="line-43"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Vector.Sized.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-44"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Yaml</span><span>
+</span><a name="line-45"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">Generics</span><span>               </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-46"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Natural</span><span>
+</span><a name="line-47"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-48"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Map</span><span>                   </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">M</span><span>
+</span><a name="line-49"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Set</span><span>                   </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">S</span><span>
+</span><a name="line-50"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Text</span><span>                  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">T</span><span>
+</span><a name="line-51"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>          </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
+</span><a name="line-52"></a><span>
+</span><a name="line-53"></a><span class="hs-keyword">data</span><span> </span><a name="Hab"><a href="Egg.Habitat.html#Hab"><span class="hs-identifier">Hab</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Hab"><a href="Egg.Habitat.html#Hab"><span class="hs-identifier">Hab</span></a></a><span> </span><span class="hs-special">{</span><span> </span><a name="_habName"><a href="Egg.Habitat.html#_habName"><span class="hs-identifier">_habName</span></a></a><span>         </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">T</span><span class="hs-operator hs-type">.</span><span class="hs-identifier hs-type">Text</span><span>
+</span><a name="line-54"></a><span>               </span><span class="hs-special">,</span><span> </span><a name="_habBaseCapacity"><a href="Egg.Habitat.html#_habBaseCapacity"><span class="hs-identifier">_habBaseCapacity</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Natural</span><span>
+</span><a name="line-55"></a><span>               </span><span class="hs-special">,</span><span> </span><a name="_habCosts"><a href="Egg.Habitat.html#_habCosts"><span class="hs-identifier">_habCosts</span></a></a><span>        </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Vec</span><span> </span><span class="hs-identifier hs-type">N4</span><span> </span><span class="hs-identifier hs-type">Double</span><span>
+</span><a name="line-56"></a><span>               </span><span class="hs-special">}</span><span>
+</span><a name="line-57"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-58"></a><span>
+</span><a name="line-59"></a><span class="hs-identifier hs-var">makeLenses</span><span> </span><span class="hs-char">''Hab
+
+newtype HabData habs = HabData { _hdHabs :: SV.Vector habs Hab }
+
+makePrisms ''HabData
+makeWrapped ''HabData
+
+type SomeHabData = DSum Sing HabData
+
+data HabStatus habs
+    = HabStatus { _hsSlots    :: Vec N4 (S.Set (Finite habs))
+                , _hsContents :: Vec N4 Natural
+                }
+
+makeLenses ''HabStatus
+-- makePrisms ''HabStatus
+-- makeWrapped ''HabStatus
+
+habParseOptions :: Options
+habParseOptions = defaultOptions
+    { fieldLabelModifier = camelTo2 '-' . drop 3
+    }
+
+instance FromJSON Hab where
+    parseJSON  = genericParseJSON  habParseOptions
+instance ToJSON Hab where
+    toJSON     = genericToJSON     habParseOptions
+    toEncoding = genericToEncoding habParseOptions
+
+instance FromJSON SomeHabData where
+    parseJSON = withObject &quot;HabData&quot; $ \v -&gt; do
+      habs &lt;- v .: &quot;habitats&quot;
+      SV.withSized habs $ \habsV -&gt;
+        return $ SNat :=&gt; HabData habsV
+instance ToJSON SomeHabData where
+    toJSON = \case
+        _ :=&gt; r -&gt; toJSON r
+    toEncoding = \case
+        _ :=&gt; r -&gt; toEncoding r
+instance KnownNat habs =&gt; FromJSON (HabData habs) where
+    parseJSON = withObject &quot;HabData&quot; $ \v -&gt; do
+      habs &lt;- v .: &quot;habitats&quot;
+      case SV.toSized habs of
+        Nothing    -&gt; fail &quot;Bad number of items in list.&quot;
+        Just habsV -&gt; return $ HabData habsV
+instance ToJSON (HabData habs) where
+    toJSON HabData{..} = object
+        [ &quot;habitats&quot; .= SV.fromSized _hdHabs
+        ]
+    toEncoding HabData{..} = pairs . mconcat $
+        [ &quot;habitats&quot; .= SV.fromSized _hdHabs
+        ]
+
+initHabStatus :: KnownNat habs =&gt; HabStatus habs
+initHabStatus = HabStatus (S.singleton 0 :+ pure S.empty) (pure 0)
+
+baseCapacities
+    :: forall habs. KnownNat habs
+    =&gt; HabData habs
+    -&gt; HabStatus habs
+    -&gt; Vec N4 Natural
+baseCapacities hd = fmap go . _hsSlots
+  where
+    go = maybe 0 (\h -&gt; hd ^. _HabData . ixSV h . habBaseCapacity)
+       . lookupMax
+
+baseCapacity
+    :: forall habs. KnownNat habs
+    =&gt; HabData habs
+    -&gt; HabStatus habs
+    -&gt; Natural
+baseCapacity HabData{..} = sumOf $ hsSlots
+                                 . folded
+                                 . folding lookupMax
+                                 . to (SV.index _hdHabs)
+                                 . habBaseCapacity
+
+slotValue :: HabStatus habs -&gt; Fin N4 -&gt; Maybe (Finite habs)
+slotValue hs i = lookupMax . TCV.index' i . _hsSlots $ hs
+
+habHistory :: HabStatus habs -&gt; M.Map (Finite habs) (Finite 4)
+habHistory = M.fromListWith (+) . toListOf (hsSlots . folded . folded . to (, 1))
+
+habPrice :: KnownNat habs =&gt; HabData habs -&gt; HabStatus habs -&gt; Finite habs -&gt; Double
+habPrice hd hs hab = priceOf
+                   . maybe FZ (fromJust . natFin . someNat . fromIntegral)
+                   . M.lookup hab
+                   . habHistory
+                   $ hs
+  where
+    priceOf :: Fin N4 -&gt; Double
+    priceOf i = hd ^. _HabData . ixSV hab . habCosts . ixV i
+
+upgradeHab
+    :: KnownNat habs
+    =&gt; HabData habs
+    -&gt; Fin N4
+    -&gt; Finite habs
+    -&gt; HabStatus habs
+    -&gt; Maybe (Double, HabStatus habs)
+upgradeHab hd slot hab hs0 =
+    fmap swap . runWriterT . flip (hsSlots . ixV slot) hs0 $ \s0 -&gt; WriterT $
+      let valid = case lookupMax s0 of
+                    Nothing -&gt; True
+                    Just h  -&gt; h &lt; hab
+          price = habPrice hd hs0 hab
+          s1    | valid     = S.insert hab s0
+                | otherwise = s0
+      in  (s1, price) &lt;$ guard valid
+
+-- | Obsolete with containers-0.5.9, with GHC 8.2
+lookupMax :: S.Set a -&gt; Maybe a
+lookupMax = fmap fst . S.maxView
+</span></pre></body></html>
