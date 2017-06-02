@@ -1,0 +1,427 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds                            #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric                        #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE FlexibleContexts                     #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances                    #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE FunctionalDependencies               #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE GADTs                                #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE KindSignatures                       #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase                           #-}</span><span>
+</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses                #-}</span><span>
+</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings                    #-}</span><span>
+</span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE PartialTypeSignatures                #-}</span><span>
+</span><a name="line-12"></a><span class="hs-pragma">{-# LANGUAGE RankNTypes                           #-}</span><span>
+</span><a name="line-13"></a><span class="hs-pragma">{-# LANGUAGE RecordWildCards                      #-}</span><span>
+</span><a name="line-14"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables                  #-}</span><span>
+</span><a name="line-15"></a><span class="hs-pragma">{-# LANGUAGE TemplateHaskell                      #-}</span><span>
+</span><a name="line-16"></a><span class="hs-pragma">{-# LANGUAGE TupleSections                        #-}</span><span>
+</span><a name="line-17"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications                     #-}</span><span>
+</span><a name="line-18"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies                         #-}</span><span>
+</span><a name="line-19"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators                        #-}</span><span>
+</span><a name="line-20"></a><span class="hs-pragma">{-# LANGUAGE TypeSynonymInstances                 #-}</span><span>
+</span><a name="line-21"></a><span class="hs-pragma">{-# LANGUAGE ViewPatterns                         #-}</span><span>
+</span><a name="line-22"></a><span class="hs-pragma">{-# OPTIONS_GHC -fno-warn-partial-type-signatures #-}</span><span>
+</span><a name="line-23"></a><span>
+</span><a name="line-24"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Research</span><span> </span><span class="hs-special">(</span><span>
+</span><a name="line-25"></a><span>    </span><a href="Egg.Research.html#BonusAmount"><span class="hs-identifier hs-type">BonusAmount</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#AsBonusAmount"><span class="hs-identifier hs-type">AsBonusAmount</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-26"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#BonusType"><span class="hs-identifier hs-type">BonusType</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#AsBonusType"><span class="hs-identifier hs-type">AsBonusType</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-27"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#Bonuses"><span class="hs-identifier hs-type">Bonuses</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#_Bonuses"><span class="hs-identifier hs-var">_Bonuses</span></a><span>
+</span><a name="line-28"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#Research"><span class="hs-identifier hs-type">Research</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#HasResearch"><span class="hs-identifier hs-type">HasResearch</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-29"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#ResearchData"><span class="hs-identifier hs-type">ResearchData</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#rdCommon"><span class="hs-identifier hs-var">rdCommon</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#rdEpic"><span class="hs-identifier hs-var">rdEpic</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#SomeResearchData"><span class="hs-identifier hs-type">SomeResearchData</span></a><span>
+</span><a name="line-30"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#ResearchStatus"><span class="hs-identifier hs-type">ResearchStatus</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#rsCommon"><span class="hs-identifier hs-var">rsCommon</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#rsEpic"><span class="hs-identifier hs-var">rsEpic</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#SomeResearchStatus"><span class="hs-identifier hs-type">SomeResearchStatus</span></a><span>
+</span><a name="line-31"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#ResearchIx"><span class="hs-identifier hs-type">ResearchIx</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-32"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#scaleAmount"><span class="hs-identifier hs-var">scaleAmount</span></a><span>
+</span><a name="line-33"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#hasEffect"><span class="hs-identifier hs-var">hasEffect</span></a><span>
+</span><a name="line-34"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#bonusEffect"><span class="hs-identifier hs-var">bonusEffect</span></a><span>
+</span><a name="line-35"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#bonusEffectFor"><span class="hs-identifier hs-var">bonusEffectFor</span></a><span>
+</span><a name="line-36"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#bonusing"><span class="hs-identifier hs-var">bonusing</span></a><span>
+</span><a name="line-37"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#bonusingFor"><span class="hs-identifier hs-var">bonusingFor</span></a><span>
+</span><a name="line-38"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#emptyBonuses"><span class="hs-identifier hs-var">emptyBonuses</span></a><span>
+</span><a name="line-39"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#bonuses"><span class="hs-identifier hs-var">bonuses</span></a><span>
+</span><a name="line-40"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#maxLevel"><span class="hs-identifier hs-var">maxLevel</span></a><span>
+</span><a name="line-41"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#emptyResearchStatus"><span class="hs-identifier hs-var">emptyResearchStatus</span></a><span>
+</span><a name="line-42"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#researchBonuses"><span class="hs-identifier hs-var">researchBonuses</span></a><span>
+</span><a name="line-43"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#totalBonuses"><span class="hs-identifier hs-var">totalBonuses</span></a><span>
+</span><a name="line-44"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#foldResearch"><span class="hs-identifier hs-var">foldResearch</span></a><span>
+</span><a name="line-45"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#purchaseResearch"><span class="hs-identifier hs-var">purchaseResearch</span></a><span>
+</span><a name="line-46"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#researchIxNum"><span class="hs-identifier hs-var">researchIxNum</span></a><span>
+</span><a name="line-47"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#researchIxData"><span class="hs-identifier hs-var">researchIxData</span></a><span>
+</span><a name="line-48"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#researchIxStatus"><span class="hs-identifier hs-var">researchIxStatus</span></a><span>
+</span><a name="line-49"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Research.html#withSomeResearch"><span class="hs-identifier hs-var">withSomeResearch</span></a><span>
+</span><a name="line-50"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-51"></a><span>
+</span><a name="line-52"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Applicative</span><span> </span><span class="hs-keyword">hiding</span><span>      </span><span class="hs-special">(</span><span class="hs-identifier hs-var">some</span><span class="hs-special">)</span><span>
+</span><a name="line-53"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span> </span><span class="hs-keyword">hiding</span><span>             </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-var">.=</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="hs-operator hs-type">:&lt;</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-54"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span>
+</span><a name="line-55"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span class="hs-operator">.</span><span class="hs-identifier">Trans</span><span class="hs-operator">.</span><span class="hs-identifier">Writer</span><span>
+</span><a name="line-56"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span class="hs-operator">.</span><span class="hs-identifier">Encoding</span><span>
+</span><a name="line-57"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span><span>
+</span><a name="line-58"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Dependent</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
+</span><a name="line-59"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span>
+</span><a name="line-60"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Foldable</span><span>
+</span><a name="line-61"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
+</span><a name="line-62"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
+</span><a name="line-63"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">Prelude</span><span> </span><span class="hs-keyword">hiding</span><span>  </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Flip</span><span class="hs-special">)</span><span>
+</span><a name="line-64"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
+</span><a name="line-65"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Tuple</span><span>
+</span><a name="line-66"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
+</span><a name="line-67"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
+</span><a name="line-68"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Combinator.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-69"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Conjunction</span><span>
+</span><a name="line-70"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCP</span><span>
+</span><a name="line-71"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
+</span><a name="line-72"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>
+</span><a name="line-73"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Vector.Sized.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-74"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">Generics</span><span>                    </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-75"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Natural</span><span>
+</span><a name="line-76"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span>
+</span><a name="line-77"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
+</span><a name="line-78"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Map</span><span>                        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">M</span><span>
+</span><a name="line-79"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Text</span><span>                       </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">T</span><span>
+</span><a name="line-80"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>                     </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">V</span><span>
+</span><a name="line-81"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
+</span><a name="line-82"></a><span>
+</span><a name="line-83"></a><span class="hs-keyword">data</span><span> </span><a name="BonusAmount"><a href="Egg.Research.html#BonusAmount"><span class="hs-identifier">BonusAmount</span></a></a><span>
+</span><a name="line-84"></a><span>    </span><span class="hs-comment">-- | Bonus adds an absolute amount.  Scales by multiplication, and</span><span>
+</span><a name="line-85"></a><span>    </span><span class="hs-comment">-- compounds by addition.</span><span>
+</span><a name="line-86"></a><span>    </span><span class="hs-glyph">=</span><span> </span><a name="BAIncrement"><a href="Egg.Research.html#BAIncrement"><span class="hs-identifier">BAIncrement</span></a></a><span> </span><span class="hs-identifier hs-type">Double</span><span>
+</span><a name="line-87"></a><span>    </span><span class="hs-comment">-- | Bonus adds a percentage point multiplier.  Scales by</span><span>
+</span><a name="line-88"></a><span>    </span><span class="hs-comment">-- multiplication (three 10% buffs is a 15% buff) and compounds by</span><span>
+</span><a name="line-89"></a><span>    </span><span class="hs-comment">-- appropriate multiplication.</span><span>
+</span><a name="line-90"></a><span>    </span><span class="hs-glyph">|</span><span> </span><a name="BAPercent"><a href="Egg.Research.html#BAPercent"><span class="hs-identifier">BAPercent</span></a></a><span> </span><span class="hs-identifier hs-type">Double</span><span>
+</span><a name="line-91"></a><span>    </span><span class="hs-comment">-- | Bonus multiplies by a given ratio.  Scales by exponentiation</span><span>
+</span><a name="line-92"></a><span>    </span><span class="hs-comment">-- (three 2x buffs is a 8x buff) and compounds by multiplication.</span><span>
+</span><a name="line-93"></a><span>    </span><span class="hs-glyph">|</span><span> </span><a name="BAMultiplier"><a href="Egg.Research.html#BAMultiplier"><span class="hs-identifier">BAMultiplier</span></a></a><span> </span><span class="hs-identifier hs-type">Double</span><span>
+</span><a name="line-94"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-95"></a><span>
+</span><a name="line-96"></a><span class="hs-identifier hs-var">makeClassyPrisms</span><span> </span><span class="hs-char">''BonusAmount
+
+data BonusType =
+        BTBuildCosts
+      | BTDroneRewards
+      | BTEggValue
+      | BTFarmValue
+      | BTFleetSize
+      | BTHabCapacity
+      | BTHatcheryCapacity
+      | BTHatcheryRate
+      | BTHoldingHatch
+      | BTHoverVehicleCapacity
+      | BTInternalHatchery
+      | BTInternalHatcheryCalm
+      | BTInternalHatcherySharing
+      | BTLayingRate
+      | BTLongWarpTime
+      | BTMaxRunningBonus
+      | BTPrestigeEggs
+      | BTResearchCosts
+      | BTRunningBonus
+      | BTSiloQuality
+      | BTSoulEggBonus
+      | BTVehicleCapacity
+      | BTVehicleCosts
+      | BTVideoDoublerTime
+      | BTVehicleSpeed
+  deriving (Show, Eq, Ord, Generic)
+
+makeClassyPrisms ''BonusType
+
+newtype Bonuses = Bonuses { _bMap :: M.Map BonusType [BonusAmount] }
+    deriving (Show, Eq, Ord)
+
+makePrisms ''Bonuses
+makeWrapped ''Bonuses
+
+data Research a =
+    Research { _rName        :: T.Text
+             , _rDescription :: T.Text
+             , _rBaseBonuses :: Bonuses
+             -- | 'Left' if no cost data, just giving the maximum level.
+             -- 'Right' with cost data.
+             , _rCosts       :: Either Natural (V.Vector a)
+             }
+  deriving (Show, Eq, Ord)
+
+makeClassy ''Research
+
+data ResearchData :: [Nat] -&gt; Nat -&gt; Type where
+    ResearchData
+        :: { _rdCommon :: Prod (Flip SV.Vector (Research Double)) tiers
+           , _rdEpic   :: SV.Vector epic (Research Integer)
+           }
+        -&gt; ResearchData tiers epic
+    deriving (Show, Eq, Ord)
+
+makeLenses ''ResearchData
+
+type SomeResearchData = DSum Sing (Uncur ResearchData)
+
+data ResearchStatus :: [Nat] -&gt; Nat -&gt; Type where
+    ResearchStatus
+        :: { _rsCommon :: Prod (Flip SV.Vector Natural) tiers
+           , _rsEpic   :: SV.Vector epic Natural
+           }
+        -&gt; ResearchStatus tiers epic
+  deriving (Show, Eq, Ord)
+
+makeLenses ''ResearchStatus
+
+type SomeResearchStatus = DSum Sing (Uncur ResearchStatus)
+
+-- | A safe index for a given research item, usable with 'ResearchData' and
+-- 'ResearchStatus'.
+data ResearchIx :: [Nat] -&gt; Nat -&gt; Type -&gt; Type where
+    RICommon :: Sum Finite tiers -&gt; ResearchIx tiers epic Double
+    RIEpic   :: Finite epic      -&gt; ResearchIx tiers epic Integer
+
+bonusAmountParseOptions :: Options
+bonusAmountParseOptions = defaultOptions
+    { sumEncoding = TaggedObject
+                      { tagFieldName      = &quot;type&quot;
+                      , contentsFieldName = &quot;value&quot;
+                      }
+    , constructorTagModifier = camelTo2 '-' . drop 2
+    }
+
+instance FromJSON BonusAmount where
+    parseJSON  = genericParseJSON  bonusAmountParseOptions
+instance ToJSON BonusAmount where
+    toJSON     = genericToJSON     bonusAmountParseOptions
+    toEncoding = genericToEncoding bonusAmountParseOptions
+
+bonusTypeParseOptions :: Options
+bonusTypeParseOptions = defaultOptions
+    { sumEncoding = UntaggedValue
+    , constructorTagModifier = camelTo2 '-' . drop 2
+    }
+
+instance FromJSON BonusType where
+    parseJSON  = genericParseJSON  bonusTypeParseOptions
+instance ToJSON BonusType where
+    toJSON     = genericToJSON     bonusTypeParseOptions
+    toEncoding = genericToEncoding bonusTypeParseOptions
+instance FromJSONKey BonusType where
+    fromJSONKey = FromJSONKeyTextParser (parseJSON . String)
+instance ToJSONKey BonusType where
+    toJSONKey = toJSONKeyText $
+        T.pack . constructorTagModifier bonusTypeParseOptions . show
+
+instance Monoid Bonuses where
+    mempty = Bonuses M.empty
+    mappend (Bonuses x) (Bonuses y) =
+      Bonuses (M.unionWith (++) x y)
+
+instance FromJSON a =&gt; FromJSON (Research a) where
+    parseJSON = withObject &quot;Research&quot; $ \v -&gt;
+        Research &lt;$&gt; v .: &quot;name&quot;
+                 &lt;*&gt; v .: &quot;description&quot;
+                 &lt;*&gt; (mkBase =&lt;&lt; v .: &quot;bonuses&quot;)
+                 &lt;*&gt; (Left &lt;$&gt; (v .: &quot;levels&quot;) &lt;|&gt; Right &lt;$&gt; (v .: &quot;costs&quot;))
+      where
+        mkBase :: M.Map BonusType Object -&gt; Parser Bonuses
+        mkBase = fmap (Bonuses . fmap (:[])) . traverse (.: &quot;base-amount&quot;)
+
+instance ToJSON a =&gt; ToJSON (Research a) where
+    toJSON Research{..} = object
+        [ &quot;name&quot;        .= _rName
+        , &quot;description&quot; .= _rDescription
+        , &quot;bonuses&quot;     .= object [ &quot;base-amount&quot; .= _bMap _rBaseBonuses ]
+        , case _rCosts of Left  l  -&gt; &quot;levels&quot; .= l
+                          Right cs -&gt; &quot;costs&quot;  .= cs
+        ]
+    toEncoding Research{..} = pairs . mconcat $
+        [ &quot;name&quot;        .= _rName
+        , &quot;description&quot; .= _rDescription
+        , pair &quot;bonuses&quot; (pairs (&quot;base-amount&quot; .= _bMap _rBaseBonuses))
+        , case _rCosts of Left  l  -&gt; &quot;levels&quot; .= l
+                          Right cs -&gt; &quot;costs&quot;  .= cs
+        ]
+
+instance FromJSON SomeResearchData where
+    parseJSON = withObject &quot;ResearchData&quot; $ \v -&gt; do
+        res   &lt;- v .: &quot;research&quot;
+        epics &lt;- v .: &quot;epic&quot;
+        withV res $ \resV -&gt;
+          some (withProd (f . getI) resV) $ \(_ :&amp;: (unzipP-&gt;(resS :&amp;: resP))) -&gt;
+            SV.withSized epics   $ \sizedV -&gt;
+              return (STuple2 (prodSing resS) SNat :=&gt; Uncur (ResearchData resP sizedV))
+      where
+        f   :: V.Vector (Research Double)
+            -&gt; Some (Sing :&amp;: Flip SV.Vector (Research Double))
+        f xs = SV.withSized xs $ \xsV -&gt; Some (SNat :&amp;: Flip xsV)
+instance ToJSON SomeResearchData where
+    toJSON = \case
+        _ :=&gt; Uncur r -&gt; toJSON r
+    toEncoding = \case
+        _ :=&gt; Uncur r -&gt; toEncoding r
+instance (SingI tiers, KnownNat epic) =&gt; FromJSON (ResearchData tiers epic) where
+    parseJSON = withObject &quot;ResearchData&quot; $ \v -&gt; do
+        res   &lt;- v .: &quot;research&quot;
+        resV  &lt;- go sing res
+        epics &lt;- v .: &quot;epic&quot;
+        epicsV &lt;- case SV.toSized epics of
+          Nothing -&gt; fail &quot;Bad number of items in list.&quot;
+          Just eV -&gt; return eV
+        return $ ResearchData resV epicsV
+      where
+        go :: Sing ts -&gt; [Value] -&gt; Parser (Prod (Flip SV.Vector (Research Double)) ts)
+        go = \case
+          SNil -&gt; \case
+            []  -&gt; return &#216;
+            _:_ -&gt; fail &quot;Too many items in list&quot;
+          SNat `SCons` ss -&gt; \case
+            []   -&gt; fail &quot;Too few items in list&quot;
+            x:xs -&gt; (:&lt;) &lt;$&gt; parseJSON x &lt;*&gt; go ss xs
+
+instance ToJSON (ResearchData tiers epic) where
+    toJSON ResearchData{..} = object
+        [ &quot;research&quot; .= TCP.toList (SV.fromSized . getFlip) _rdCommon
+        , &quot;epic&quot;     .= SV.fromSized _rdEpic
+        ]
+    toEncoding ResearchData{..} = pairs . mconcat $
+        [ &quot;research&quot; .= TCP.toList (SV.fromSized . getFlip) _rdCommon
+        , &quot;epic&quot;     .= SV.fromSized _rdEpic
+        ]
+
+
+-- | Scales a bonus amount by a &quot;level&quot;.
+scaleAmount :: Natural -&gt; BonusAmount -&gt; BonusAmount
+scaleAmount n = \case
+    BAIncrement  i -&gt; BAIncrement  (fromIntegral n * i)
+    BAPercent    p -&gt; BAPercent    (fromIntegral n * p)
+    BAMultiplier r -&gt; BAMultiplier (r ^ n)
+
+-- | Tells whether or not a bonus amount creates any actual effect.
+hasEffect :: BonusAmount -&gt; Bool
+hasEffect = \case
+    BAIncrement  i -&gt; i /= 0
+    BAPercent    p -&gt; p /= 0
+    BAMultiplier r -&gt; r /= 1
+
+-- | A &quot;smart constructor&quot; that clears bonuses with no effect.
+bonuses :: M.Map BonusType [BonusAmount] -&gt; Bonuses
+bonuses = Bonuses . M.filter (not . null) . fmap (filter hasEffect)
+
+-- | Apply a list of bonuses (from left to right) to a value.
+bonusEffect :: [BonusAmount] -&gt; Double -&gt; Double
+bonusEffect = flip . foldl' $ \e -&gt; \case
+    BAIncrement  i -&gt; e + i
+    BAPercent    p -&gt; e * (1 + p / 100)
+    BAMultiplier r -&gt; e * r
+
+-- | Invert a list of left-to-right bonuses on a value.
+reverseBonusEffect :: [BonusAmount] -&gt; Double -&gt; Double
+reverseBonusEffect = flip . foldr $ \case
+    BAIncrement  i -&gt; subtract i
+    BAPercent    p -&gt; (/ (1 + (p / 100)))
+    BAMultiplier r -&gt; (/ r)
+
+-- | Iso on a value under a list of bonuses (from left to right).
+bonusing :: [BonusAmount] -&gt; Iso' Double Double
+bonusing bs = iso (bonusEffect bs) (reverseBonusEffect bs)
+
+-- | Iso on a value under the bonuses of a given bonus type.
+bonusingFor
+    :: Bonuses
+    -&gt; BonusType
+    -&gt; Iso' Double Double
+bonusingFor bs bt = case M.lookup bt (_bMap bs) of
+                      Nothing -&gt; id
+                      Just bl -&gt; bonusing bl
+
+-- | Apply bonuses for a given type on a value.
+bonusEffectFor :: Bonuses -&gt; BonusType -&gt; Double -&gt; Double
+bonusEffectFor bs bt = maybe id bonusEffect $ M.lookup bt (_bMap bs)
+
+-- | No bonuses
+emptyBonuses :: Bonuses
+emptyBonuses = Bonuses M.empty
+
+-- | Maximum level for a given research.
+maxLevel :: Research a -&gt; Int
+maxLevel = either fromIntegral V.length . _rCosts
+
+-- | Empty status (no research).
+emptyResearchStatus :: ResearchData tiers epic -&gt; ResearchStatus tiers epic
+emptyResearchStatus ResearchData{..} =
+    ResearchStatus (map1 (mapFlip (0 &lt;$)) _rdCommon) (0 &lt;$ _rdEpic)
+
+-- | Zips together all research data and research statuses into an
+-- accumulator.
+foldResearch
+    :: Monoid b
+    =&gt; (Either (Research Double) (Research Integer) -&gt; Natural -&gt; b)
+    -&gt; ResearchData tiers epic
+    -&gt; ResearchStatus tiers epic
+    -&gt; b
+foldResearch f ResearchData{..} ResearchStatus{..} = mconcat
+    [ foldMap1 (\case Flip d :&amp;: Flip s -&gt; fold $ SV.zipWith (f . Left) d s
+               )
+        (zipP (_rdCommon :&amp;: _rsCommon))
+    , fold $ SV.zipWith (f . Right) _rdEpic _rsEpic
+    ]
+
+-- | Bonuses from a given 'Research' at a given level.  Assumes no &quot;maximum
+-- level&quot;.
+researchBonuses :: Research a -&gt; Natural -&gt; Bonuses
+researchBonuses _ 0 = Bonuses M.empty
+researchBonuses r l = _rBaseBonuses r &amp; _Bonuses . traverse . traverse %~ scaleAmount l
+
+-- | Total bonuses from a given 'ResearchStatus'.
+totalBonuses :: ResearchData tiers epic -&gt; ResearchStatus tiers epic -&gt; Bonuses
+totalBonuses = foldResearch (either researchBonuses researchBonuses)
+
+-- | Purchase research at a given index, incrementing the counter in the
+-- 'ResearchStatus'.  Returns 'Nothing' if research is already maxed out.
+purchaseResearch
+    :: (KnownNat epic, SingI tiers)
+    =&gt; ResearchData tiers epic
+    -&gt; ResearchIx tiers epic a
+    -&gt; ResearchStatus tiers epic
+    -&gt; Maybe (a, ResearchStatus tiers epic)
+purchaseResearch rd i =
+    fmap swap . runWriterT . researchIxStatus i (\currLevel -&gt; WriterT $
+      case rd ^. researchIxData i . rCosts of
+        Left m   -&gt; (currLevel + 1, 0) &lt;$ guard (currLevel &lt; m)
+                        \\ researchIxNum i
+        Right cs -&gt; (currLevel + 1,) &lt;$&gt; (cs V.!? fromIntegral (currLevel + 1))
+    )
+
+-- | Get a 'Num' instance from a 'ResearchIx'.
+researchIxNum :: ResearchIx tiers epic a -&gt; Wit (Num a)
+researchIxNum = \case
+    RICommon _ -&gt; Wit
+    RIEpic   _ -&gt; Wit
+
+-- | A lens into a 'ResearchData', given the appropriate index.
+researchIxData
+    :: (KnownNat epic, SingI tiers)
+    =&gt; ResearchIx tiers epic a
+    -&gt; Lens' (ResearchData tiers epic) (Research a)
+researchIxData = \case
+    RICommon i -&gt; \f -&gt;
+      let g :: forall a. _ a -&gt; _ (_ a)
+          g x@(slot :&amp;: (_ :&amp;: SNat)) = (_2 . _1 . _Flip . ixSV slot) f x
+      in  rdCommon $ \rs -&gt; map1 fanFst . fanSnd
+            &lt;$&gt; sumProd g (i :&amp;: zipP (rs :&amp;: singProd sing))
+    RIEpic i   -&gt; rdEpic . ixSV i
+
+-- | A lens into a 'ResearchStatus', given the appropriate index.
+researchIxStatus
+    :: (KnownNat epic, SingI tiers)
+    =&gt; ResearchIx tiers epic a
+    -&gt; Lens' (ResearchStatus tiers epic) Natural
+researchIxStatus = \case
+    RICommon i -&gt; \f -&gt;
+      let g :: forall a. _ a -&gt; _ (_ a)
+          g x@(slot :&amp;: (_ :&amp;: SNat)) = (_2 . _1 . _Flip . ixSV slot) f x
+      in  rsCommon $ \rs -&gt; map1 fanFst . fanSnd
+            &lt;$&gt; sumProd g (i :&amp;: zipP (rs :&amp;: singProd sing))
+    RIEpic i   -&gt; rsEpic . ixSV i
+
+withSomeResearch
+    :: DSum Sing (Uncur res)
+    -&gt; (forall tiers epic. (KnownNat epic, SingI tiers) =&gt; res tiers epic -&gt; r)
+    -&gt; r
+withSomeResearch = \case
+    STuple2 sTs SNat :=&gt; Uncur r -&gt; \f -&gt; withSingI sTs $ f r
+</span></pre></body></html>
