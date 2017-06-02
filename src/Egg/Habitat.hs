@@ -16,16 +16,18 @@ module Egg.Habitat (
     Hab(..), habName, habBaseCapacity, habCosts
   , HabData(..), _HabData
   , SomeHabData
-  , HabStatus(..), hsSlots, hsContents
+  , HabStatus(..), _HabStatus, hsSlots, hsContents
   , initHabStatus
   , baseCapacity
   , slotValue
   , habHistory
   , habPrice
   , upgradeHab
+  , internalHatchery
   ) where
 
 
+import           Control.Applicative
 import           Control.Lens hiding        ((.=))
 import           Control.Monad
 import           Control.Monad.Trans.Writer
@@ -43,6 +45,7 @@ import           Data.Type.Vector           as TCV
 import           Data.Vector.Sized.Util
 import           Data.Yaml
 import           GHC.Generics               (Generic)
+import           Numeric.Lens
 import           Numeric.Natural
 import           Type.Family.Nat
 import qualified Data.Map                   as M
@@ -73,6 +76,10 @@ data HabStatus habs
 makeLenses ''HabStatus
 -- makePrisms ''HabStatus
 -- makeWrapped ''HabStatus
+
+_HabStatus :: Iso' (HabStatus habs) (Vec N4 (S.Set (Finite habs), Natural))
+_HabStatus = iso (\hs -> liftA2 (,) (_hsSlots hs) (_hsContents hs))
+                 (uncurry HabStatus . unzipV)
 
 habParseOptions :: Options
 habParseOptions = defaultOptions
@@ -169,3 +176,20 @@ upgradeHab hd slot hab hs0 =
 -- | Obsolete with containers-0.5.9, with GHC 8.2
 lookupMax :: S.Set a -> Maybe a
 lookupMax = fmap fst . S.maxView
+
+-- | TODO: account for sharing
+internalHatchery
+    :: KnownNat habs
+    => HabData habs
+    -> Double               -- ^ hab capacity percent multiplier (ie, 5, 10)
+    -> Integer              -- ^ internal hatchery rate (chickens/habs/min)
+    -> Double               -- ^ time (seconds)
+    -> HabStatus habs
+    -> HabStatus habs
+internalHatchery hd p r dt = over (_HabStatus . traverse) . uncurry $ \h c0 ->
+    case lookupMax h of
+      Nothing -> (h, 0)
+      Just i  ->
+        let c1   = fromIntegral c0 + fromIntegral r * (dt / 60)
+            cMax = hd ^. _HabData . ixSV i . habBaseCapacity . to fromIntegral . multiplying (1 + p / 100)
+        in  (h, round (min c1 cMax))

@@ -45,6 +45,7 @@ module Data.Type.Combinator.Util (
   , natFin
   , natFinCap
   , someNat
+  , unzipV
   ) where
 
 import           Control.Lens hiding    ((:<), Index, Traversable1(..))
@@ -320,3 +321,8 @@ someNat :: Natural -> Some Nat
 someNat x | x <= 0    = Some Z_
           | otherwise = some (someNat (x - 1)) (Some . S_)
 
+unzipV :: Functor f => VecT n f (a, b) -> (VecT n f a, VecT n f b)
+unzipV = \case
+    ØV       -> (ØV, ØV)
+    xy :* zs -> case unzipV zs of
+      (xs, ys) -> (fmap fst xy :* xs, fmap snd xy :* ys)
