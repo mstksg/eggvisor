@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE LambdaCase            #-}
@@ -15,7 +16,7 @@ module Egg.Habitat (
     Hab(..), habName, habBaseCapacity, habCosts
   , HabData(..), _HabData
   , SomeHabData
-  , HabStatus(..), _HabStatus
+  , HabStatus(..), hsSlots, hsContents
   , initHabStatus
   , baseCapacity
   , slotValue
@@ -50,7 +51,7 @@ import qualified Data.Text                  as T
 import qualified Data.Vector.Sized          as SV
 
 data Hab = Hab { _habName         :: T.Text
-               , _habBaseCapacity :: Integer
+               , _habBaseCapacity :: Natural
                , _habCosts        :: Vec N4 Double
                }
   deriving (Show, Eq, Ord, Generic)
@@ -64,10 +65,14 @@ makeWrapped ''HabData
 
 type SomeHabData = DSum Sing HabData
 
-newtype HabStatus habs = HabStatus { _hsSlots :: Vec N4 (S.Set (Finite habs)) }
+data HabStatus habs
+    = HabStatus { _hsSlots    :: Vec N4 (S.Set (Finite habs))
+                , _hsContents :: Vec N4 Natural
+                }
 
-makePrisms ''HabStatus
-makeWrapped ''HabStatus
+makeLenses ''HabStatus
+-- makePrisms ''HabStatus
+-- makeWrapped ''HabStatus
 
 habParseOptions :: Options
 habParseOptions = defaultOptions
@@ -105,24 +110,34 @@ instance ToJSON (HabData habs) where
         ]
 
 initHabStatus :: KnownNat habs => HabStatus habs
-initHabStatus = HabStatus (S.singleton 0 :+ pure S.empty)
+initHabStatus = HabStatus (S.singleton 0 :+ pure S.empty) (pure 0)
+
+baseCapacities
+    :: forall habs. KnownNat habs
+    => HabData habs
+    -> HabStatus habs
+    -> Vec N4 Natural
+baseCapacities hd = fmap go . _hsSlots
+  where
+    go = maybe 0 (\h -> hd ^. _HabData . ixSV h . habBaseCapacity)
+       . lookupMax
 
 baseCapacity
     :: forall habs. KnownNat habs
     => HabData habs
     -> HabStatus habs
-    -> Integer
-baseCapacity HabData{..} = sumOf $ _HabStatus
+    -> Natural
+baseCapacity HabData{..} = sumOf $ hsSlots
                                  . folded
-                                 . folding S.lookupMax
+                                 . folding lookupMax
                                  . to (SV.index _hdHabs)
                                  . habBaseCapacity
 
 slotValue :: HabStatus habs -> Fin N4 -> Maybe (Finite habs)
-slotValue hs i = S.lookupMax . TCV.index' i . _hsSlots $ hs
+slotValue hs i = lookupMax . TCV.index' i . _hsSlots $ hs
 
 habHistory :: HabStatus habs -> M.Map (Finite habs) (Finite 4)
-habHistory = M.fromListWith (+) . toListOf (_HabStatus . folded . folded . to (, 1))
+habHistory = M.fromListWith (+) . toListOf (hsSlots . folded . folded . to (, 1))
 
 habPrice :: KnownNat habs => HabData habs -> HabStatus habs -> Finite habs -> Double
 habPrice hd hs hab = priceOf
@@ -132,7 +147,7 @@ habPrice hd hs hab = priceOf
                    $ hs
   where
     priceOf :: Fin N4 -> Double
-    priceOf i = view (_HabData . ixSV hab . habCosts . ixV i) hd
+    priceOf i = hd ^. _HabData . ixSV hab . habCosts . ixV i
 
 upgradeHab
     :: KnownNat habs
@@ -142,11 +157,15 @@ upgradeHab
     -> HabStatus habs
     -> Maybe (Double, HabStatus habs)
 upgradeHab hd slot hab hs0 =
-    fmap swap . runWriterT . flip (_HabStatus . ixV slot) hs0 $ \s0 -> WriterT $
-      let valid = case S.lookupMax s0 of
+    fmap swap . runWriterT . flip (hsSlots . ixV slot) hs0 $ \s0 -> WriterT $
+      let valid = case lookupMax s0 of
                     Nothing -> True
                     Just h  -> h < hab
           price = habPrice hd hs0 hab
           s1    | valid     = S.insert hab s0
                 | otherwise = s0
       in  (s1, price) <$ guard valid
+
+-- | Obsolete with containers-0.5.9, with GHC 8.2
+lookupMax :: S.Set a -> Maybe a
+lookupMax = fmap fst . S.maxView

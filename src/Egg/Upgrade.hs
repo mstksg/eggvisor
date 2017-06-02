@@ -324,8 +324,7 @@ foldResearch f ResearchData{..} ResearchStatus{..} = mconcat
 -- level".
 researchBonuses :: Research a -> Natural -> Bonuses
 researchBonuses _ 0 = Bonuses M.empty
-researchBonuses r l = over (_Bonuses . traverse . traverse) (scaleAmount l)
-                        $ _rBaseBonuses r
+researchBonuses r l = _rBaseBonuses r & _Bonuses . traverse . traverse %~ scaleAmount l
 
 -- | Total bonuses from a given 'ResearchStatus'.
 totalBonuses :: ResearchData tiers epic -> ResearchStatus tiers epic -> Bonuses
@@ -340,8 +339,8 @@ purchaseResearch
     -> ResearchStatus tiers epic
     -> Maybe (a, ResearchStatus tiers epic)
 purchaseResearch rd i =
-    fmap swap . runWriterT . researchIxStatus i (\currLevel -> WriterT $ 
-      case view (researchIxData i . rCosts) rd of
+    fmap swap . runWriterT . researchIxStatus i (\currLevel -> WriterT $
+      case rd ^. researchIxData i . rCosts of
         Left m   -> (currLevel + 1, 0) <$ guard (currLevel < m)
                         \\ researchIxNum i
         Right cs -> (currLevel + 1,) <$> (cs V.!? fromIntegral (currLevel + 1))
