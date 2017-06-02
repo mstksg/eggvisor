@@ -32,21 +32,30 @@ module Data.Type.Combinator.Util (
   , sumSome
   , someSum
   , ixProd
+  , ixVecT
+  , ixV
   , _Flip
   , sumProd
   , for1
   , Replicate
   , vecToProd
   , vecToAnyProd
+  , addFinCap
+  , strengthen
+  , natFin
+  , natFinCap
+  , someNat
   ) where
 
-import           Control.Lens hiding    ((:<), Index, Traversable2(..), Traversable1(..))
+import           Control.Lens hiding    ((:<), Index, Traversable1(..))
 import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.Foldable          as F
 import           Data.Kind
+import           Data.Maybe
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
+import           Data.Type.Fin
 import           Data.Type.Index
 import           Data.Type.Length
 import           Data.Type.Nat
@@ -54,12 +63,14 @@ import           Data.Type.Product      as TCP
 import           Data.Type.Sum
 import           Data.Type.Vector
 import           GHC.Generics           (Generic)
+import           Numeric.Natural
 import           Type.Class.Higher
 import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.Constraint
 import           Type.Family.List
 import           Type.Family.Nat
+import qualified GHC.TypeLits           as TL
 
 data HasLen :: N -> [k] -> Type where
     HLZ :: HasLen 'Z '[]
@@ -125,8 +136,8 @@ sumIso = iso sumSome someSum
 sumSome :: Sum f as -> Some (Index as :&: f)
 sumSome = \case
     InL x  -> Some (IZ :&: x)
-    InR xs -> some (sumSome xs) $ \(ix :&: y) ->
-                Some (IS ix :&: y)
+    InR xs -> some (sumSome xs) $ \(i :&: y) ->
+                Some (IS i :&: y)
 
 someSum :: forall f as. Some (Index as :&: f) -> Sum f as
 someSum = withSome (uncurryFan go)
@@ -142,6 +153,20 @@ ixProd = \case
       x :< xs -> (:< xs) <$> f x
     IS i -> \f -> \case
       x :< xs -> (x :<) <$> ixProd i f xs
+
+ixVecT :: Fin n -> Lens' (VecT n f a) (f a)
+ixVecT = \case
+    FZ   -> \f -> \case
+      x :* xs -> (:* xs) <$> f x
+    FS n -> \f -> \case
+      x :* xs -> (x :*) <$> ixVecT n f xs
+
+ixV :: Fin n -> Lens' (Vec n a) a
+ixV = \case
+    FZ   -> \f -> \case
+      I x :* xs -> (:+ xs) <$> f x
+    FS n -> \f -> \case
+      x   :* xs -> (x :*) <$> ixV n f xs
 
 _Flip :: Lens (Flip f a b) (Flip f c d) (f b a) (f d c)
 _Flip f (Flip x) = Flip <$> f x
@@ -258,4 +283,40 @@ instance Known (HasLen 'Z) '[] where
     known = HLZ
 instance Known (HasLen n) as => Known (HasLen ('S n)) (a ': as) where
     known = HLS known
+
+addFinCap :: forall n. Known Nat n => Fin n -> Fin n -> Fin n
+addFinCap FZ     m = m
+addFinCap (FS n) m = natFinCap . finNat . FS $ addFinCap (weaken n :: Fin n) m
+
+strengthenN :: Nat n -> Fin m -> Fin (n + m)
+strengthenN = \case
+    Z_   -> id
+    S_ n -> FS . strengthenN n
+
+strengthen :: Known Nat n => Fin ('S n) -> Maybe (Fin n)
+strengthen = natFin . finNat
+
+natFin :: forall n. Known Nat n => Some Nat -> Maybe (Fin n)
+natFin = withSome (go known)
+  where
+    go :: forall m o. Nat m -> Nat o -> Maybe (Fin m)
+    go = \case
+      Z_   -> \_ -> Nothing
+      S_ m -> \case
+        Z_   -> Just FZ
+        S_ o -> FS <$> go m o
+
+natFinCap :: forall n. Known Nat n => Some Nat -> Fin ('S n)
+natFinCap = withSome (go known)
+  where
+    go :: forall m o. Nat ('S m) -> Nat o -> Fin ('S m)
+    go = \case
+      S_ Z_ -> \_ -> FZ
+      S_ (S_ m) -> \case
+        Z_   -> FZ
+        S_ o -> FS $ go (S_ m) o
+
+someNat :: Natural -> Some Nat
+someNat x | x <= 0    = Some Z_
+          | otherwise = some (someNat (x - 1)) (Some . S_)
 

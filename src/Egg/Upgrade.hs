@@ -13,6 +13,7 @@
 {-# LANGUAGE RecordWildCards                      #-}
 {-# LANGUAGE ScopedTypeVariables                  #-}
 {-# LANGUAGE TemplateHaskell                      #-}
+{-# LANGUAGE TupleSections                        #-}
 {-# LANGUAGE TypeApplications                     #-}
 {-# LANGUAGE TypeFamilies                         #-}
 {-# LANGUAGE TypeOperators                        #-}
@@ -32,18 +33,21 @@ module Egg.Upgrade (
   , hasEffect
   , bonuses
   , maxLevel
-  , emptyStatus
+  , emptyResearchStatus
   , researchBonuses
   , totalBonuses
   , foldResearch
   , purchaseResearch
+  , researchIxNum
   , researchIxData
   , researchIxStatus
   , withSomeResearch
   ) where
 
 import           Control.Applicative hiding      (some)
-import           Control.Lens hiding             ((.=), ix, (:<))
+import           Control.Lens hiding             ((.=), (:<))
+import           Control.Monad
+import           Control.Monad.Trans.Writer
 import           Data.Aeson.Encoding
 import           Data.Aeson.Types
 import           Data.Dependent.Sum
@@ -53,6 +57,7 @@ import           Data.Kind
 import           Data.Singletons
 import           Data.Singletons.Prelude hiding  (Flip)
 import           Data.Singletons.TypeLits
+import           Data.Tuple
 import           Data.Type.Combinator
 import           Data.Type.Combinator.Singletons
 import           Data.Type.Combinator.Util
@@ -64,9 +69,7 @@ import           Data.Vector.Sized.Util
 import           GHC.Generics                    (Generic)
 import           Numeric.Natural
 import           Type.Class.Higher
-import           Type.Class.Known
 import           Type.Class.Witness
-import           Type.Family.Nat
 import qualified Data.Map                        as M
 import qualified Data.Text                       as T
 import qualified Data.Vector                     as V
@@ -263,7 +266,7 @@ instance (SingI tiers, KnownNat epic) => FromJSON (ResearchData tiers epic) wher
           SNat `SCons` ss -> \case
             []   -> fail "Too few items in list"
             x:xs -> (:<) <$> parseJSON x <*> go ss xs
-        
+
 instance ToJSON (ResearchData tiers epic) where
     toJSON ResearchData{..} = object
         [ "research" .= TCP.toList (SV.fromSized . getFlip) _rdCommon
@@ -298,8 +301,8 @@ maxLevel :: Research a -> Int
 maxLevel = either fromIntegral V.length . _rCosts
 
 -- | Empty status (no research).
-emptyStatus :: ResearchData tiers epic -> ResearchStatus tiers epic
-emptyStatus ResearchData{..} =
+emptyResearchStatus :: ResearchData tiers epic -> ResearchStatus tiers epic
+emptyResearchStatus ResearchData{..} =
     ResearchStatus (map1 (mapFlip (0 <$)) _rdCommon) (0 <$ _rdEpic)
 
 -- | Zips together all research data and research statuses into an
@@ -335,15 +338,14 @@ purchaseResearch
     => ResearchData tiers epic
     -> ResearchIx tiers epic a
     -> ResearchStatus tiers epic
-    -> (Maybe a, ResearchStatus tiers epic)
-purchaseResearch rd ix = researchIxStatus ix $ \currLevel ->
-    case view (researchIxData ix . rCosts) rd of
-      Left m   -> if currLevel < m
-        then (Just 0 , currLevel + 1) \\ researchIxNum ix
-        else (Nothing, currLevel)
-      Right cs -> case cs V.!? fromIntegral (currLevel + 1) of
-        Just c  -> (Just c , currLevel + 1)
-        Nothing -> (Nothing, currLevel)
+    -> Maybe (a, ResearchStatus tiers epic)
+purchaseResearch rd i =
+    fmap swap . runWriterT . researchIxStatus i (\currLevel -> WriterT $ 
+      case view (researchIxData i . rCosts) rd of
+        Left m   -> (currLevel + 1, 0) <$ guard (currLevel < m)
+                        \\ researchIxNum i
+        Right cs -> (currLevel + 1,) <$> (cs V.!? fromIntegral (currLevel + 1))
+    )
 
 -- | Get a 'Num' instance from a 'ResearchIx'.
 researchIxNum :: ResearchIx tiers epic a -> Wit (Num a)
@@ -351,21 +353,18 @@ researchIxNum = \case
     RICommon _ -> Wit
     RIEpic   _ -> Wit
 
-ixSV :: KnownNat n => Finite n -> Lens' (SV.Vector n a) a
-ixSV ix f v = (\x -> v SV.// [(fromIntegral ix, x)]) <$> f (SV.index v ix)
-
 -- | A lens into a 'ResearchData', given the appropriate index.
 researchIxData
     :: (KnownNat epic, SingI tiers)
     => ResearchIx tiers epic a
     -> Lens' (ResearchData tiers epic) (Research a)
 researchIxData = \case
-    RICommon ix -> \f ->
+    RICommon i -> \f ->
       let g :: forall a. _ a -> _ (_ a)
           g x@(slot :&: (_ :&: SNat)) = (_2 . _1 . _Flip . ixSV slot) f x
       in  rdCommon $ \rs -> map1 fanFst . fanSnd
-            <$> sumProd g (ix :&: zipP (rs :&: singProd sing))
-    RIEpic ix   -> rdEpic . ixSV ix
+            <$> sumProd g (i :&: zipP (rs :&: singProd sing))
+    RIEpic i   -> rdEpic . ixSV i
 
 -- | A lens into a 'ResearchStatus', given the appropriate index.
 researchIxStatus
@@ -373,12 +372,12 @@ researchIxStatus
     => ResearchIx tiers epic a
     -> Lens' (ResearchStatus tiers epic) Natural
 researchIxStatus = \case
-    RICommon ix -> \f ->
+    RICommon i -> \f ->
       let g :: forall a. _ a -> _ (_ a)
           g x@(slot :&: (_ :&: SNat)) = (_2 . _1 . _Flip . ixSV slot) f x
       in  rsCommon $ \rs -> map1 fanFst . fanSnd
-            <$> sumProd g (ix :&: zipP (rs :&: singProd sing))
-    RIEpic ix   -> rsEpic . ixSV ix
+            <$> sumProd g (i :&: zipP (rs :&: singProd sing))
+    RIEpic i   -> rsEpic . ixSV i
 
 withSomeResearch
     :: DSum Sing (Uncur res)
