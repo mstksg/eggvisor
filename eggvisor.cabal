@@ -16,7 +16,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Egg.Types
-                       Egg.Upgrade
+                       Egg.Research
                        Egg.Habitat
   other-modules:       Data.Type.Combinator.Util
                        Data.Vector.Sized.Util

@@ -19,6 +19,9 @@ module Egg.Habitat (
   , HabStatus(..), _HabStatus, hsSlots, hsContents
   , initHabStatus
   , baseCapacity
+  , baseCapacities
+  , totalCapacity
+  , capacities
   , slotValue
   , habHistory
   , habPrice
@@ -44,6 +47,7 @@ import           Data.Type.Fin
 import           Data.Type.Vector           as TCV
 import           Data.Vector.Sized.Util
 import           Data.Yaml
+import           Egg.Research
 import           GHC.Generics               (Generic)
 import           Numeric.Lens
 import           Numeric.Natural
@@ -139,6 +143,34 @@ baseCapacity HabData{..} = sumOf $ hsSlots
                                  . folding lookupMax
                                  . to (SV.index _hdHabs)
                                  . habBaseCapacity
+
+totalCapacity
+    :: forall habs. KnownNat habs
+    => HabData habs
+    -> Bonuses
+    -> HabStatus habs
+    -> Natural
+totalCapacity HabData{..} bs =
+    sumOf $ hsSlots
+          . folded
+          . folding lookupMax
+          . to (SV.index _hdHabs)
+          . habBaseCapacity
+          . to fromIntegral
+          . bonusingFor bs BTHabCapacity
+          . to round
+
+capacities
+    :: forall habs. KnownNat habs
+    => HabData habs
+    -> Bonuses
+    -> HabStatus habs
+    -> Vec N4 Natural
+capacities hd bs = fmap ( round
+                        . bonusEffectFor bs BTHabCapacity
+                        . fromIntegral
+                        )
+                 . baseCapacities hd
 
 slotValue :: HabStatus habs -> Fin N4 -> Maybe (Finite habs)
 slotValue hs i = lookupMax . TCV.index' i . _hsSlots $ hs

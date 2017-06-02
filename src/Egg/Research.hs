@@ -21,7 +21,7 @@
 {-# LANGUAGE ViewPatterns                         #-}
 {-# OPTIONS_GHC -fno-warn-partial-type-signatures #-}
 
-module Egg.Upgrade (
+module Egg.Research (
     BonusAmount(..), AsBonusAmount(..)
   , BonusType(..), AsBonusType(..)
   , Bonuses(..), _Bonuses
@@ -31,6 +31,11 @@ module Egg.Upgrade (
   , ResearchIx(..)
   , scaleAmount
   , hasEffect
+  , bonusEffect
+  , bonusEffectFor
+  , bonusing
+  , bonusingFor
+  , emptyBonuses
   , bonuses
   , maxLevel
   , emptyResearchStatus
@@ -295,6 +300,41 @@ hasEffect = \case
 -- | A "smart constructor" that clears bonuses with no effect.
 bonuses :: M.Map BonusType [BonusAmount] -> Bonuses
 bonuses = Bonuses . M.filter (not . null) . fmap (filter hasEffect)
+
+-- | Apply a list of bonuses (from left to right) to a value.
+bonusEffect :: [BonusAmount] -> Double -> Double
+bonusEffect = flip . foldl' $ \e -> \case
+    BAIncrement  i -> e + i
+    BAPercent    p -> e * (1 + p / 100)
+    BAMultiplier r -> e * r
+
+-- | Invert a list of left-to-right bonuses on a value.
+reverseBonusEffect :: [BonusAmount] -> Double -> Double
+reverseBonusEffect = flip . foldr $ \case
+    BAIncrement  i -> subtract i
+    BAPercent    p -> (/ (1 + (p / 100)))
+    BAMultiplier r -> (/ r)
+
+-- | Iso on a value under a list of bonuses (from left to right).
+bonusing :: [BonusAmount] -> Iso' Double Double
+bonusing bs = iso (bonusEffect bs) (reverseBonusEffect bs)
+
+-- | Iso on a value under the bonuses of a given bonus type.
+bonusingFor
+    :: Bonuses
+    -> BonusType
+    -> Iso' Double Double
+bonusingFor bs bt = case M.lookup bt (_bMap bs) of
+                      Nothing -> id
+                      Just bl -> bonusing bl
+
+-- | Apply bonuses for a given type on a value.
+bonusEffectFor :: Bonuses -> BonusType -> Double -> Double
+bonusEffectFor bs bt = maybe id bonusEffect $ M.lookup bt (_bMap bs)
+
+-- | No bonuses
+emptyBonuses :: Bonuses
+emptyBonuses = Bonuses M.empty
 
 -- | Maximum level for a given research.
 maxLevel :: Research a -> Int
