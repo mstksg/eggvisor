@@ -9,6 +9,7 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TupleSections         #-}
+{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
 
@@ -16,7 +17,7 @@ module Egg.Habitat (
     Hab(..), habName, habBaseCapacity, habCosts
   , HabData(..), _HabData
   , SomeHabData
-  , HabStatus(..), _HabStatus, hsSlots, hsContents
+  , HabStatus(..), _HabStatus, hsSlots, hsPop
   , initHabStatus
   , habAt
   , baseCapacity
@@ -30,7 +31,9 @@ module Egg.Habitat (
   , habPrice
   , upgradeHab
   , internalHatcheryRate
-  , fillNext
+  , waitTilNextFilled
+  , stepHabs
+  , waitTilPop
   ) where
 
 
@@ -39,6 +42,7 @@ import           Control.Lens hiding        ((.=))
 import           Control.Monad
 import           Control.Monad.Trans.Writer
 import           Data.Aeson.Types
+import           Data.Bifunctor
 import           Data.Bool
 import           Data.Dependent.Sum
 import           Data.Finite
@@ -56,6 +60,7 @@ import           Egg.Research
 import           GHC.Generics               (Generic)
 import           Numeric.Lens
 import           Numeric.Natural
+import           Text.Printf
 import           Type.Family.Nat
 import qualified Data.Map                   as M
 import qualified Data.Set                   as S
@@ -71,6 +76,7 @@ data Hab = Hab { _habName         :: T.Text
 makeLenses ''Hab
 
 newtype HabData habs = HabData { _hdHabs :: SV.Vector habs Hab }
+  deriving (Show, Eq, Ord, Generic)
 
 makePrisms ''HabData
 makeWrapped ''HabData
@@ -78,21 +84,22 @@ makeWrapped ''HabData
 type SomeHabData = DSum Sing HabData
 
 data HabStatus habs
-    = HabStatus { _hsSlots    :: Vec N4 (S.Set (Finite habs))
-                , _hsContents :: Vec N4 Natural
+    = HabStatus { _hsSlots :: Vec N4 (S.Set (Finite habs))
+                , _hsPop   :: Vec N4 Double
                 }
+  deriving (Show, Eq, Ord, Generic)
 
 makeLenses ''HabStatus
 -- makePrisms ''HabStatus
 -- makeWrapped ''HabStatus
 
-_HabStatus :: Iso' (HabStatus habs) (Vec N4 (S.Set (Finite habs), Natural))
-_HabStatus = iso (\hs -> liftA2 (,) (_hsSlots hs) (_hsContents hs))
+_HabStatus :: Iso' (HabStatus habs) (Vec N4 (S.Set (Finite habs), Double))
+_HabStatus = iso (\hs -> liftA2 (,) (_hsSlots hs) (_hsPop hs))
                  (uncurry HabStatus . unzipV)
 
 habParseOptions :: Options
 habParseOptions = defaultOptions
-    { fieldLabelModifier = camelTo2 '-' . drop 3
+    { fieldLabelModifier = camelTo2 '-' . drop 4
     }
 
 instance FromJSON Hab where
@@ -115,7 +122,8 @@ instance KnownNat habs => FromJSON (HabData habs) where
     parseJSON = withObject "HabData" $ \v -> do
       habs <- v .: "habitats"
       case SV.toSized habs of
-        Nothing    -> fail "Bad number of items in list."
+        Nothing    -> fail $ printf "Bad number of items in list. (Expected %d, got %d)"
+                         (fromSing (SNat @habs)) (length habs)
         Just habsV -> return $ HabData habsV
 instance ToJSON (HabData habs) where
     toJSON HabData{..} = object
@@ -248,47 +256,66 @@ fullHabs
     -> Vec N4 Bool
 fullHabs hd bs = fmap (uncurry isFull) . view _HabStatus
   where
-    isFull :: S.Set (Finite habs) -> Natural -> Bool
+    isFull :: S.Set (Finite habs) -> Double -> Bool
     isFull s c = case lookupMax s of
       Nothing -> True
-      Just m  -> c >= (hd ^. _HabData . ixSV m . to (habCapacity bs))
+      Just m  ->
+        let totCap = hd ^. _HabData . ixSV m . to (habCapacity bs)
+        in  c >= fromIntegral totCap
 
+-- | Gives total avaiable space of each hab (Nothing if hab full), and also
+-- the capacity of each hab.
 availableSpace
     :: forall habs. KnownNat habs
     => HabData habs
     -> Bonuses
     -> HabStatus habs
-    -> Vec N4 (Maybe Natural, Natural)
-availableSpace hd bs hs = checkAvail <$> caps <*> (hs ^. hsContents)
+    -> Vec N4 (Maybe Double, Natural)
+availableSpace hd bs hs = checkAvail <$> caps <*> (hs ^. hsPop)
   where
     caps :: Vec N4 Natural
     caps   = capacities hd bs hs
-    checkAvail :: Natural -> Natural -> (Maybe Natural, Natural)
-    checkAvail cap cont | cont >= cap = (Nothing, cap)
-                        | otherwise   = (Just (cap - cont), cap)
+    checkAvail :: Natural -> Double -> (Maybe Double, Natural)
+    checkAvail cap pop
+        | pop >= cap' = (Nothing, cap)
+        | otherwise   = (Just (cap' - pop), cap)
+      where
+        cap' = fromIntegral cap
 
 -- | Calculate the time until the next hab is full, and return the updated
 -- habs after that time.  Returns Nothing if all habs are full.
 --
--- Also returns the current total fill rate per hatchery, taking into
+waitTilNextFilled
+    :: forall habs. KnownNat habs
+    => HabData habs
+    -> Bonuses
+    -> HabStatus habs
+    -> Maybe ((Fin N4, Double), HabStatus habs)
+waitTilNextFilled hd bs = fst . waitTilNextFilled' hd bs
+
+data WaitError = WENoInternalHatcheries
+               | WEMaxCapacity
+
+-- | Also returns the current total fill rate per hatchery, taking into
 -- account all bonuses.
-fillNext
+waitTilNextFilled'
     :: forall habs. KnownNat habs
     => HabData habs
     -> Bonuses
     -> HabStatus habs
     -> (Maybe ((Fin N4, Double), HabStatus habs), Double)
-fillNext hd bs hs = ((\m@(_,t) -> (m, fillIt t)) <$> nextFill, totalRate)
+waitTilNextFilled' hd bs hs = ((\m@(_,t) -> (m, fillIt t)) <$> nextFill, totalRate)
   where
-    avails :: Vec N4 (Maybe Natural, Natural)
+    avails :: Vec N4 (Maybe Double, Natural)
     avails = availableSpace hd bs hs
     internalRate :: Double
     internalRate = internalHatcheryRate bs
     numFull      :: Natural
     numFull      = sumOf (folded . to (maybe 1 (const 0) . fst)) avails
-    totalRate    = internalRate * (1 + 0.1 * fromIntegral numFull)
+    sharingRate  = 0 ^. bonusingFor bs BTInternalHatcherySharing
+    totalRate    = internalRate * (1 + sharingRate * fromIntegral numFull)
     fillAtRate   :: Vec N4 (Maybe Double)
-    fillAtRate = (fst <$> avails) & mapped . mapped %~ (/ totalRate) . fromIntegral
+    fillAtRate = (fst <$> avails) & mapped . mapped %~ (/ totalRate)
     nextFill :: Maybe (Fin N4, Double)
     nextFill = ifoldr (go . fst) Nothing fillAtRate
       where
@@ -298,27 +325,62 @@ fillNext hd bs hs = ((\m@(_,t) -> (m, fillIt t)) <$> nextFill, totalRate)
         go i mt      Nothing                       = (i,) <$> mt
         go _ Nothing m@(Just _)                    = m
     fillIt :: Double -> HabStatus habs
-    fillIt t = hs & hsContents %~
-      liftA2 (\(_, cap) cont -> min (round (fromIntegral cont + totalRate * t)) cap)
+    fillIt t = hs & hsPop %~
+      liftA2 (\(_, cap) pop -> min (pop + totalRate * t) (fromIntegral cap))
         avails
 
-fillHabs
+-- | Steps the 'HabStatus' over the given time interval.
+stepHabs
     :: forall habs. KnownNat habs
     => HabData habs
     -> Bonuses
-    -> Double
+    -> Double           -- ^ time interval to step
+    -> HabStatus habs   -- ^ initial status
     -> HabStatus habs
-    -> HabStatus habs
-fillHabs hd bs = go
+stepHabs hd bs = go
   where
     go :: Double -> HabStatus habs -> HabStatus habs
-    go dt hs0 = case fillNext hd bs hs0 of
+    go dt hs0 = case waitTilNextFilled' hd bs hs0 of
       (Nothing               , _ ) -> hs0
       (Just ((_, tFill), hs1), rt)
-        | dt < tFill -> hs0 & hsContents . mapped +~ round (rt * dt)
+        | dt < tFill -> hs0 & hsPop . mapped +~ (rt * dt)
         | otherwise  -> go (dt - tFill) hs1
+
+-- | TOTOD: better way of handling results.
+--
+-- conclusions:
+-- 1. Time until reached capacity
+-- 2. Time until succesful pop reaching
+-- 3. No internal hatcheries
+-- 4. already at pop?
+waitTilPop
+    :: forall habs. KnownNat habs
+    => HabData habs
+    -> Bonuses
+    -> Natural
+    -> HabStatus habs
+    -> Maybe (Maybe Double, HabStatus habs)
+waitTilPop hd bs goal hs0
+    | totalCapacity hd bs hs0 < goal = Nothing
+    | pop0 > goal'                   = Just (Nothing, hs0)
+    | otherwise                      = first Just <$> go pop0 hs0
+  where
+    goal' = fromIntegral goal
+    pop0 :: Double
+    pop0 = sumOf (hsPop . traverse) hs0
+    go :: Double -> HabStatus habs -> Maybe (Double, HabStatus habs)
+    go currPop hs1 = case waitTilNextFilled' hd bs hs1 of
+      (Nothing, _)              -> Nothing
+      (Just ((_, dt), hs2), rt) ->
+        let newPop = sumOf (hsPop . traversed) hs2
+        in  if newPop >= goal'
+              then let dt' = (goal' - currPop) / rt
+                   in  Just (dt', hs1 & hsPop . mapped +~ (rt * dt'))
+              else first (+ dt) <$> go newPop hs2
 
 -- | Compute the base internal hatchery rate (chickens per second per
 -- hatchery) from bonuses.
 internalHatcheryRate :: Bonuses -> Double
 internalHatcheryRate bs = 0 ^. bonusingFor bs BTInternalHatchery . dividing 60
+
+-- TODO: account for calm

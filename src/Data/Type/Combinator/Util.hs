@@ -68,6 +68,7 @@ import           Data.Type.Sum
 import           Data.Type.Vector         as TCV
 import           GHC.Generics             (Generic)
 import           Numeric.Natural
+import           Text.Printf
 import           Type.Class.Higher
 import           Type.Class.Known
 import           Type.Class.Witness
@@ -214,7 +215,8 @@ instance (Known Nat n, FromJSON a) => FromJSON (Vec n a) where
     parseJSON o = do
       xs <- parseJSON o
       case listVec known xs of
-        Nothing -> fail "Bad number of items in list."
+        Nothing -> fail $ printf "Bad number of items in list. (Expected %d, got %d)"
+                            (natVal (known @_ @Nat @n)) (length xs)
         Just ys -> return ys
 instance ToJSON a => ToJSON (Vec n a) where
     toJSON     = toJSON . F.toList

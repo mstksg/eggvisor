@@ -119,7 +119,6 @@ habitats:
       - 1.292e+33
       - 3.482e+33
       - 7.832e+33
-      - 30.192e+33
   - name: Planet Portal
     base-capacity: 100000000
     costs:
@@ -628,8 +627,8 @@ epic:
     bonuses:
       internal-hatchery-sharing:
         base-amount:
-          value: 10
-          type: percent
+          value: 0.1
+          type: increment
     costs: [250, 475, 700, 925, 1150, 1375, 1600, 1825, 2050, 2275]
   - name: Internal Hatchery Calm
     description: Increase internal hatchery rate by 10% while away
