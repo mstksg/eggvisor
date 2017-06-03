@@ -12,6 +12,7 @@
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
 {-# LANGUAGE StandaloneDeriving     #-}
+{-# LANGUAGE TupleSections          #-}
 {-# LANGUAGE TypeApplications       #-}
 {-# LANGUAGE TypeFamilies           #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
@@ -46,12 +47,14 @@ module Data.Type.Combinator.Util (
   , natFinCap
   , someNat
   , unzipV
+  , fins'
   ) where
 
-import           Control.Lens hiding    ((:<), Index, Traversable1(..))
+import           Control.Lens as L hiding ((:<), Index, Traversable1(..))
 import           Data.Aeson
 import           Data.Aeson.Types
-import           Data.Foldable          as F
+import           Data.Bifunctor
+import           Data.Foldable            as F
 import           Data.Kind
 import           Data.Maybe
 import           Data.Type.Combinator
@@ -60,10 +63,10 @@ import           Data.Type.Fin
 import           Data.Type.Index
 import           Data.Type.Length
 import           Data.Type.Nat
-import           Data.Type.Product      as TCP
+import           Data.Type.Product        as TCP
 import           Data.Type.Sum
-import           Data.Type.Vector
-import           GHC.Generics           (Generic)
+import           Data.Type.Vector         as TCV
+import           GHC.Generics             (Generic)
 import           Numeric.Natural
 import           Type.Class.Higher
 import           Type.Class.Known
@@ -71,7 +74,7 @@ import           Type.Class.Witness
 import           Type.Family.Constraint
 import           Type.Family.List
 import           Type.Family.Nat
-import qualified GHC.TypeLits           as TL
+import qualified GHC.TypeLits             as TL
 
 data HasLen :: N -> [k] -> Type where
     HLZ :: HasLen 'Z '[]
@@ -326,3 +329,27 @@ unzipV = \case
     ØV       -> (ØV, ØV)
     xy :* zs -> case unzipV zs of
       (xs, ys) -> (fmap fst xy :* xs, fmap snd xy :* ys)
+
+fins' :: Nat n -> Vec n (Fin n)
+fins' = \case
+    Z_   -> ØV
+    S_ n -> FZ :+ (FS <$> fins' n)
+
+zipFins :: forall n f a. Functor f => VecT n f a -> VecT n f (Fin n, a)
+zipFins = \case
+    ØV      -> ØV
+    x :* xs -> ((FZ,) <$> x) :* (first FS <$> zipFins xs)
+
+instance (FunctorWithIndex i f, Functor f) => FunctorWithIndex (Fin n, i) (VecT n f) where
+    imap f = TCV.imap $ \i -> L.imap (\j x -> f (i, j) x)
+instance FoldableWithIndex i f => FoldableWithIndex (Fin n, i) (VecT n f) where
+    ifoldMap f = TCV.ifoldMap $ \i -> L.ifoldMap (\j x -> f (i, j) x)
+instance TraversableWithIndex i f => TraversableWithIndex (Fin n, i) (VecT n f) where
+    itraverse f = TCV.itraverse $ \i -> L.itraverse (\j x -> f (i, j) x)
+
+instance FunctorWithIndex () I where
+    imap f = fmap (f ())
+instance FoldableWithIndex () I where
+    ifoldMap f = foldMap (f ())
+instance TraversableWithIndex () I where
+    itraverse f = traverse (f ())

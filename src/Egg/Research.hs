@@ -72,6 +72,7 @@ import           Data.Type.Sum
 import           Data.Type.Vector
 import           Data.Vector.Sized.Util
 import           GHC.Generics                    (Generic)
+import           Numeric.Lens
 import           Numeric.Natural
 import           Type.Class.Higher
 import           Type.Class.Witness
@@ -317,7 +318,13 @@ reverseBonusEffect = flip . foldr $ \case
 
 -- | Iso on a value under a list of bonuses (from left to right).
 bonusing :: [BonusAmount] -> Iso' Double Double
-bonusing bs = iso (bonusEffect bs) (reverseBonusEffect bs)
+bonusing = flip foldl' id $ \e -> \case
+             BAIncrement i  -> e . adding i
+             BAPercent   p  -> e . multiplying (1 + p / 100)
+             BAMultiplier r -> e . multiplying r
+-- = flip . foldl' $ \e -> \case
+--     BAIncrement i -> e . adding i
+-- bonusing bs = iso (bonusEffect bs) (reverseBonusEffect bs)
 
 -- | Iso on a value under the bonuses of a given bonus type.
 bonusingFor
