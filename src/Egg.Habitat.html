@@ -9,63 +9,74 @@
 </span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables   #-}</span><span>
 </span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE TemplateHaskell       #-}</span><span>
 </span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE TupleSections         #-}</span><span>
-</span><a name="line-12"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies          #-}</span><span>
-</span><a name="line-13"></a><span class="hs-pragma">{-# LANGUAGE TypeSynonymInstances  #-}</span><span>
-</span><a name="line-14"></a><span>
-</span><a name="line-15"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Habitat</span><span> </span><span class="hs-special">(</span><span>
-</span><a name="line-16"></a><span>    </span><a href="Egg.Habitat.html#Hab"><span class="hs-identifier hs-type">Hab</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habName"><span class="hs-identifier hs-var">habName</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habBaseCapacity"><span class="hs-identifier hs-var">habBaseCapacity</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habCosts"><span class="hs-identifier hs-var">habCosts</span></a><span>
-</span><a name="line-17"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#HabData"><span class="hs-identifier hs-type">HabData</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#_HabData"><span class="hs-identifier hs-var">_HabData</span></a><span>
-</span><a name="line-18"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#SomeHabData"><span class="hs-identifier hs-type">SomeHabData</span></a><span>
-</span><a name="line-19"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#HabStatus"><span class="hs-identifier hs-type">HabStatus</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#_HabStatus"><span class="hs-identifier hs-var">_HabStatus</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#hsSlots"><span class="hs-identifier hs-var">hsSlots</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#hsContents"><span class="hs-identifier hs-var">hsContents</span></a><span>
-</span><a name="line-20"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#initHabStatus"><span class="hs-identifier hs-var">initHabStatus</span></a><span>
-</span><a name="line-21"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#baseCapacity"><span class="hs-identifier hs-var">baseCapacity</span></a><span>
-</span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#baseCapacities"><span class="hs-identifier hs-var">baseCapacities</span></a><span>
-</span><a name="line-23"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#totalCapacity"><span class="hs-identifier hs-var">totalCapacity</span></a><span>
-</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#capacities"><span class="hs-identifier hs-var">capacities</span></a><span>
-</span><a name="line-25"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#slotValue"><span class="hs-identifier hs-var">slotValue</span></a><span>
-</span><a name="line-26"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habHistory"><span class="hs-identifier hs-var">habHistory</span></a><span>
-</span><a name="line-27"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habPrice"><span class="hs-identifier hs-var">habPrice</span></a><span>
-</span><a name="line-28"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#upgradeHab"><span class="hs-identifier hs-var">upgradeHab</span></a><span>
-</span><a name="line-29"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#internalHatchery"><span class="hs-identifier hs-var">internalHatchery</span></a><span>
-</span><a name="line-30"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-31"></a><span>
-</span><a name="line-32"></a><span>
-</span><a name="line-33"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Applicative</span><span>
-</span><a name="line-34"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span> </span><span class="hs-keyword">hiding</span><span>        </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-var">.=</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-35"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span>
-</span><a name="line-36"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span class="hs-operator">.</span><span class="hs-identifier">Trans</span><span class="hs-operator">.</span><span class="hs-identifier">Writer</span><span>
-</span><a name="line-37"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span><span>
-</span><a name="line-38"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Dependent</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
-</span><a name="line-39"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span>
-</span><a name="line-40"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Maybe</span><span>
-</span><a name="line-41"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Monoid</span><span>
-</span><a name="line-42"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
-</span><a name="line-43"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
-</span><a name="line-44"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Tuple</span><span>
-</span><a name="line-45"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Combinator.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
-</span><a name="line-46"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Fin</span><span>
-</span><a name="line-47"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>           </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
-</span><a name="line-48"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Vector.Sized.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
-</span><a name="line-49"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Yaml</span><span>
-</span><a name="line-50"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Research.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Research</span></a><span>
-</span><a name="line-51"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">Generics</span><span>               </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-52"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span>
-</span><a name="line-53"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Natural</span><span>
-</span><a name="line-54"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
-</span><a name="line-55"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Map</span><span>                   </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">M</span><span>
-</span><a name="line-56"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Set</span><span>                   </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">S</span><span>
-</span><a name="line-57"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Text</span><span>                  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">T</span><span>
-</span><a name="line-58"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>          </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
-</span><a name="line-59"></a><span>
-</span><a name="line-60"></a><span class="hs-keyword">data</span><span> </span><a name="Hab"><a href="Egg.Habitat.html#Hab"><span class="hs-identifier">Hab</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Hab"><a href="Egg.Habitat.html#Hab"><span class="hs-identifier">Hab</span></a></a><span> </span><span class="hs-special">{</span><span> </span><a name="_habName"><a href="Egg.Habitat.html#_habName"><span class="hs-identifier">_habName</span></a></a><span>         </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">T</span><span class="hs-operator hs-type">.</span><span class="hs-identifier hs-type">Text</span><span>
-</span><a name="line-61"></a><span>               </span><span class="hs-special">,</span><span> </span><a name="_habBaseCapacity"><a href="Egg.Habitat.html#_habBaseCapacity"><span class="hs-identifier">_habBaseCapacity</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Natural</span><span>
-</span><a name="line-62"></a><span>               </span><span class="hs-special">,</span><span> </span><a name="_habCosts"><a href="Egg.Habitat.html#_habCosts"><span class="hs-identifier">_habCosts</span></a></a><span>        </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Vec</span><span> </span><span class="hs-identifier hs-type">N4</span><span> </span><span class="hs-identifier hs-type">Double</span><span>
-</span><a name="line-63"></a><span>               </span><span class="hs-special">}</span><span>
-</span><a name="line-64"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-65"></a><span>
-</span><a name="line-66"></a><span class="hs-identifier hs-var">makeLenses</span><span> </span><span class="hs-char">''Hab
+</span><a name="line-12"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications      #-}</span><span>
+</span><a name="line-13"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies          #-}</span><span>
+</span><a name="line-14"></a><span class="hs-pragma">{-# LANGUAGE TypeSynonymInstances  #-}</span><span>
+</span><a name="line-15"></a><span>
+</span><a name="line-16"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Habitat</span><span> </span><span class="hs-special">(</span><span>
+</span><a name="line-17"></a><span>    </span><a href="Egg.Habitat.html#Hab"><span class="hs-identifier hs-type">Hab</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habName"><span class="hs-identifier hs-var">habName</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habBaseCapacity"><span class="hs-identifier hs-var">habBaseCapacity</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habCosts"><span class="hs-identifier hs-var">habCosts</span></a><span>
+</span><a name="line-18"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#HabData"><span class="hs-identifier hs-type">HabData</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#_HabData"><span class="hs-identifier hs-var">_HabData</span></a><span>
+</span><a name="line-19"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#SomeHabData"><span class="hs-identifier hs-type">SomeHabData</span></a><span>
+</span><a name="line-20"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#HabStatus"><span class="hs-identifier hs-type">HabStatus</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#_HabStatus"><span class="hs-identifier hs-var">_HabStatus</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#hsSlots"><span class="hs-identifier hs-var">hsSlots</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#hsPop"><span class="hs-identifier hs-var">hsPop</span></a><span>
+</span><a name="line-21"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#initHabStatus"><span class="hs-identifier hs-var">initHabStatus</span></a><span>
+</span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habAt"><span class="hs-identifier hs-var">habAt</span></a><span>
+</span><a name="line-23"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#baseCapacity"><span class="hs-identifier hs-var">baseCapacity</span></a><span>
+</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#baseCapacities"><span class="hs-identifier hs-var">baseCapacities</span></a><span>
+</span><a name="line-25"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#totalCapacity"><span class="hs-identifier hs-var">totalCapacity</span></a><span>
+</span><a name="line-26"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habCapacity"><span class="hs-identifier hs-var">habCapacity</span></a><span>
+</span><a name="line-27"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#fullHabs"><span class="hs-identifier hs-var">fullHabs</span></a><span>
+</span><a name="line-28"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#availableSpace"><span class="hs-identifier hs-var">availableSpace</span></a><span>
+</span><a name="line-29"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#capacities"><span class="hs-identifier hs-var">capacities</span></a><span>
+</span><a name="line-30"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habHistory"><span class="hs-identifier hs-var">habHistory</span></a><span>
+</span><a name="line-31"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habPrice"><span class="hs-identifier hs-var">habPrice</span></a><span>
+</span><a name="line-32"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#upgradeHab"><span class="hs-identifier hs-var">upgradeHab</span></a><span>
+</span><a name="line-33"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#internalHatcheryRate"><span class="hs-identifier hs-var">internalHatcheryRate</span></a><span>
+</span><a name="line-34"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#waitTilNextFilled"><span class="hs-identifier hs-var">waitTilNextFilled</span></a><span>
+</span><a name="line-35"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#stepHabs"><span class="hs-identifier hs-var">stepHabs</span></a><span>
+</span><a name="line-36"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#waitTilPop"><span class="hs-identifier hs-var">waitTilPop</span></a><span>
+</span><a name="line-37"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-38"></a><span>
+</span><a name="line-39"></a><span>
+</span><a name="line-40"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Applicative</span><span>
+</span><a name="line-41"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span> </span><span class="hs-keyword">hiding</span><span>        </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-var">.=</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-42"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span>
+</span><a name="line-43"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span class="hs-operator">.</span><span class="hs-identifier">Trans</span><span class="hs-operator">.</span><span class="hs-identifier">Writer</span><span>
+</span><a name="line-44"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span><span>
+</span><a name="line-45"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Bifunctor</span><span>
+</span><a name="line-46"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Bool</span><span>
+</span><a name="line-47"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Dependent</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
+</span><a name="line-48"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span>
+</span><a name="line-49"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Maybe</span><span>
+</span><a name="line-50"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Monoid</span><span>
+</span><a name="line-51"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
+</span><a name="line-52"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
+</span><a name="line-53"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Tuple</span><span>
+</span><a name="line-54"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Combinator.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-55"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Fin</span><span>
+</span><a name="line-56"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>           </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
+</span><a name="line-57"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Vector.Sized.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-58"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Yaml</span><span>
+</span><a name="line-59"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Research.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Research</span></a><span>
+</span><a name="line-60"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">Generics</span><span>               </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-61"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span>
+</span><a name="line-62"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Natural</span><span>
+</span><a name="line-63"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Text</span><span class="hs-operator">.</span><span class="hs-identifier">Printf</span><span>
+</span><a name="line-64"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-65"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Map</span><span>                   </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">M</span><span>
+</span><a name="line-66"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Set</span><span>                   </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">S</span><span>
+</span><a name="line-67"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Text</span><span>                  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">T</span><span>
+</span><a name="line-68"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>          </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
+</span><a name="line-69"></a><span>
+</span><a name="line-70"></a><span class="hs-keyword">data</span><span> </span><a name="Hab"><a href="Egg.Habitat.html#Hab"><span class="hs-identifier">Hab</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Hab"><a href="Egg.Habitat.html#Hab"><span class="hs-identifier">Hab</span></a></a><span> </span><span class="hs-special">{</span><span> </span><a name="_habName"><a href="Egg.Habitat.html#_habName"><span class="hs-identifier">_habName</span></a></a><span>         </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">T</span><span class="hs-operator hs-type">.</span><span class="hs-identifier hs-type">Text</span><span>
+</span><a name="line-71"></a><span>               </span><span class="hs-special">,</span><span> </span><a name="_habBaseCapacity"><a href="Egg.Habitat.html#_habBaseCapacity"><span class="hs-identifier">_habBaseCapacity</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Natural</span><span>
+</span><a name="line-72"></a><span>               </span><span class="hs-special">,</span><span> </span><a name="_habCosts"><a href="Egg.Habitat.html#_habCosts"><span class="hs-identifier">_habCosts</span></a></a><span>        </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Vec</span><span> </span><span class="hs-identifier hs-type">N4</span><span> </span><span class="hs-identifier hs-type">Double</span><span>
+</span><a name="line-73"></a><span>               </span><span class="hs-special">}</span><span>
+</span><a name="line-74"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-75"></a><span>
+</span><a name="line-76"></a><span class="hs-identifier hs-var">makeLenses</span><span> </span><span class="hs-char">''Hab
 
 newtype HabData habs = HabData { _hdHabs :: SV.Vector habs Hab }
+  deriving (Show, Eq, Ord, Generic)
 
 makePrisms ''HabData
 makeWrapped ''HabData
@@ -73,21 +84,22 @@ makeWrapped ''HabData
 type SomeHabData = DSum Sing HabData
 
 data HabStatus habs
-    = HabStatus { _hsSlots    :: Vec N4 (S.Set (Finite habs))
-                , _hsContents :: Vec N4 Natural
+    = HabStatus { _hsSlots :: Vec N4 (S.Set (Finite habs))
+                , _hsPop   :: Vec N4 Double
                 }
+  deriving (Show, Eq, Ord, Generic)
 
 makeLenses ''HabStatus
 -- makePrisms ''HabStatus
 -- makeWrapped ''HabStatus
 
-_HabStatus :: Iso' (HabStatus habs) (Vec N4 (S.Set (Finite habs), Natural))
-_HabStatus = iso (\hs -&gt; liftA2 (,) (_hsSlots hs) (_hsContents hs))
+_HabStatus :: Iso' (HabStatus habs) (Vec N4 (S.Set (Finite habs), Double))
+_HabStatus = iso (\hs -&gt; liftA2 (,) (_hsSlots hs) (_hsPop hs))
                  (uncurry HabStatus . unzipV)
 
 habParseOptions :: Options
 habParseOptions = defaultOptions
-    { fieldLabelModifier = camelTo2 '-' . drop 3
+    { fieldLabelModifier = camelTo2 '-' . drop 4
     }
 
 instance FromJSON Hab where
@@ -110,7 +122,8 @@ instance KnownNat habs =&gt; FromJSON (HabData habs) where
     parseJSON = withObject &quot;HabData&quot; $ \v -&gt; do
       habs &lt;- v .: &quot;habitats&quot;
       case SV.toSized habs of
-        Nothing    -&gt; fail &quot;Bad number of items in list.&quot;
+        Nothing    -&gt; fail $ printf &quot;Bad number of items in list. (Expected %d, got %d)&quot;
+                         (fromSing (SNat @habs)) (length habs)
         Just habsV -&gt; return $ HabData habsV
 instance ToJSON (HabData habs) where
     toJSON HabData{..} = object
@@ -120,9 +133,11 @@ instance ToJSON (HabData habs) where
         [ &quot;habitats&quot; .= SV.fromSized _hdHabs
         ]
 
+-- | Initial 'HabStatus' to start off the game.
 initHabStatus :: KnownNat habs =&gt; HabStatus habs
 initHabStatus = HabStatus (S.singleton 0 :+ pure S.empty) (pure 0)
 
+-- | Base capacity of each slot.
 baseCapacities
     :: forall habs. KnownNat habs
     =&gt; HabData habs
@@ -133,6 +148,7 @@ baseCapacities hd = fmap go . _hsSlots
     go = maybe 0 (\h -&gt; hd ^. _HabData . ixSV h . habBaseCapacity)
        . lookupMax
 
+-- | Total base capacity of all slots.
 baseCapacity
     :: forall habs. KnownNat habs
     =&gt; HabData habs
@@ -144,6 +160,7 @@ baseCapacity HabData{..} = sumOf $ hsSlots
                                  . to (SV.index _hdHabs)
                                  . habBaseCapacity
 
+-- | Total capacity of all hatcheries, factoring in bonuses.
 totalCapacity
     :: forall habs. KnownNat habs
     =&gt; HabData habs
@@ -160,6 +177,7 @@ totalCapacity HabData{..} bs =
           . bonusingFor bs BTHabCapacity
           . to round
 
+-- | Capacities of all slots, factoring in bonuses.
 capacities
     :: forall habs. KnownNat habs
     =&gt; HabData habs
@@ -172,12 +190,17 @@ capacities hd bs = fmap ( round
                         )
                  . baseCapacities hd
 
-slotValue :: HabStatus habs -&gt; Fin N4 -&gt; Maybe (Finite habs)
-slotValue hs i = lookupMax . TCV.index' i . _hsSlots $ hs
+-- | Hab at the given slot
+habAt :: KnownNat habs =&gt; HabData habs -&gt; HabStatus habs -&gt; Fin N4 -&gt; Maybe Hab
+habAt HabData{..} hs i = hs ^? hsSlots . ixV i . to lookupMax . folded . to (SV.index _hdHabs)
 
+-- | How many of each hab has been purchased so far.  If key is not found,
+-- zero purchases is implied.
 habHistory :: HabStatus habs -&gt; M.Map (Finite habs) (Finite 4)
 habHistory = M.fromListWith (+) . toListOf (hsSlots . folded . folded . to (, 1))
 
+-- | Get the price of a given hab, if a purchase were to be made.  Does not
+-- check if purchase is legal (see 'upgradeHab').
 habPrice :: KnownNat habs =&gt; HabData habs -&gt; HabStatus habs -&gt; Finite habs -&gt; Double
 habPrice hd hs hab = priceOf
                    . maybe FZ (fromJust . natFin . someNat . fromIntegral)
@@ -188,6 +211,21 @@ habPrice hd hs hab = priceOf
     priceOf :: Fin N4 -&gt; Double
     priceOf i = hd ^. _HabData . ixSV hab . habCosts . ixV i
 
+-- | Get the actual capacity for a given hab, with given bonuses.
+habCapacity
+    :: Bonuses
+    -&gt; Hab
+    -&gt; Natural
+habCapacity bs = view $ habBaseCapacity
+                      . to fromIntegral
+                      . bonusingFor bs BTHabCapacity
+                      . to round
+
+-- | Purchase a hab upgrade.  Returns (base) cost and new hab status, if
+-- purchase is valid.
+--
+-- Purchase is invalid if purchasing a hab in a slot where a greater hab
+-- is already purchased.
 upgradeHab
     :: KnownNat habs
     =&gt; HabData habs
@@ -209,20 +247,141 @@ upgradeHab hd slot hab hs0 =
 lookupMax :: S.Set a -&gt; Maybe a
 lookupMax = fmap fst . S.maxView
 
--- | TODO: account for sharing
-internalHatchery
-    :: KnownNat habs
+-- | Which habs are full?
+fullHabs
+    :: forall habs. KnownNat habs
     =&gt; HabData habs
-    -&gt; Double               -- ^ hab capacity percent multiplier (ie, 5, 10)
-    -&gt; Integer              -- ^ internal hatchery rate (chickens/habs/min)
-    -&gt; Double               -- ^ time (seconds)
+    -&gt; Bonuses
     -&gt; HabStatus habs
+    -&gt; Vec N4 Bool
+fullHabs hd bs = fmap (uncurry isFull) . view _HabStatus
+  where
+    isFull :: S.Set (Finite habs) -&gt; Double -&gt; Bool
+    isFull s c = case lookupMax s of
+      Nothing -&gt; True
+      Just m  -&gt;
+        let totCap = hd ^. _HabData . ixSV m . to (habCapacity bs)
+        in  c &gt;= fromIntegral totCap
+
+-- | Gives total avaiable space of each hab (Nothing if hab full), and also
+-- the capacity of each hab.
+availableSpace
+    :: forall habs. KnownNat habs
+    =&gt; HabData habs
+    -&gt; Bonuses
     -&gt; HabStatus habs
-internalHatchery hd p r dt = over (_HabStatus . traverse) . uncurry $ \h c0 -&gt;
-    case lookupMax h of
-      Nothing -&gt; (h, 0)
-      Just i  -&gt;
-        let c1   = fromIntegral c0 + fromIntegral r * (dt / 60)
-            cMax = hd ^. _HabData . ixSV i . habBaseCapacity . to fromIntegral . multiplying (1 + p / 100)
-        in  (h, round (min c1 cMax))
+    -&gt; Vec N4 (Maybe Double, Natural)
+availableSpace hd bs hs = checkAvail &lt;$&gt; caps &lt;*&gt; (hs ^. hsPop)
+  where
+    caps :: Vec N4 Natural
+    caps   = capacities hd bs hs
+    checkAvail :: Natural -&gt; Double -&gt; (Maybe Double, Natural)
+    checkAvail cap pop
+        | pop &gt;= cap' = (Nothing, cap)
+        | otherwise   = (Just (cap' - pop), cap)
+      where
+        cap' = fromIntegral cap
+
+-- | Calculate the time until the next hab is full, and return the updated
+-- habs after that time.  Returns Nothing if all habs are full.
+--
+waitTilNextFilled
+    :: forall habs. KnownNat habs
+    =&gt; HabData habs
+    -&gt; Bonuses
+    -&gt; HabStatus habs
+    -&gt; Maybe ((Fin N4, Double), HabStatus habs)
+waitTilNextFilled hd bs = fst . waitTilNextFilled' hd bs
+
+data WaitError = WENoInternalHatcheries
+               | WEMaxCapacity
+
+-- | Also returns the current total fill rate per hatchery, taking into
+-- account all bonuses.
+waitTilNextFilled'
+    :: forall habs. KnownNat habs
+    =&gt; HabData habs
+    -&gt; Bonuses
+    -&gt; HabStatus habs
+    -&gt; (Maybe ((Fin N4, Double), HabStatus habs), Double)
+waitTilNextFilled' hd bs hs = ((\m@(_,t) -&gt; (m, fillIt t)) &lt;$&gt; nextFill, totalRate)
+  where
+    avails :: Vec N4 (Maybe Double, Natural)
+    avails = availableSpace hd bs hs
+    internalRate :: Double
+    internalRate = internalHatcheryRate bs
+    numFull      :: Natural
+    numFull      = sumOf (folded . to (maybe 1 (const 0) . fst)) avails
+    sharingRate  = 0 ^. bonusingFor bs BTInternalHatcherySharing
+    totalRate    = internalRate * (1 + sharingRate * fromIntegral numFull)
+    fillAtRate   :: Vec N4 (Maybe Double)
+    fillAtRate = (fst &lt;$&gt; avails) &amp; mapped . mapped %~ (/ totalRate)
+    nextFill :: Maybe (Fin N4, Double)
+    nextFill = ifoldr (go . fst) Nothing fillAtRate
+      where
+        go :: Fin N4 -&gt; Maybe Double -&gt; Maybe (Fin N4, Double) -&gt; Maybe (Fin N4, Double)
+        go i (Just t) m@(Just (_, mt)) | t &lt; mt    = Just (i, t)
+                                       | otherwise = m
+        go i mt      Nothing                       = (i,) &lt;$&gt; mt
+        go _ Nothing m@(Just _)                    = m
+    fillIt :: Double -&gt; HabStatus habs
+    fillIt t = hs &amp; hsPop %~
+      liftA2 (\(_, cap) pop -&gt; min (pop + totalRate * t) (fromIntegral cap))
+        avails
+
+-- | Steps the 'HabStatus' over the given time interval.
+stepHabs
+    :: forall habs. KnownNat habs
+    =&gt; HabData habs
+    -&gt; Bonuses
+    -&gt; Double           -- ^ time interval to step
+    -&gt; HabStatus habs   -- ^ initial status
+    -&gt; HabStatus habs
+stepHabs hd bs = go
+  where
+    go :: Double -&gt; HabStatus habs -&gt; HabStatus habs
+    go dt hs0 = case waitTilNextFilled' hd bs hs0 of
+      (Nothing               , _ ) -&gt; hs0
+      (Just ((_, tFill), hs1), rt)
+        | dt &lt; tFill -&gt; hs0 &amp; hsPop . mapped +~ (rt * dt)
+        | otherwise  -&gt; go (dt - tFill) hs1
+
+-- | TOTOD: better way of handling results.
+--
+-- conclusions:
+-- 1. Time until reached capacity
+-- 2. Time until succesful pop reaching
+-- 3. No internal hatcheries
+-- 4. already at pop?
+waitTilPop
+    :: forall habs. KnownNat habs
+    =&gt; HabData habs
+    -&gt; Bonuses
+    -&gt; Natural
+    -&gt; HabStatus habs
+    -&gt; Maybe (Maybe Double, HabStatus habs)
+waitTilPop hd bs goal hs0
+    | totalCapacity hd bs hs0 &lt; goal = Nothing
+    | pop0 &gt; goal'                   = Just (Nothing, hs0)
+    | otherwise                      = first Just &lt;$&gt; go pop0 hs0
+  where
+    goal' = fromIntegral goal
+    pop0 :: Double
+    pop0 = sumOf (hsPop . traverse) hs0
+    go :: Double -&gt; HabStatus habs -&gt; Maybe (Double, HabStatus habs)
+    go currPop hs1 = case waitTilNextFilled' hd bs hs1 of
+      (Nothing, _)              -&gt; Nothing
+      (Just ((_, dt), hs2), rt) -&gt;
+        let newPop = sumOf (hsPop . traversed) hs2
+        in  if newPop &gt;= goal'
+              then let dt' = (goal' - currPop) / rt
+                   in  Just (dt', hs1 &amp; hsPop . mapped +~ (rt * dt'))
+              else first (+ dt) &lt;$&gt; go newPop hs2
+
+-- | Compute the base internal hatchery rate (chickens per second per
+-- hatchery) from bonuses.
+internalHatcheryRate :: Bonuses -&gt; Double
+internalHatcheryRate bs = 0 ^. bonusingFor bs BTInternalHatchery . dividing 60
+
+-- TODO: account for calm
 </span></pre></body></html>

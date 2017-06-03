@@ -72,28 +72,29 @@
 </span><a name="line-72"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>
 </span><a name="line-73"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Vector.Sized.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
 </span><a name="line-74"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">Generics</span><span>                    </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-75"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Natural</span><span>
-</span><a name="line-76"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span>
-</span><a name="line-77"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
-</span><a name="line-78"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Map</span><span>                        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">M</span><span>
-</span><a name="line-79"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Text</span><span>                       </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">T</span><span>
-</span><a name="line-80"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>                     </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">V</span><span>
-</span><a name="line-81"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
-</span><a name="line-82"></a><span>
-</span><a name="line-83"></a><span class="hs-keyword">data</span><span> </span><a name="BonusAmount"><a href="Egg.Research.html#BonusAmount"><span class="hs-identifier">BonusAmount</span></a></a><span>
-</span><a name="line-84"></a><span>    </span><span class="hs-comment">-- | Bonus adds an absolute amount.  Scales by multiplication, and</span><span>
-</span><a name="line-85"></a><span>    </span><span class="hs-comment">-- compounds by addition.</span><span>
-</span><a name="line-86"></a><span>    </span><span class="hs-glyph">=</span><span> </span><a name="BAIncrement"><a href="Egg.Research.html#BAIncrement"><span class="hs-identifier">BAIncrement</span></a></a><span> </span><span class="hs-identifier hs-type">Double</span><span>
-</span><a name="line-87"></a><span>    </span><span class="hs-comment">-- | Bonus adds a percentage point multiplier.  Scales by</span><span>
-</span><a name="line-88"></a><span>    </span><span class="hs-comment">-- multiplication (three 10% buffs is a 15% buff) and compounds by</span><span>
-</span><a name="line-89"></a><span>    </span><span class="hs-comment">-- appropriate multiplication.</span><span>
-</span><a name="line-90"></a><span>    </span><span class="hs-glyph">|</span><span> </span><a name="BAPercent"><a href="Egg.Research.html#BAPercent"><span class="hs-identifier">BAPercent</span></a></a><span> </span><span class="hs-identifier hs-type">Double</span><span>
-</span><a name="line-91"></a><span>    </span><span class="hs-comment">-- | Bonus multiplies by a given ratio.  Scales by exponentiation</span><span>
-</span><a name="line-92"></a><span>    </span><span class="hs-comment">-- (three 2x buffs is a 8x buff) and compounds by multiplication.</span><span>
-</span><a name="line-93"></a><span>    </span><span class="hs-glyph">|</span><span> </span><a name="BAMultiplier"><a href="Egg.Research.html#BAMultiplier"><span class="hs-identifier">BAMultiplier</span></a></a><span> </span><span class="hs-identifier hs-type">Double</span><span>
-</span><a name="line-94"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-95"></a><span>
-</span><a name="line-96"></a><span class="hs-identifier hs-var">makeClassyPrisms</span><span> </span><span class="hs-char">''BonusAmount
+</span><a name="line-75"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span>
+</span><a name="line-76"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Natural</span><span>
+</span><a name="line-77"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span>
+</span><a name="line-78"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
+</span><a name="line-79"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Map</span><span>                        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">M</span><span>
+</span><a name="line-80"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Text</span><span>                       </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">T</span><span>
+</span><a name="line-81"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>                     </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">V</span><span>
+</span><a name="line-82"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
+</span><a name="line-83"></a><span>
+</span><a name="line-84"></a><span class="hs-keyword">data</span><span> </span><a name="BonusAmount"><a href="Egg.Research.html#BonusAmount"><span class="hs-identifier">BonusAmount</span></a></a><span>
+</span><a name="line-85"></a><span>    </span><span class="hs-comment">-- | Bonus adds an absolute amount.  Scales by multiplication, and</span><span>
+</span><a name="line-86"></a><span>    </span><span class="hs-comment">-- compounds by addition.</span><span>
+</span><a name="line-87"></a><span>    </span><span class="hs-glyph">=</span><span> </span><a name="BAIncrement"><a href="Egg.Research.html#BAIncrement"><span class="hs-identifier">BAIncrement</span></a></a><span> </span><span class="hs-identifier hs-type">Double</span><span>
+</span><a name="line-88"></a><span>    </span><span class="hs-comment">-- | Bonus adds a percentage point multiplier.  Scales by</span><span>
+</span><a name="line-89"></a><span>    </span><span class="hs-comment">-- multiplication (three 10% buffs is a 15% buff) and compounds by</span><span>
+</span><a name="line-90"></a><span>    </span><span class="hs-comment">-- appropriate multiplication.</span><span>
+</span><a name="line-91"></a><span>    </span><span class="hs-glyph">|</span><span> </span><a name="BAPercent"><a href="Egg.Research.html#BAPercent"><span class="hs-identifier">BAPercent</span></a></a><span> </span><span class="hs-identifier hs-type">Double</span><span>
+</span><a name="line-92"></a><span>    </span><span class="hs-comment">-- | Bonus multiplies by a given ratio.  Scales by exponentiation</span><span>
+</span><a name="line-93"></a><span>    </span><span class="hs-comment">-- (three 2x buffs is a 8x buff) and compounds by multiplication.</span><span>
+</span><a name="line-94"></a><span>    </span><span class="hs-glyph">|</span><span> </span><a name="BAMultiplier"><a href="Egg.Research.html#BAMultiplier"><span class="hs-identifier">BAMultiplier</span></a></a><span> </span><span class="hs-identifier hs-type">Double</span><span>
+</span><a name="line-95"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-96"></a><span>
+</span><a name="line-97"></a><span class="hs-identifier hs-var">makeClassyPrisms</span><span> </span><span class="hs-char">''BonusAmount
 
 data BonusType =
         BTBuildCosts
@@ -317,7 +318,13 @@ reverseBonusEffect = flip . foldr $ \case
 
 -- | Iso on a value under a list of bonuses (from left to right).
 bonusing :: [BonusAmount] -&gt; Iso' Double Double
-bonusing bs = iso (bonusEffect bs) (reverseBonusEffect bs)
+bonusing = flip foldl' id $ \e -&gt; \case
+             BAIncrement i  -&gt; e . adding i
+             BAPercent   p  -&gt; e . multiplying (1 + p / 100)
+             BAMultiplier r -&gt; e . multiplying r
+-- = flip . foldl' $ \e -&gt; \case
+--     BAIncrement i -&gt; e . adding i
+-- bonusing bs = iso (bonusEffect bs) (reverseBonusEffect bs)
 
 -- | Iso on a value under the bonuses of a given bonus type.
 bonusingFor
