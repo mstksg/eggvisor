@@ -309,22 +309,12 @@ bonusEffect = flip . foldl' $ \e -> \case
     BAPercent    p -> e * (1 + p / 100)
     BAMultiplier r -> e * r
 
--- | Invert a list of left-to-right bonuses on a value.
-reverseBonusEffect :: [BonusAmount] -> Double -> Double
-reverseBonusEffect = flip . foldr $ \case
-    BAIncrement  i -> subtract i
-    BAPercent    p -> (/ (1 + (p / 100)))
-    BAMultiplier r -> (/ r)
-
 -- | Iso on a value under a list of bonuses (from left to right).
 bonusing :: [BonusAmount] -> Iso' Double Double
 bonusing = flip foldl' id $ \e -> \case
              BAIncrement i  -> e . adding i
              BAPercent   p  -> e . multiplying (1 + p / 100)
              BAMultiplier r -> e . multiplying r
--- = flip . foldl' $ \e -> \case
---     BAIncrement i -> e . adding i
--- bonusing bs = iso (bonusEffect bs) (reverseBonusEffect bs)
 
 -- | Iso on a value under the bonuses of a given bonus type.
 bonusingFor
