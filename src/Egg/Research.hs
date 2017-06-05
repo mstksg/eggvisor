@@ -53,6 +53,7 @@ module Egg.Research (
   , researchIxNum
   , researchIxData
   , researchIxStatus
+  , researchIxStatusLegal
   , withSomeResearch
   , researchIxesCommon
   , researchIxesEpic
@@ -479,14 +480,6 @@ purchaseResearch rd i = pp . runWriterT . researchIxStatusLegal rd i (WriterT . 
         Left m   -> (currLevel + 1, 0) <$ guard (currLevel < m)
                         \\ researchIxNum i
         Right cs -> (currLevel + 1,) <$> (cs V.!? fromIntegral (currLevel + 1))
-
--- purchaseResearch rd i =
---     fmap swap . runWriterT . researchIxStatus i (\currLevel -> WriterT $
---       case rd ^. researchIxData i . rCosts of
---         Left m   -> (currLevel + 1, 0) <$ guard (currLevel < m)
---                         \\ researchIxNum i
---         Right cs -> (currLevel + 1,) <$> (cs V.!? fromIntegral (currLevel + 1))
---     )
 
 -- | Get a 'Num' instance from a 'ResearchIx'.
 researchIxNum :: ResearchIx tiers epic a -> Wit (Num a)
