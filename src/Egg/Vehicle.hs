@@ -8,6 +8,7 @@
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -21,34 +22,45 @@ module Egg.Vehicle (
   , upgradeDepo
   , baseCapacity
   , totalCapacity
+  , vehicleHistory
+  , vehiclePrice
+  , upgradeVehicle
   ) where
 
-import           Control.Lens hiding       ((.=))
+import           Control.Lens hiding        ((.=))
+import           Control.Monad
+import           Control.Monad.Trans.Writer
 import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.Dependent.Sum
 import           Data.Finite
+import           Data.Maybe
 import           Data.Singletons
 import           Data.Singletons.TypeLits
-import           Data.Type.Combinator.Util
-import           Data.Type.Nat             as TCN
+import           Data.Tuple
+import           Data.Type.Combinator.Util  as TC
+import           Data.Type.Fin
+import           Data.Type.Nat              as TCN
 import           Data.Type.Vector
+import           Data.Vector.Sized.Util
 import           Egg.Research
-import           GHC.Generics              (Generic)
+import           GHC.Generics               (Generic)
 import           Numeric.Lens
 import           Numeric.Natural
 import           Text.Printf
 import           Type.Class.Known
 import           Type.Class.Witness
-import           Type.Family.Nat           as TCN
-import qualified Data.Set                  as S
-import qualified Data.Text                 as T
-import qualified Data.Vector.Sized         as SV
+import           Type.Family.Nat            as TCN
+import qualified Data.Map                   as M
+import qualified Data.Set                   as S
+import qualified Data.Text                  as T
+import qualified Data.Vector                as V
+import qualified Data.Vector.Sized          as SV
 
 data Vehicle = Vehicle
         { _vName         :: T.Text
         , _vBaseCapacity :: Natural         -- ^ eggs per minute
-        , _vCosts        :: [Double]
+        , _vCosts        :: V.Vector Double
         }
   deriving (Show, Eq, Ord, Generic)
 
@@ -128,7 +140,7 @@ baseCapacity VehicleData{..} = sumOf $ _DepotStatus
                                      . to fromIntegral
                                      . dividing 60
 
--- | Total capacity of all hatcheries, factoring in bonuses.
+-- | Total capacity of all vehicles, factoring in bonuses.
 totalCapacity
     :: forall vs slots. KnownNat vs
     => VehicleData vs
@@ -139,6 +151,57 @@ totalCapacity vd@VehicleData{..} bs =
     sumOf $ to (baseCapacity vd)
           . bonusingFor bs BTVehicleCapacity
           . bonusingFor bs BTVehicleSpeed
+
+-- | How many of each vehicle has been purchased so far.  If key is not found,
+-- zero purchases is implied.
+vehicleHistory
+    :: Known TCN.Nat slots
+    => DepotStatus vs slots
+    -> M.Map (Finite vs) (Fin ('S slots))
+vehicleHistory = M.mapMaybe (natFin . someNat)
+               . M.fromListWith (+)
+               . toListOf (_DepotStatus . folded . folded . to (, 1))
+
+-- | Get the BASE price of a given vehicle, if a purchase were to be made.
+-- Does not check if purchase is legal (see 'upgradeVehicle').
+vehiclePrice
+    :: forall vs slots. (KnownNat vs, Known TCN.Nat slots)
+    => VehicleData vs
+    -> DepotStatus vs slots
+    -> Finite vs
+    -> Maybe Double
+vehiclePrice vd ds v = fmap priceOf
+                     . TC.strengthen
+                     . fromMaybe FZ
+                     . M.lookup v
+                     . vehicleHistory
+                     $ ds
+  where
+    priceOf :: Fin slots -> Double
+    priceOf i = fromMaybe 0 $
+                  vd ^? _VehicleData . ixSV v . vCosts . ix (fin i)
+
+-- | Purchase a vehicle upgrade.  Returns cost and new depot status,
+-- if purchase is valid.
+--
+-- Purchase is invalid if purchasing a vehicle in a slot where a greater
+-- vehicle is already purchased.
+upgradeVehicle
+    :: (KnownNat vs, Known TCN.Nat slots)
+    => VehicleData vs
+    -> Bonuses
+    -> Fin slots
+    -> Finite vs
+    -> DepotStatus vs slots
+    -> Maybe (Double, DepotStatus vs slots)
+upgradeVehicle vd bs slot v ds0 =
+    fmap swap . runWriterT . flip (_DepotStatus . ixV slot) ds0 $ \s0 -> WriterT $ do
+      guard $ case lookupMax s0 of
+                Nothing -> True
+                Just h  -> h < v
+      -- should always be valid of the previous condition is true
+      price <- vehiclePrice vd ds0 v
+      return (S.insert v s0, price ^. bonusingFor bs BTVehicleCosts)
 
 -- | Obsolete with containers-0.5.9, with GHC 8.2
 lookupMax :: S.Set a -> Maybe a

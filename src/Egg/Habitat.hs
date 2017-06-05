@@ -54,7 +54,7 @@ import           Data.Maybe
 import           Data.Singletons
 import           Data.Singletons.TypeLits
 import           Data.Tuple
-import           Data.Type.Combinator.Util
+import           Data.Type.Combinator.Util  as TC
 import           Data.Type.Fin
 import           Data.Type.Vector           as TCV
 import           Data.Vector.Sized.Util
@@ -216,14 +216,18 @@ habAt HabData{..} hs i = hs ^? hsSlots . ixV i . to lookupMax . folded . to (SV.
 
 -- | How many of each hab has been purchased so far.  If key is not found,
 -- zero purchases is implied.
-habHistory :: HabStatus habs -> M.Map (Finite habs) (Finite 4)
-habHistory = M.fromListWith (+) . toListOf (hsSlots . folded . folded . to (, 1))
+habHistory :: HabStatus habs -> M.Map (Finite habs) (Fin N5)
+habHistory = M.mapMaybe (natFin . someNat)
+           . M.fromListWith (+)
+           . toListOf (hsSlots . folded . folded . to (, 1))
 
--- | Get the price of a given hab, if a purchase were to be made.  Does not
--- check if purchase is legal (see 'upgradeHab').
-habPrice :: KnownNat habs => HabData habs -> HabStatus habs -> Finite habs -> Double
-habPrice hd hs hab = priceOf
-                   . maybe FZ (fromJust . natFin . someNat . fromIntegral)
+-- | Get the BASE price of a given hab, if a purchase were to be made.
+-- Does not check if purchase is legal (see 'upgradeHab').
+habPrice :: KnownNat habs => HabData habs -> HabStatus habs -> Finite habs -> Maybe Double
+habPrice hd hs hab = fmap priceOf
+                   . TC.strengthen
+                   . fromMaybe FZ
+                   -- . maybe FZ (fromJust . natFin . someNat . fromIntegral)
                    . M.lookup hab
                    . habHistory
                    $ hs
@@ -251,7 +255,7 @@ internalHatcheryRate bs cm =
         NotCalm -> 1
         Calm    -> 1 ^. bonusingFor bs BTInternalHatcheryCalm
 
--- | Purchase a hab upgrade.  Returns (base) cost and new hab status, if
+-- | Purchase a hab upgrade.  Returns cost and new hab status, if
 -- purchase is valid.
 --
 -- Purchase is invalid if purchasing a hab in a slot where a greater hab
@@ -259,19 +263,19 @@ internalHatcheryRate bs cm =
 upgradeHab
     :: KnownNat habs
     => HabData habs
+    -> Bonuses
     -> Fin N4
     -> Finite habs
     -> HabStatus habs
     -> Maybe (Double, HabStatus habs)
-upgradeHab hd slot hab hs0 =
-    fmap swap . runWriterT . flip (hsSlots . ixV slot) hs0 $ \s0 -> WriterT $
-      let valid = case lookupMax s0 of
+upgradeHab hd bs slot hab hs0 =
+    fmap swap . runWriterT . flip (hsSlots . ixV slot) hs0 $ \s0 -> WriterT $ do
+      guard $ case lookupMax s0 of
                     Nothing -> True
                     Just h  -> h < hab
-          price = habPrice hd hs0 hab
-          s1    | valid     = S.insert hab s0
-                | otherwise = s0
-      in  (s1, price) <$ guard valid
+      -- should always be valid of the previous condition is true
+      price <- habPrice hd hs0 hab
+      return (S.insert hab s0, price ^. bonusingFor bs BTBuildCosts)
 
 -- | Obsolete with containers-0.5.9, with GHC 8.2
 lookupMax :: S.Set a -> Maybe a
