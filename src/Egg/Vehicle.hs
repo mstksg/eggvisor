@@ -19,9 +19,9 @@ module Egg.Vehicle (
   , VehicleData(..), _VehicleData, SomeVehicleData
   , DepotStatus(..), _DepotStatus
   , initDepotStatus
-  , upgradeDepo
-  , baseCapacity
-  , totalCapacity
+  , upgradeDepot
+  , baseDepotCapacity
+  , totalDepotCapacity
   , vehicleHistory
   , vehiclePrice
   , upgradeVehicle
@@ -122,33 +122,34 @@ initDepotStatus :: KnownNat vs => DepotStatus vs N4
 initDepotStatus = DepotStatus $ S.singleton 0 :+ pure S.empty
 
 -- | Add another empty depot slot
-upgradeDepo :: forall vs n. Known TCN.Nat n => DepotStatus vs n -> DepotStatus vs ('S n)
-upgradeDepo = over _DepotStatus (.++ (S.empty :+ ØV))
-                \\ addCommute (known :: TCN.Nat n) (S_ Z_)
+upgradeDepot :: forall vs n. Known TCN.Nat n => DepotStatus vs n -> DepotStatus vs ('S n)
+upgradeDepot = over _DepotStatus (.++ (S.empty :+ ØV))
+                 \\ addCommute (known :: TCN.Nat n) (S_ Z_)
 
 -- | Total base capacity of all slots, in eggs per second.
-baseCapacity
+baseDepotCapacity
     :: forall vs slots. KnownNat vs
     => VehicleData vs
     -> DepotStatus vs slots
     -> Double
-baseCapacity VehicleData{..} = sumOf $ _DepotStatus
-                                     . folded
-                                     . folding lookupMax
-                                     . to (SV.index _vdVehicles)
-                                     . vBaseCapacity
-                                     . to fromIntegral
-                                     . dividing 60
+baseDepotCapacity VehicleData{..} =
+    sumOf $ _DepotStatus
+          . folded
+          . folding lookupMax
+          . to (SV.index _vdVehicles)
+          . vBaseCapacity
+          . to fromIntegral
+          . dividing 60
 
 -- | Total capacity of all vehicles, factoring in bonuses.
-totalCapacity
+totalDepotCapacity
     :: forall vs slots. KnownNat vs
     => VehicleData vs
     -> Bonuses
     -> DepotStatus vs slots
     -> Double
-totalCapacity vd@VehicleData{..} bs =
-    sumOf $ to (baseCapacity vd)
+totalDepotCapacity vd@VehicleData{..} bs =
+    sumOf $ to (baseDepotCapacity vd)
           . bonusingFor bs BTVehicleCapacity
           . bonusingFor bs BTVehicleSpeed
 
@@ -206,4 +207,3 @@ upgradeVehicle vd bs slot v ds0 =
 -- | Obsolete with containers-0.5.9, with GHC 8.2
 lookupMax :: S.Set a -> Maybe a
 lookupMax = fmap fst . S.maxView
-

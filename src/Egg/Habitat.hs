@@ -22,13 +22,13 @@ module Egg.Habitat (
   , IsCalm(..), _NotCalm, _Calm
   , initHabStatus
   , habAt
-  , baseCapacity
-  , baseCapacities
-  , totalCapacity
+  , baseHabCapacity
+  , baseHabCapacities
+  , totalHabCapacity
   , habCapacity
   , fullHabs
   , availableSpace
-  , capacities
+  , habCapacities
   , habHistory
   , habPrice
   , upgradeHab
@@ -59,6 +59,7 @@ import           Data.Type.Fin
 import           Data.Type.Vector           as TCV
 import           Data.Vector.Sized.Util
 import           Egg.Research
+import           Egg.Vehicle
 import           GHC.Generics               (Generic)
 import           Numeric.Lens
 import           Numeric.Natural
@@ -158,57 +159,54 @@ initHabStatus :: KnownNat habs => HabStatus habs
 initHabStatus = HabStatus (S.singleton 0 :+ pure S.empty) (pure 0)
 
 -- | Base capacity of each slot.
-baseCapacities
+baseHabCapacities
     :: forall habs. KnownNat habs
     => HabData habs
     -> HabStatus habs
     -> Vec N4 Natural
-baseCapacities hd = fmap go . _hsSlots
+baseHabCapacities hd = fmap go . _hsSlots
   where
     go = maybe 0 (\h -> hd ^. _HabData . ixSV h . habBaseCapacity)
        . lookupMax
 
 -- | Total base capacity of all slots.
-baseCapacity
+baseHabCapacity
     :: forall habs. KnownNat habs
     => HabData habs
     -> HabStatus habs
     -> Natural
-baseCapacity HabData{..} = sumOf $ hsSlots
-                                 . folded
-                                 . folding lookupMax
-                                 . to (SV.index _hdHabs)
-                                 . habBaseCapacity
-
--- | Total capacity of all hatcheries, factoring in bonuses.
-totalCapacity
-    :: forall habs. KnownNat habs
-    => HabData habs
-    -> Bonuses
-    -> HabStatus habs
-    -> Natural
-totalCapacity HabData{..} bs =
+baseHabCapacity HabData{..} =
     sumOf $ hsSlots
           . folded
           . folding lookupMax
           . to (SV.index _hdHabs)
           . habBaseCapacity
+
+-- | Total capacity of all hatcheries, factoring in bonuses.
+totalHabCapacity
+    :: forall habs. KnownNat habs
+    => HabData habs
+    -> Bonuses
+    -> HabStatus habs
+    -> Natural
+totalHabCapacity hd bs =
+    sumOf $ to (baseHabCapacity hd)
           . to fromIntegral
           . bonusingFor bs BTHabCapacity
           . to round
 
 -- | Capacities of all slots, factoring in bonuses.
-capacities
+habCapacities
     :: forall habs. KnownNat habs
     => HabData habs
     -> Bonuses
     -> HabStatus habs
     -> Vec N4 Natural
-capacities hd bs = fmap ( round
+habCapacities hd bs = fmap ( round
                         . bonusEffectFor bs BTHabCapacity
                         . fromIntegral
                         )
-                 . baseCapacities hd
+                    . baseHabCapacities hd
 
 -- | Hab at the given slot
 habAt :: KnownNat habs => HabData habs -> HabStatus habs -> Fin N4 -> Maybe Hab
@@ -308,7 +306,7 @@ availableSpace
 availableSpace hd bs hs = checkAvail <$> caps <*> (hs ^. hsPop)
   where
     caps :: Vec N4 Natural
-    caps   = capacities hd bs hs
+    caps   = habCapacities hd bs hs
     checkAvail :: Natural -> Double -> (Maybe Double, Natural)
     checkAvail cap pop
         | pop >= cap' = (Nothing, cap)
@@ -440,3 +438,25 @@ waitTilPop hd bs cm goal hs0
                          liftA2 (\(a, _) -> maybe id (const (+ rt * dt')) a) avails
                    in  WaitTilSuccess dt' filled
               else go newPop hs2 & wtrRes +~ dt
+
+-- -- | TODO: should move to somewhere more general
+-- totalEggLayingRate
+--     :: HabStatus habs
+--     -> Double
+--     -> Bonuses
+--     -> Double
+-- totalEggLayingRate hs br bs = br ^. multiplying (sumOf (hsPop . traverse) hs)
+--                                   . bonusingFor bs BTLayingRate
+
+-- waitUntilDepotFull
+--     :: forall habs vs slots. ()
+--     => HabData habs
+--     -> VehicleData vs
+--     -> Bonuses
+--     -> IsCalm
+--     -> DepotStatus vs slots
+--     -> HabStatus habs
+--     -> WaitTilRes habs
+-- waitUntilDepotFull hd vd bs cm ds0 hs0 = undefined
+--   where
+--     dCap = totalDepotCapacity vd bs ds0
