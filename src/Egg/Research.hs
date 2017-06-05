@@ -9,15 +9,18 @@
 {-# LANGUAGE MultiParamTypeClasses                #-}
 {-# LANGUAGE OverloadedStrings                    #-}
 {-# LANGUAGE PartialTypeSignatures                #-}
+{-# LANGUAGE PolyKinds                            #-}
 {-# LANGUAGE RankNTypes                           #-}
 {-# LANGUAGE RecordWildCards                      #-}
 {-# LANGUAGE ScopedTypeVariables                  #-}
+{-# LANGUAGE StandaloneDeriving                   #-}
 {-# LANGUAGE TemplateHaskell                      #-}
 {-# LANGUAGE TupleSections                        #-}
 {-# LANGUAGE TypeApplications                     #-}
 {-# LANGUAGE TypeFamilies                         #-}
 {-# LANGUAGE TypeOperators                        #-}
 {-# LANGUAGE TypeSynonymInstances                 #-}
+{-# LANGUAGE UndecidableInstances                 #-}
 {-# LANGUAGE ViewPatterns                         #-}
 {-# OPTIONS_GHC -fno-warn-partial-type-signatures #-}
 
@@ -29,7 +32,8 @@ module Egg.Research (
   , ResearchTier(..), rtUnlock, rtTechs, SomeResearchTier
   , ResearchData(..), rdCommon, rdEpic, SomeResearchData
   , ResearchStatus(..), rsCommon, rsEpic, SomeResearchStatus
-  , ResearchIx(..)
+  , ResearchIx(..), _RICommon, _RIEpic
+  , ResearchError(..), _REMaxedOut, _RELocked
   , scaleAmount
   , hasEffect
   , bonusEffect
@@ -42,32 +46,44 @@ module Egg.Research (
   , emptyResearchStatus
   , researchBonuses
   , totalBonuses
+  , researchCount
+  , legalTiers
   , foldResearch
   , purchaseResearch
   , researchIxNum
   , researchIxData
   , researchIxStatus
   , withSomeResearch
+  , researchIxesCommon
+  , researchIxesEpic
+  , legalResearchIxesCommon
+  , legalResearchIxesEpic
+  -- * Why?
+  , rdrsCommon
+  , rdrsEpic
+  , researchIx
   ) where
 
 import           Control.Applicative hiding      (some)
-import           Control.Lens hiding             ((.=), (:<))
+import           Control.Lens hiding             ((.=), (:<), Index)
 import           Control.Monad
 import           Control.Monad.Trans.Writer
 import           Data.Aeson.Encoding
 import           Data.Aeson.Types
+import           Data.Bifunctor
 import           Data.Dependent.Sum
 import           Data.Finite
 import           Data.Foldable
 import           Data.Kind
+import           Data.Monoid                     (First(..))
 import           Data.Singletons
 import           Data.Singletons.Prelude hiding  (Flip)
 import           Data.Singletons.TypeLits
-import           Data.Tuple
 import           Data.Type.Combinator
 import           Data.Type.Combinator.Singletons
 import           Data.Type.Combinator.Util
 import           Data.Type.Conjunction
+import           Data.Type.Index
 import           Data.Type.Product               as TCP
 import           Data.Type.Sum
 import           Data.Type.Vector
@@ -77,6 +93,7 @@ import           Numeric.Lens
 import           Numeric.Natural
 import           Type.Class.Higher
 import           Type.Class.Witness
+import           Type.Family.Tuple
 import qualified Data.Map                        as M
 import qualified Data.Text                       as T
 import qualified Data.Vector                     as V
@@ -186,6 +203,16 @@ type SomeResearchStatus = DSum Sing (Uncur ResearchStatus)
 data ResearchIx :: [Nat] -> Nat -> Type -> Type where
     RICommon :: Sum Finite tiers -> ResearchIx tiers epic Double
     RIEpic   :: Finite epic      -> ResearchIx tiers epic Integer
+
+deriving instance Show (Sum Finite tiers) => Show (ResearchIx tiers epic a)
+
+_RICommon :: Iso (ResearchIx t1 epic Double) (ResearchIx t2 epic Double)
+                 (Sum Finite t1            ) (Sum Finite t2            )
+_RICommon = iso (\case RICommon i -> i) RICommon
+
+_RIEpic :: Iso (ResearchIx tiers e1 Integer) (ResearchIx tiers e2 Integer)
+               (Finite e1                  ) (Finite e2                  )
+_RIEpic = iso (\case RIEpic i -> i) RIEpic
 
 bonusAmountParseOptions :: Options
 bonusAmountParseOptions = defaultOptions
@@ -305,7 +332,7 @@ instance (SingI tiers, KnownNat epic) => FromJSON (ResearchData tiers epic) wher
 
 instance ToJSON (ResearchData tiers epic) where
     toJSON ResearchData{..} = object
-        [ "research" .= TCP.toList (\ResearchTier{..} -> 
+        [ "research" .= TCP.toList (\ResearchTier{..} ->
                             object [ "unlock" .= _rtUnlock
                                    , "techs"  .= SV.fromSized _rtTechs
                                    ]
@@ -313,7 +340,7 @@ instance ToJSON (ResearchData tiers epic) where
         , "epic"     .= SV.fromSized _rdEpic
         ]
     toEncoding ResearchData{..} = pairs . mconcat $
-        [ "research" .= TCP.toList (\ResearchTier{..} -> 
+        [ "research" .= TCP.toList (\ResearchTier{..} ->
                             object [ "unlock" .= _rtUnlock
                                    , "techs"  .= SV.fromSized _rtTechs
                                    ]
@@ -372,8 +399,8 @@ emptyBonuses :: Bonuses
 emptyBonuses = Bonuses M.empty
 
 -- | Maximum level for a given research.
-maxLevel :: Research a -> Int
-maxLevel = either fromIntegral V.length . _rCosts
+maxLevel :: Research a -> Natural
+maxLevel = either fromIntegral (fromIntegral . V.length) . _rCosts
 
 -- | Empty status (no research).
 emptyResearchStatus :: ResearchData tiers epic -> ResearchStatus tiers epic
@@ -408,21 +435,58 @@ researchBonuses r l = _rBaseBonuses r & _Bonuses . traverse . traverse %~ scaleA
 totalBonuses :: ResearchData tiers epic -> ResearchStatus tiers epic -> Bonuses
 totalBonuses = foldResearch (either researchBonuses researchBonuses)
 
+-- | How many common techs have been researched?
+--
+-- Used for opening tiers.
+researchCount :: ResearchStatus tiers epic -> Natural
+researchCount = sumOf $ rsCommon . liftTraversal (_Flip . traverse)
+
+legalTiers
+    :: forall tiers epic. ()
+    => ResearchData tiers epic
+    -> ResearchStatus tiers epic
+    -> Prod (C Bool) tiers
+legalTiers rd rs = rd ^. rdCommon . to (map1 go)
+  where
+    tot = researchCount rs
+    go  :: ResearchTier a
+        -> C Bool a
+    go = view $ rtUnlock . to (>= tot) . _Unwrapped
+
+data ResearchError = REMaxedOut
+                   | RELocked
+  deriving (Show, Eq, Ord)
+
+makePrisms ''ResearchError
+
 -- | Purchase research at a given index, incrementing the counter in the
 -- 'ResearchStatus'.  Returns 'Nothing' if research is already maxed out.
 purchaseResearch
-    :: (KnownNat epic, SingI tiers)
+    :: forall tiers epic a. (KnownNat epic, SingI tiers)
     => ResearchData tiers epic
     -> ResearchIx tiers epic a
     -> ResearchStatus tiers epic
-    -> Maybe (a, ResearchStatus tiers epic)
-purchaseResearch rd i =
-    fmap swap . runWriterT . researchIxStatus i (\currLevel -> WriterT $
-      case rd ^. researchIxData i . rCosts of
+    -> Either ResearchError (a, ResearchStatus tiers epic)
+purchaseResearch rd i = pp . runWriterT . researchIxStatusLegal rd i (WriterT . go)
+  where
+    pp :: Maybe (ResearchStatus tiers epic, First a)
+        -> Either ResearchError (a, ResearchStatus tiers epic)
+    pp Nothing                     = Left REMaxedOut
+    pp (Just (_ , First Nothing )) = Left RELocked
+    pp (Just (rs, First (Just c))) = Right (c, rs)
+    go :: Natural -> Maybe (Natural, First a)
+    go currLevel = second (First . Just) <$> case rd ^. researchIxData i . rCosts of
         Left m   -> (currLevel + 1, 0) <$ guard (currLevel < m)
                         \\ researchIxNum i
         Right cs -> (currLevel + 1,) <$> (cs V.!? fromIntegral (currLevel + 1))
-    )
+
+-- purchaseResearch rd i =
+--     fmap swap . runWriterT . researchIxStatus i (\currLevel -> WriterT $
+--       case rd ^. researchIxData i . rCosts of
+--         Left m   -> (currLevel + 1, 0) <$ guard (currLevel < m)
+--                         \\ researchIxNum i
+--         Right cs -> (currLevel + 1,) <$> (cs V.!? fromIntegral (currLevel + 1))
+--     )
 
 -- | Get a 'Num' instance from a 'ResearchIx'.
 researchIxNum :: ResearchIx tiers epic a -> Wit (Num a)
@@ -438,7 +502,6 @@ researchIxData
 researchIxData = \case
     RICommon i -> \f ->
       let g :: forall a. _ a -> _ (_ a)
-          -- g x@(slot :&: (_ :&: SNat)) = (_2 . _1 . _Flip . ixSV slot) f x
           g x@(slot :&: (_ :&: SNat)) = (_2 . _1 . rtTechs . ixSV slot) f x
       in  rdCommon $ \rs -> map1 fanFst . fanSnd
             <$> sumProd g (i :&: zipP (rs :&: singProd sing))
@@ -457,9 +520,131 @@ researchIxStatus = \case
             <$> sumProd g (i :&: zipP (rs :&: singProd sing))
     RIEpic i   -> rsEpic . ixSV i
 
+-- | Lens into both the research data and research status common slots
+-- together.
+rdrsCommon
+    :: Lens' ((Uncur ResearchData :&: Uncur ResearchStatus) (tiers # epic))
+             (Prod (ResearchTier :&: Flip SV.Vector Natural) tiers)
+rdrsCommon f (Uncur rd :&: Uncur rs) =
+    f (zipP (_rdCommon rd :&: _rsCommon rs)) <&> \(unzipP->(rdc :&: rsc)) ->
+      Uncur (rd & rdCommon .~ rdc) :&: Uncur (rs & rsCommon .~ rsc)
+
+-- | Lens into both the research data and research status epic slots
+-- together.
+rdrsEpic
+    :: KnownNat epic
+    => Lens' ((Uncur ResearchData :&: Uncur ResearchStatus) (tiers # epic))
+             (SV.Vector epic (Research Integer, Natural))
+rdrsEpic f (Uncur rd :&: Uncur rs) =
+    f (liftA2 (,) (_rdEpic rd) (_rsEpic rs)) <&> \rdrs ->
+      Uncur (rd & rdEpic .~ fmap fst rdrs) :&: Uncur (rs & rsEpic .~ fmap snd rdrs)
+
+-- | Lens into both a ResearchData and ResearchStatus together, from
+-- a given index.
+researchIx
+    :: (SingI tiers, KnownNat epic)
+    => ResearchIx tiers epic a
+    -> Lens' ((Uncur ResearchData :&: Uncur ResearchStatus) (tiers # epic))
+             (Research a, Natural)
+researchIx = \case
+    RICommon i -> \f ->
+      let g :: forall a. _ a
+            -> _ (_ a)
+          g (slot :&: ((c :&: Flip e) :&: SNat)) =
+              f (SV.index (_rtTechs c) slot, SV.index e slot) <&> \(d, s) ->
+                let c' = c & rtTechs . ixSV slot .~ d
+                    e' = e & ixSV slot .~ s
+                in  slot :&: ((c' :&: Flip e') :&: SNat)
+      in  rdrsCommon $ \rdrs ->
+            map1 fanFst . fanSnd <$> sumProd g (i :&: zipP (rdrs :&: singProd sing))
+    RIEpic i -> rdrsEpic . ixSV i
+
 withSomeResearch
     :: DSum Sing (Uncur res)
     -> (forall tiers epic. (KnownNat epic, SingI tiers) => res tiers epic -> r)
     -> r
 withSomeResearch = \case
     STuple2 sTs SNat :=> Uncur r -> \f -> withSingI sTs $ f r
+
+-- | Traversal into a given index of a 'ResearchStatus' if the item is in
+-- a legal tier.
+--
+-- Only a legal traversal if the mapping function doesn't change the legal
+-- status.
+researchIxStatusLegal
+    :: (SingI tiers, KnownNat epic)
+    => ResearchData tiers epic
+    -> ResearchIx tiers epic a
+    -> Traversal' (ResearchStatus tiers epic) Natural
+researchIxStatusLegal rd = \case
+    RICommon i -> \f rs0 -> getUncur . fanSnd <$>
+      let totCount = researchCount rs0
+          g :: forall a. _ a -> _ (_ a)
+          g x@(slot :&: ((rt :&: _) :&: SNat))
+            | _rtUnlock rt <= totCount = (_2 . _1 . _2 . _Flip . ixSV slot) f x
+            | otherwise                = pure x
+      in  (Uncur rd :&: Uncur rs0) & rdrsCommon %%~ \rtrs ->
+            map1 fanFst . fanSnd <$> sumProd g (i :&: zipP (rtrs :&: singProd sing))
+    RIEpic i   -> rsEpic . ixSV i
+
+-- | All 'ResearchIx' into common researches.
+researchIxesCommon
+    :: SingI tiers
+    => Prod (Flip SV.Vector (ResearchIx tiers epic Double)) tiers
+researchIxesCommon = go sing
+  where
+    go :: Sing ts -> Prod (Flip SV.Vector (ResearchIx ts epic Double)) ts
+    go = \case
+      SNil         -> Ø
+      SNat `SCons` ss ->
+        let rest = map1 (over (_Flip . mapped . _RICommon) InR) (go ss)
+        in  Flip (SV.generate (RICommon . InL)) :< rest
+
+-- | All 'ResearchIx' into epic researches.
+researchIxesEpic
+    :: KnownNat epic
+    => SV.Vector epic (ResearchIx tiers epic Integer)
+researchIxesEpic = SV.generate RIEpic
+
+-- | All legal 'ResearchIx' for common research.
+legalResearchIxesCommon
+    :: forall tiers epic. SingI tiers
+    => ResearchData tiers epic
+    -> ResearchStatus tiers epic
+    -> Prod (Flip SV.Vector (Either ResearchError (ResearchIx tiers epic Double))) tiers
+legalResearchIxesCommon rd rs =
+    imap1 (\i -> Flip . go i) (zipP (zipP (_rdCommon rd :&: _rsCommon rs) :&: singProd sing))
+  where
+    totCount = researchCount rs
+    go  :: forall t. ()
+        => Index tiers t
+        -> ((ResearchTier :&: Flip SV.Vector Natural) :&: Sing) t
+        -> SV.Vector t (Either ResearchError (ResearchIx tiers epic Double))
+    go i ((rt :&: Flip c) :&: SNat)
+      | rt ^. rtUnlock > totCount = pure (Left RELocked)
+      | otherwise                 =
+          let mkIx
+                  :: Finite t
+                  -> Research Double
+                  -> Natural
+                  -> Either ResearchError (ResearchIx tiers epic Double)
+              mkIx j r n
+                | n < maxLevel r = Right . RICommon . someSum $ Some (i :&: j)
+                | otherwise      = Left REMaxedOut
+          in  SV.izipWith mkIx (rt ^. rtTechs) c
+
+-- | All legal 'ResearchIx' for epic research.
+legalResearchIxesEpic
+    :: forall tiers epic. KnownNat epic
+    => ResearchData tiers epic
+    -> ResearchStatus tiers epic
+    -> SV.Vector epic (Maybe (ResearchIx tiers epic Integer))
+legalResearchIxesEpic rd rs = SV.izipWith go (_rdEpic rd) (_rsEpic rs)
+  where
+    go  :: Finite epic
+        -> Research Integer
+        -> Natural
+        -> Maybe (ResearchIx tiers epic Integer)
+    go i r n
+      | n < maxLevel r = Just . RIEpic $ i
+      | otherwise      = Nothing

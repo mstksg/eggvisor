@@ -41,6 +41,10 @@ packages:
     git: git@github.com:mstksg/type-combinators-singletons.git
     commit: 8bd05539987692ee745f0d78b83e5d72c7af21c4
   extra-dep: true
+- location:
+    git: git@github.com:mstksg/vector-sized.git
+    commit: a64e119ffec67f64ac7ce88cef34b2c66d436ce1
+  extra-dep: true
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)

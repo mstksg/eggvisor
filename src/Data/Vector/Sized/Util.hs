@@ -9,6 +9,7 @@ module Data.Vector.Sized.Util (
 import           Control.Lens
 import           Data.Aeson
 import           Data.Finite
+import           Data.Finite.Internal
 import           GHC.TypeLits
 import qualified Data.Vector.Generic       as UVG
 import qualified Data.Vector.Generic.Sized as VG
@@ -34,4 +35,3 @@ type instance IxValue (VG.Vector v n a) = a
 
 instance (KnownNat n, UVG.Vector v a) => Ixed (VG.Vector v n a) where
     ix = ixSV
-

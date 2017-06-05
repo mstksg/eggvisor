@@ -37,6 +37,7 @@ module Data.Type.Combinator.Util (
   , ixVecT
   , ixV
   , _Flip
+  , _C
   , sumProd
   , for1
   , Replicate
@@ -51,6 +52,7 @@ module Data.Type.Combinator.Util (
   , fins'
   , dsumSome
   , someDSum
+  , liftTraversal
   ) where
 
 import           Control.Lens as L hiding ((:<), Index, Traversable1(..))
@@ -180,8 +182,11 @@ ixV = \case
 makePrisms ''Flip
 makeWrapped ''Flip
 
+makePrisms ''C
+makeWrapped ''C
+
 -- _Flip :: Iso (Flip f a b) (Flip f c d) (f b a) (f d c)
--- _Flip = iso 
+-- _Flip = iso
 
 sumProd
     :: Functor h
@@ -368,3 +373,9 @@ dsumSome (t :=> x) = Some (t :&: x)
 
 someDSum :: Some (f :&: g) -> DSum f g
 someDSum = withSome $ \(t :&: x) -> t :=> x
+
+liftTraversal
+    :: (Traversable1 t, Applicative f)
+    => (forall a. LensLike' f (g a) b)
+    -> LensLike' f (t g as) b
+liftTraversal t f = traverse1 (t f)
