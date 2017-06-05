@@ -567,7 +567,7 @@ research:
               value: 10
               type: multiplier
 epic:
-  # source: 
+  # source: https://github.com/SticklyMan/egginc-epic-research-calc
   - name: Hold to Hatch
     description: Hold chicken button for +2 chickens per second
     bonuses:
