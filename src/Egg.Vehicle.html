@@ -19,9 +19,9 @@
 </span><a name="line-19"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#VehicleData"><span class="hs-identifier hs-type">VehicleData</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#_VehicleData"><span class="hs-identifier hs-var">_VehicleData</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#SomeVehicleData"><span class="hs-identifier hs-type">SomeVehicleData</span></a><span>
 </span><a name="line-20"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#DepotStatus"><span class="hs-identifier hs-type">DepotStatus</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#_DepotStatus"><span class="hs-identifier hs-var">_DepotStatus</span></a><span>
 </span><a name="line-21"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#initDepotStatus"><span class="hs-identifier hs-var">initDepotStatus</span></a><span>
-</span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#upgradeDepo"><span class="hs-identifier hs-var">upgradeDepo</span></a><span>
-</span><a name="line-23"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#baseCapacity"><span class="hs-identifier hs-var">baseCapacity</span></a><span>
-</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#totalCapacity"><span class="hs-identifier hs-var">totalCapacity</span></a><span>
+</span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#upgradeDepot"><span class="hs-identifier hs-var">upgradeDepot</span></a><span>
+</span><a name="line-23"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#baseDepotCapacity"><span class="hs-identifier hs-var">baseDepotCapacity</span></a><span>
+</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#totalDepotCapacity"><span class="hs-identifier hs-var">totalDepotCapacity</span></a><span>
 </span><a name="line-25"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#vehicleHistory"><span class="hs-identifier hs-var">vehicleHistory</span></a><span>
 </span><a name="line-26"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#vehiclePrice"><span class="hs-identifier hs-var">vehiclePrice</span></a><span>
 </span><a name="line-27"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#upgradeVehicle"><span class="hs-identifier hs-var">upgradeVehicle</span></a><span>
@@ -122,33 +122,34 @@ initDepotStatus :: KnownNat vs =&gt; DepotStatus vs N4
 initDepotStatus = DepotStatus $ S.singleton 0 :+ pure S.empty
 
 -- | Add another empty depot slot
-upgradeDepo :: forall vs n. Known TCN.Nat n =&gt; DepotStatus vs n -&gt; DepotStatus vs ('S n)
-upgradeDepo = over _DepotStatus (.++ (S.empty :+ &#216;V))
-                \\ addCommute (known :: TCN.Nat n) (S_ Z_)
+upgradeDepot :: forall vs n. Known TCN.Nat n =&gt; DepotStatus vs n -&gt; DepotStatus vs ('S n)
+upgradeDepot = over _DepotStatus (.++ (S.empty :+ &#216;V))
+                 \\ addCommute (known :: TCN.Nat n) (S_ Z_)
 
 -- | Total base capacity of all slots, in eggs per second.
-baseCapacity
+baseDepotCapacity
     :: forall vs slots. KnownNat vs
     =&gt; VehicleData vs
     -&gt; DepotStatus vs slots
     -&gt; Double
-baseCapacity VehicleData{..} = sumOf $ _DepotStatus
-                                     . folded
-                                     . folding lookupMax
-                                     . to (SV.index _vdVehicles)
-                                     . vBaseCapacity
-                                     . to fromIntegral
-                                     . dividing 60
+baseDepotCapacity VehicleData{..} =
+    sumOf $ _DepotStatus
+          . folded
+          . folding lookupMax
+          . to (SV.index _vdVehicles)
+          . vBaseCapacity
+          . to fromIntegral
+          . dividing 60
 
 -- | Total capacity of all vehicles, factoring in bonuses.
-totalCapacity
+totalDepotCapacity
     :: forall vs slots. KnownNat vs
     =&gt; VehicleData vs
     -&gt; Bonuses
     -&gt; DepotStatus vs slots
     -&gt; Double
-totalCapacity vd@VehicleData{..} bs =
-    sumOf $ to (baseCapacity vd)
+totalDepotCapacity vd@VehicleData{..} bs =
+    sumOf $ to (baseDepotCapacity vd)
           . bonusingFor bs BTVehicleCapacity
           . bonusingFor bs BTVehicleSpeed
 
@@ -206,5 +207,4 @@ upgradeVehicle vd bs slot v ds0 =
 -- | Obsolete with containers-0.5.9, with GHC 8.2
 lookupMax :: S.Set a -&gt; Maybe a
 lookupMax = fmap fst . S.maxView
-
 </span></pre></body></html>
