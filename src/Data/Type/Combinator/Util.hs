@@ -53,6 +53,7 @@ module Data.Type.Combinator.Util (
   , dsumSome
   , someDSum
   , liftTraversal
+  , addCommute
   ) where
 
 import           Control.Lens as L hiding ((:<), Index, Traversable1(..))
@@ -379,3 +380,15 @@ liftTraversal
     => (forall a. LensLike' f (g a) b)
     -> LensLike' f (t g as) b
 liftTraversal t f = traverse1 (t f)
+
+addCommute
+    :: Nat n
+    -> Nat m
+    -> ((n + m) :~: (m + n))
+addCommute = \case
+    Z_ -> \case
+      Z_   -> Refl
+      S_ m -> Refl \\ addZ m
+    S_ n -> \case
+      Z_ -> Refl \\ addZ n
+      S_ m -> Refl \\ addCommute n m \\ addS n m \\ addS m n

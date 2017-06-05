@@ -91,8 +91,6 @@ data HabStatus habs
   deriving (Show, Eq, Ord, Generic)
 
 makeLenses ''HabStatus
--- makePrisms ''HabStatus
--- makeWrapped ''HabStatus
 
 _HabStatus :: Iso' (HabStatus habs) (Vec N4 (S.Set (Finite habs), Double))
 _HabStatus = iso (\hs -> liftA2 (,) (_hsSlots hs) (_hsPop hs))

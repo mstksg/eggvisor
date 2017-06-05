@@ -128,38 +128,38 @@ habitats:
       - 7.544e+36
 vehicles:
   - name: Trike
-    capacity: 5000
-    base-price: 17.06
+    base-capacity: 5000
+    costs: [17.06]
   - name: Transit
-    capacity: 15000
-    base-price: 1401
+    base-capacity: 15000
+    costs: [1401]
   - name: Pickup
-    capacity: 50000
-    base-price: 101155
+    base-capacity: 50000
+    costs: [101155]
   - name: 10 Foot
-    capacity: 100000
-    base-price: 27532910
+    base-capacity: 100000
+    costs: [27532910]
   - name: 24 Foot
-    capacity: 250000
-    base-price: 1.922e+9
+    base-capacity: 250000
+    costs: [1.922e+9]
   - name: Semi
-    capacity: 500000
-    base-price: 240.425e+9
+    base-capacity: 500000
+    costs: [240.425e+9]
   - name: Double Semi
-    capacity: 1000000
-    base-price: 142.121e+12
+    base-capacity: 1000000
+    costs: [142.121e+12]
   - name: Future Semi
-    capacity: 5000000
-    base-price: 32.856e+18
+    base-capacity: 5000000
+    costs: [32.856e+18]
   - name: Mega Semi
-    capacity: 15000000
-    base-price: 29.372e+24
+    base-capacity: 15000000
+    costs: [29.372e+24]
   - name: Hover Semi
-    capacity: 30000000
-    base-price: 17.132e+27
+    base-capacity: 30000000
+    costs: [17.132e+27]
   - name: Quantum Transporter
-    capacity: 50000000
-    base-price: 445.802e+27
+    base-capacity: 50000000
+    costs: [445.802e+27]
 research:
   - unlock: 0
     techs:
