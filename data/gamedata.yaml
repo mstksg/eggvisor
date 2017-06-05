@@ -708,3 +708,79 @@ epic:
           value: 1
           type: increment
     costs: [250, 546, 843, 1140, 1437, 1734, 2031, 2328, 2625, 2921, 3218, 3515, 3812, 4109, 4406, 4703]
+eggs:
+  - name: Edible
+    description: A regular egg. Edible and incredible.
+    value: 0.25
+    discover: 0
+    unlock: 0
+  - name: Superfood
+    description: The first egg breakthrough. One a day is all you need.
+    value: 1.25
+    discover: 10.0e+6
+    unlock: 67.0e+6
+  - name: Medical
+    description: Derivatives are capable of replacing most prescription medication.
+    value: 6.25
+    discover: 810.0e+6
+    unlock: 5.1e+9
+  - name: Rocket Fuel
+    description: After light scrambling, 100x more energy dense than existing propellants.
+    value: 30
+    discover: 36.0e+9
+    unlock: 230.0e+9
+  - name: Super Material Egg
+    description: Able to take on properties of any material.
+    value: 150
+    discover: 24.0e+15
+    unlock: 150.0e+12
+  - name: Fusion
+    description: Each egg can generate 1 gigawatt-hour of electricity.
+    value: 700
+    discover: 7.2e+15
+    unlock: 45.0e+15
+  - name: Quantum
+    description: An egg, not an egg, and both.  Enables teleportation.
+    value: 3000
+    discover: 3.2e+18
+    unlock: 20.0e+18
+  - name: Immortality
+    description: The fountain of youth is really just a chicken.
+    value: 12500
+    discover: 16.0e+21
+    unlock: 80.0e+21
+  - name: Tachyon
+    description: Particles emitted by this egg can be used to travel through time.
+    value: 50000
+    discover: 22.0e+24
+    unlock: 140.0e+24
+  - name: Graviton
+    description: Allows for the manipulation and creation of gravitational fields.
+    value: 175000
+    discover: 1.4e+30
+    unlock: 9.3e+30
+  - name: Dilithium
+    description: An energy source 1 trillion times more dense than Fusion eggs.
+    value: 525000
+    discover: 1.7e+33
+    unlock: 11.0e+33
+  - name: Prodigy
+    description: Unlocks new abilities in the human mind. Deep understanding, holographic memory, and telepathy.
+    value: 1500000
+    discover: 670.0e+33
+    unlock: 4.2e+36
+  - name: Terraform
+    description: Has the ability to transform a planet to be habitable by chickens... also humans.
+    value: 10,000,000
+    discover: 590.0e+36
+    unlock: 3.7e+39
+  - name: Anti-Matter
+    description: Energy source 1 trillion times more dense than dilithium
+    value: 1.0e+9
+    discover: 5.2e+42
+    unlock: 33.0e+42
+  - name: Dark Matter
+    description: Allows for the manipulation of space time.
+    value: 100.0e+9
+    discover: 46.0e+45
+    unlock: 290.0e+45
