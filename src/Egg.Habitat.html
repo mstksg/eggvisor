@@ -54,7 +54,7 @@
 </span><a name="line-54"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
 </span><a name="line-55"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
 </span><a name="line-56"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Tuple</span><span>
-</span><a name="line-57"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Combinator.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-57"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Combinator.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TC</span><span>
 </span><a name="line-58"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Fin</span><span>
 </span><a name="line-59"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>           </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
 </span><a name="line-60"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Vector.Sized.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
@@ -216,14 +216,18 @@ habAt HabData{..} hs i = hs ^? hsSlots . ixV i . to lookupMax . folded . to (SV.
 
 -- | How many of each hab has been purchased so far.  If key is not found,
 -- zero purchases is implied.
-habHistory :: HabStatus habs -&gt; M.Map (Finite habs) (Finite 4)
-habHistory = M.fromListWith (+) . toListOf (hsSlots . folded . folded . to (, 1))
+habHistory :: HabStatus habs -&gt; M.Map (Finite habs) (Fin N5)
+habHistory = M.mapMaybe (natFin . someNat)
+           . M.fromListWith (+)
+           . toListOf (hsSlots . folded . folded . to (, 1))
 
--- | Get the price of a given hab, if a purchase were to be made.  Does not
--- check if purchase is legal (see 'upgradeHab').
-habPrice :: KnownNat habs =&gt; HabData habs -&gt; HabStatus habs -&gt; Finite habs -&gt; Double
-habPrice hd hs hab = priceOf
-                   . maybe FZ (fromJust . natFin . someNat . fromIntegral)
+-- | Get the BASE price of a given hab, if a purchase were to be made.
+-- Does not check if purchase is legal (see 'upgradeHab').
+habPrice :: KnownNat habs =&gt; HabData habs -&gt; HabStatus habs -&gt; Finite habs -&gt; Maybe Double
+habPrice hd hs hab = fmap priceOf
+                   . TC.strengthen
+                   . fromMaybe FZ
+                   -- . maybe FZ (fromJust . natFin . someNat . fromIntegral)
                    . M.lookup hab
                    . habHistory
                    $ hs
@@ -251,7 +255,7 @@ internalHatcheryRate bs cm =
         NotCalm -&gt; 1
         Calm    -&gt; 1 ^. bonusingFor bs BTInternalHatcheryCalm
 
--- | Purchase a hab upgrade.  Returns (base) cost and new hab status, if
+-- | Purchase a hab upgrade.  Returns cost and new hab status, if
 -- purchase is valid.
 --
 -- Purchase is invalid if purchasing a hab in a slot where a greater hab
@@ -259,19 +263,19 @@ internalHatcheryRate bs cm =
 upgradeHab
     :: KnownNat habs
     =&gt; HabData habs
+    -&gt; Bonuses
     -&gt; Fin N4
     -&gt; Finite habs
     -&gt; HabStatus habs
     -&gt; Maybe (Double, HabStatus habs)
-upgradeHab hd slot hab hs0 =
-    fmap swap . runWriterT . flip (hsSlots . ixV slot) hs0 $ \s0 -&gt; WriterT $
-      let valid = case lookupMax s0 of
+upgradeHab hd bs slot hab hs0 =
+    fmap swap . runWriterT . flip (hsSlots . ixV slot) hs0 $ \s0 -&gt; WriterT $ do
+      guard $ case lookupMax s0 of
                     Nothing -&gt; True
                     Just h  -&gt; h &lt; hab
-          price = habPrice hd hs0 hab
-          s1    | valid     = S.insert hab s0
-                | otherwise = s0
-      in  (s1, price) &lt;$ guard valid
+      -- should always be valid of the previous condition is true
+      price &lt;- habPrice hd hs0 hab
+      return (S.insert hab s0, price ^. bonusingFor bs BTBuildCosts)
 
 -- | Obsolete with containers-0.5.9, with GHC 8.2
 lookupMax :: S.Set a -&gt; Maybe a

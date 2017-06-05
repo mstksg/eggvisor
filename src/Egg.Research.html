@@ -468,13 +468,16 @@ purchaseResearch
     -&gt; ResearchIx tiers epic a
     -&gt; ResearchStatus tiers epic
     -&gt; Either ResearchError (a, ResearchStatus tiers epic)
-purchaseResearch rd i = pp . runWriterT . researchIxStatusLegal rd i (WriterT . go)
+purchaseResearch rd i rs0 = pp . runWriterT . researchIxStatusLegal rd i (WriterT . go) $ rs0
   where
+    bs = totalBonuses rd rs0
     pp :: Maybe (ResearchStatus tiers epic, First a)
         -&gt; Either ResearchError (a, ResearchStatus tiers epic)
     pp Nothing                     = Left REMaxedOut
     pp (Just (_ , First Nothing )) = Left RELocked
-    pp (Just (rs, First (Just c))) = Right (c, rs)
+    pp (Just (rs, First (Just c))) = case i of
+        RICommon _ -&gt; Right (c ^. bonusingFor bs BTResearchCosts, rs)
+        RIEpic   _ -&gt; Right (c, rs)
     go :: Natural -&gt; Maybe (Natural, First a)
     go currLevel = second (First . Just) &lt;$&gt; case rd ^. researchIxData i . rCosts of
         Left m   -&gt; (currLevel + 1, 0) &lt;$ guard (currLevel &lt; m)
