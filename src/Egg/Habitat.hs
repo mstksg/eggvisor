@@ -19,6 +19,7 @@ module Egg.Habitat (
   , HabData(..), _HabData
   , SomeHabData
   , HabStatus(..), _HabStatus, hsSlots, hsPop
+  , IsCalm(..), _NotCalm, _Calm
   , initHabStatus
   , habAt
   , baseCapacity
@@ -132,6 +133,26 @@ instance ToJSON (HabData habs) where
         [ "habitats" .= SV.fromSized _hdHabs
         ]
 
+data IsCalm = NotCalm | Calm
+    deriving (Show, Eq, Ord, Enum)
+
+makePrisms ''IsCalm
+
+data WaitTilRes habs
+    = WaitTilSuccess { _wtrRes :: Double, _wtrStatus :: HabStatus habs }
+    | MaxHabPopIn    { _wtrRes :: Double }
+    | NoWait
+    | NoInternalHatcheries
+  deriving (Show, Eq, Ord)
+
+makePrisms ''WaitTilRes
+makeLenses ''WaitTilRes
+
+data WaitError = WENoInternalHatcheries
+               | WEMaxHabCapacity
+
+makePrisms ''WaitError
+
 -- | Initial 'HabStatus' to start off the game.
 initHabStatus :: KnownNat habs => HabStatus habs
 initHabStatus = HabStatus (S.singleton 0 :+ pure S.empty) (pure 0)
@@ -220,9 +241,6 @@ habCapacity bs = view $ habBaseCapacity
                       . bonusingFor bs BTHabCapacity
                       . to round
 
-data IsCalm = NotCalm | Calm
-    deriving (Show, Eq, Ord, Enum)
-
 -- | Compute the base internal hatchery rate (chickens per second per
 -- hatchery) from bonuses.
 internalHatcheryRate :: Bonuses -> IsCalm -> Double
@@ -293,21 +311,6 @@ availableSpace hd bs hs = checkAvail <$> caps <*> (hs ^. hsPop)
         | otherwise   = (Just (cap' - pop), cap)
       where
         cap' = fromIntegral cap
-
--- -- | Calculate the time until the next hab is full, and return the updated
--- -- habs after that time.  Returns Nothing if all habs are full.
--- waitTilNextFilled
---     :: forall habs. KnownNat habs
---     => HabData habs
---     -> Bonuses
---     -> HabStatus habs
---     -> WaitResult habs (Fin N4, Double)
--- waitTilNextFilled hd bs = fst . waitTilNextFilled' hd bs
-
-data WaitError = WENoInternalHatcheries
-               | WEMaxHabCapacity
-
-makePrisms ''WaitError
 
 -- | Calculate the time until the next hab is full, and return the updated
 -- habs after that time.  Returns Nothing if all habs are full.
@@ -403,16 +406,6 @@ stepHabs hd bs cm = go
                 go (dt - tFill) hs1
       where
         avails = availableSpace hd bs hs0
-
-data WaitTilRes habs
-    = WaitTilSuccess { _wtrRes :: Double, _wtrStatus :: HabStatus habs }
-    | MaxHabPopIn    { _wtrRes :: Double }
-    | NoWait
-    | NoInternalHatcheries
-  deriving (Show, Eq, Ord)
-
-makePrisms ''WaitTilRes
-makeLenses ''WaitTilRes
 
 -- | Time until a given population is reached.
 waitTilPop
