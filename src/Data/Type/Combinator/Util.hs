@@ -12,6 +12,7 @@
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
 {-# LANGUAGE StandaloneDeriving     #-}
+{-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE TupleSections          #-}
 {-# LANGUAGE TypeApplications       #-}
 {-# LANGUAGE TypeFamilies           #-}
@@ -48,12 +49,15 @@ module Data.Type.Combinator.Util (
   , someNat
   , unzipV
   , fins'
+  , dsumSome
+  , someDSum
   ) where
 
 import           Control.Lens as L hiding ((:<), Index, Traversable1(..))
 import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.Bifunctor
+import           Data.Dependent.Sum
 import           Data.Foldable            as F
 import           Data.Kind
 import           Data.Maybe
@@ -173,8 +177,11 @@ ixV = \case
     FS n -> \f -> \case
       x   :* xs -> (x :*) <$> ixV n f xs
 
-_Flip :: Lens (Flip f a b) (Flip f c d) (f b a) (f d c)
-_Flip f (Flip x) = Flip <$> f x
+makePrisms ''Flip
+makeWrapped ''Flip
+
+-- _Flip :: Iso (Flip f a b) (Flip f c d) (f b a) (f d c)
+-- _Flip = iso 
 
 sumProd
     :: Functor h
@@ -355,3 +362,9 @@ instance FoldableWithIndex () I where
     ifoldMap f = foldMap (f ())
 instance TraversableWithIndex () I where
     itraverse f = traverse (f ())
+
+dsumSome :: DSum f g -> Some (f :&: g)
+dsumSome (t :=> x) = Some (t :&: x)
+
+someDSum :: Some (f :&: g) -> DSum f g
+someDSum = withSome $ \(t :&: x) -> t :=> x

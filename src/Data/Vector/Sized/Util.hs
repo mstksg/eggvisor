@@ -20,6 +20,10 @@ instance (FromJSON (v a), UVG.Vector v a, KnownNat n) => FromJSON (VG.Vector v n
         Nothing -> fail "Wrong number of items in array"
         Just v' -> return v'
 
+instance (ToJSON (v a), UVG.Vector v a, KnownNat n) => ToJSON (VG.Vector v n a) where
+    toJSON     = toJSON     . VG.fromSized
+    toEncoding = toEncoding . VG.fromSized
+
 ixSV
     :: (KnownNat n, UVG.Vector v a)
     => Finite n -> Lens' (VG.Vector v n a) a

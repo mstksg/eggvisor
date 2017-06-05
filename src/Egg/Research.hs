@@ -26,6 +26,7 @@ module Egg.Research (
   , BonusType(..), AsBonusType(..)
   , Bonuses(..), _Bonuses
   , Research(..), HasResearch(..)
+  , ResearchTier(..), rtUnlock, rtTechs, SomeResearchTier
   , ResearchData(..), rdCommon, rdEpic, SomeResearchData
   , ResearchStatus(..), rsCommon, rsEpic, SomeResearchStatus
   , ResearchIx(..)
@@ -140,17 +141,29 @@ data Research a =
              -- 'Right' with cost data.
              , _rCosts       :: Either Natural (V.Vector a)
              }
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Generic)
 
 makeClassy ''Research
 
+data ResearchTier :: Nat -> Type where
+    ResearchTier
+        :: { _rtUnlock :: Natural
+           , _rtTechs  :: SV.Vector n (Research Double)
+           }
+        -> ResearchTier n
+  deriving (Show, Eq, Ord, Generic)
+
+makeLenses ''ResearchTier
+
+type SomeResearchTier = DSum Sing ResearchTier
+
 data ResearchData :: [Nat] -> Nat -> Type where
     ResearchData
-        :: { _rdCommon :: Prod (Flip SV.Vector (Research Double)) tiers
+        :: { _rdCommon :: Prod ResearchTier tiers
            , _rdEpic   :: SV.Vector epic (Research Integer)
            }
         -> ResearchData tiers epic
-    deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord)
 
 makeLenses ''ResearchData
 
@@ -237,18 +250,35 @@ instance ToJSON a => ToJSON (Research a) where
                           Right cs -> "costs"  .= cs
         ]
 
+researchTierParseOptions :: Options
+researchTierParseOptions = defaultOptions
+    { fieldLabelModifier = camelTo2 '-' . drop 3
+    }
+
+instance KnownNat n => FromJSON (ResearchTier n) where
+    parseJSON  = genericParseJSON  researchTierParseOptions
+instance KnownNat n => ToJSON (ResearchTier n) where
+    toJSON     = genericToJSON     researchTierParseOptions
+    toEncoding = genericToEncoding researchTierParseOptions
+instance FromJSON SomeResearchTier where
+    parseJSON = withObject "ResearchTier" $ \v -> do
+      u <- v .: "unlock"
+      t <- v .: "techs"
+      SV.withSized t $ \tV ->
+        return $ sing :=> ResearchTier u tV
+instance ToJSON SomeResearchTier where
+    toJSON = \case
+        SNat :=> r -> toJSON r
+    toEncoding = \case
+        SNat :=> r -> toEncoding r
 instance FromJSON SomeResearchData where
     parseJSON = withObject "ResearchData" $ \v -> do
         res   <- v .: "research"
         epics <- v .: "epic"
         withV res $ \resV ->
-          some (withProd (f . getI) resV) $ \(_ :&: (unzipP->(resS :&: resP))) ->
+          some (withProd (dsumSome . getI) resV) $ \(_ :&: (unzipP->(resS :&: resP))) ->
             SV.withSized epics   $ \sizedV ->
               return (STuple2 (prodSing resS) SNat :=> Uncur (ResearchData resP sizedV))
-      where
-        f   :: V.Vector (Research Double)
-            -> Some (Sing :&: Flip SV.Vector (Research Double))
-        f xs = SV.withSized xs $ \xsV -> Some (SNat :&: Flip xsV)
 instance ToJSON SomeResearchData where
     toJSON = \case
         _ :=> Uncur r -> toJSON r
@@ -264,7 +294,7 @@ instance (SingI tiers, KnownNat epic) => FromJSON (ResearchData tiers epic) wher
           Just eV -> return eV
         return $ ResearchData resV epicsV
       where
-        go :: Sing ts -> [Value] -> Parser (Prod (Flip SV.Vector (Research Double)) ts)
+        go :: Sing ts -> [Value] -> Parser (Prod ResearchTier ts)
         go = \case
           SNil -> \case
             []  -> return Ø
@@ -275,11 +305,19 @@ instance (SingI tiers, KnownNat epic) => FromJSON (ResearchData tiers epic) wher
 
 instance ToJSON (ResearchData tiers epic) where
     toJSON ResearchData{..} = object
-        [ "research" .= TCP.toList (SV.fromSized . getFlip) _rdCommon
+        [ "research" .= TCP.toList (\ResearchTier{..} -> 
+                            object [ "unlock" .= _rtUnlock
+                                   , "techs"  .= SV.fromSized _rtTechs
+                                   ]
+                          ) _rdCommon
         , "epic"     .= SV.fromSized _rdEpic
         ]
     toEncoding ResearchData{..} = pairs . mconcat $
-        [ "research" .= TCP.toList (SV.fromSized . getFlip) _rdCommon
+        [ "research" .= TCP.toList (\ResearchTier{..} -> 
+                            object [ "unlock" .= _rtUnlock
+                                   , "techs"  .= SV.fromSized _rtTechs
+                                   ]
+                          ) _rdCommon
         , "epic"     .= SV.fromSized _rdEpic
         ]
 
@@ -340,7 +378,10 @@ maxLevel = either fromIntegral V.length . _rCosts
 -- | Empty status (no research).
 emptyResearchStatus :: ResearchData tiers epic -> ResearchStatus tiers epic
 emptyResearchStatus ResearchData{..} =
-    ResearchStatus (map1 (mapFlip (0 <$)) _rdCommon) (0 <$ _rdEpic)
+    ResearchStatus (map1 clear _rdCommon) (0 <$ _rdEpic)
+  where
+    clear :: ResearchTier a -> Flip SV.Vector Natural a
+    clear = Flip . set mapped 0 . view rtTechs
 
 -- | Zips together all research data and research statuses into an
 -- accumulator.
@@ -351,7 +392,7 @@ foldResearch
     -> ResearchStatus tiers epic
     -> b
 foldResearch f ResearchData{..} ResearchStatus{..} = mconcat
-    [ foldMap1 (\case Flip d :&: Flip s -> fold $ SV.zipWith (f . Left) d s
+    [ foldMap1 (\case d :&: Flip s -> fold $ SV.zipWith (f . Left) (_rtTechs d) s
                )
         (zipP (_rdCommon :&: _rsCommon))
     , fold $ SV.zipWith (f . Right) _rdEpic _rsEpic
@@ -397,7 +438,8 @@ researchIxData
 researchIxData = \case
     RICommon i -> \f ->
       let g :: forall a. _ a -> _ (_ a)
-          g x@(slot :&: (_ :&: SNat)) = (_2 . _1 . _Flip . ixSV slot) f x
+          -- g x@(slot :&: (_ :&: SNat)) = (_2 . _1 . _Flip . ixSV slot) f x
+          g x@(slot :&: (_ :&: SNat)) = (_2 . _1 . rtTechs . ixSV slot) f x
       in  rdCommon $ \rs -> map1 fanFst . fanSnd
             <$> sumProd g (i :&: zipP (rs :&: singProd sing))
     RIEpic i   -> rdEpic . ixSV i
