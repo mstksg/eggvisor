@@ -19,6 +19,7 @@ library
                        Egg.Research
                        Egg.Habitat
                        Egg.Vehicle
+                       Egg.Egg
   other-modules:       Data.Type.Combinator.Util
                        Data.Vector.Sized.Util
   build-depends:       base >= 4.7 && < 5

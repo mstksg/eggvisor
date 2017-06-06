@@ -59,7 +59,7 @@ import           Data.Type.Fin
 import           Data.Type.Vector           as TCV
 import           Data.Vector.Sized.Util
 import           Egg.Research
-import           Egg.Vehicle
+import           Egg.Types
 import           GHC.Generics               (Generic)
 import           Numeric.Lens
 import           Numeric.Natural
@@ -72,7 +72,7 @@ import qualified Data.Vector.Sized          as SV
 
 data Hab = Hab { _habName         :: T.Text
                , _habBaseCapacity :: Natural
-               , _habCosts        :: Vec N4 Double
+               , _habCosts        :: Vec N4 Bock
                }
   deriving (Show, Eq, Ord, Generic)
 
@@ -88,7 +88,7 @@ type SomeHabData = DSum Sing HabData
 
 data HabStatus habs
     = HabStatus { _hsSlots :: Vec N4 (S.Set (Finite habs))
-                , _hsPop   :: Vec N4 Double
+                , _hsPop   :: Vec N4 Bock
                 }
   deriving (Show, Eq, Ord, Generic)
 
@@ -221,7 +221,7 @@ habHistory = M.mapMaybe (natFin . someNat)
 
 -- | Get the BASE price of a given hab, if a purchase were to be made.
 -- Does not check if purchase is legal (see 'upgradeHab').
-habPrice :: KnownNat habs => HabData habs -> HabStatus habs -> Finite habs -> Maybe Double
+habPrice :: KnownNat habs => HabData habs -> HabStatus habs -> Finite habs -> Maybe Bock
 habPrice hd hs hab = fmap priceOf
                    . TC.strengthen
                    . fromMaybe FZ
@@ -230,7 +230,7 @@ habPrice hd hs hab = fmap priceOf
                    . habHistory
                    $ hs
   where
-    priceOf :: Fin N4 -> Double
+    priceOf :: Fin N4 -> Bock
     priceOf i = hd ^. _HabData . ixSV hab . habCosts . ixV i
 
 -- | Get the actual capacity for a given hab, with given bonuses.
@@ -265,7 +265,7 @@ upgradeHab
     -> Fin N4
     -> Finite habs
     -> HabStatus habs
-    -> Maybe (Double, HabStatus habs)
+    -> Maybe (Bock, HabStatus habs)
 upgradeHab hd bs slot hab hs0 =
     fmap swap . runWriterT . flip (hsSlots . ixV slot) hs0 $ \s0 -> WriterT $ do
       guard $ case lookupMax s0 of

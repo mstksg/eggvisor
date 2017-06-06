@@ -89,6 +89,7 @@ import           Data.Type.Product               as TCP
 import           Data.Type.Sum
 import           Data.Type.Vector
 import           Data.Vector.Sized.Util
+import           Egg.Types
 import           GHC.Generics                    (Generic)
 import           Numeric.Lens
 import           Numeric.Natural
@@ -166,7 +167,7 @@ makeClassy ''Research
 data ResearchTier :: Nat -> Type where
     ResearchTier
         :: { _rtUnlock :: Natural
-           , _rtTechs  :: SV.Vector n (Research Double)
+           , _rtTechs  :: SV.Vector n (Research Bock)
            }
         -> ResearchTier n
   deriving (Show, Eq, Ord, Generic)
@@ -178,7 +179,7 @@ type SomeResearchTier = DSum Sing ResearchTier
 data ResearchData :: [Nat] -> Nat -> Type where
     ResearchData
         :: { _rdCommon :: Prod ResearchTier tiers
-           , _rdEpic   :: SV.Vector epic (Research Integer)
+           , _rdEpic   :: SV.Vector epic (Research GoldenEgg)
            }
         -> ResearchData tiers epic
   deriving (Show, Eq, Ord)
@@ -202,17 +203,17 @@ type SomeResearchStatus = DSum Sing (Uncur ResearchStatus)
 -- | A safe index for a given research item, usable with 'ResearchData' and
 -- 'ResearchStatus'.
 data ResearchIx :: [Nat] -> Nat -> Type -> Type where
-    RICommon :: Sum Finite tiers -> ResearchIx tiers epic Double
-    RIEpic   :: Finite epic      -> ResearchIx tiers epic Integer
+    RICommon :: Sum Finite tiers -> ResearchIx tiers epic Bock
+    RIEpic   :: Finite epic      -> ResearchIx tiers epic GoldenEgg
 
 deriving instance Show (Sum Finite tiers) => Show (ResearchIx tiers epic a)
 
-_RICommon :: Iso (ResearchIx t1 epic Double) (ResearchIx t2 epic Double)
-                 (Sum Finite t1            ) (Sum Finite t2            )
+_RICommon :: Iso (ResearchIx t1 epic Bock) (ResearchIx t2 epic Bock)
+                 (Sum Finite t1          ) (Sum Finite t2          )
 _RICommon = iso (\case RICommon i -> i) RICommon
 
-_RIEpic :: Iso (ResearchIx tiers e1 Integer) (ResearchIx tiers e2 Integer)
-               (Finite e1                  ) (Finite e2                  )
+_RIEpic :: Iso (ResearchIx tiers e1 GoldenEgg) (ResearchIx tiers e2 GoldenEgg)
+               (Finite e1                    ) (Finite e2                    )
 _RIEpic = iso (\case RIEpic i -> i) RIEpic
 
 bonusAmountParseOptions :: Options
@@ -415,7 +416,7 @@ emptyResearchStatus ResearchData{..} =
 -- accumulator.
 foldResearch
     :: Monoid b
-    => (Either (Research Double) (Research Integer) -> Natural -> b)
+    => (Either (Research Bock) (Research GoldenEgg) -> Natural -> b)
     -> ResearchData tiers epic
     -> ResearchStatus tiers epic
     -> b
@@ -530,7 +531,7 @@ rdrsCommon f (Uncur rd :&: Uncur rs) =
 rdrsEpic
     :: KnownNat epic
     => Lens' ((Uncur ResearchData :&: Uncur ResearchStatus) (tiers # epic))
-             (SV.Vector epic (Research Integer, Natural))
+             (SV.Vector epic (Research GoldenEgg, Natural))
 rdrsEpic f (Uncur rd :&: Uncur rs) =
     f (liftA2 (,) (_rdEpic rd) (_rsEpic rs)) <&> \rdrs ->
       Uncur (rd & rdEpic .~ fmap fst rdrs) :&: Uncur (rs & rsEpic .~ fmap snd rdrs)
@@ -586,10 +587,10 @@ researchIxStatusLegal rd = \case
 -- | All 'ResearchIx' into common researches.
 researchIxesCommon
     :: SingI tiers
-    => Prod (Flip SV.Vector (ResearchIx tiers epic Double)) tiers
+    => Prod (Flip SV.Vector (ResearchIx tiers epic Bock)) tiers
 researchIxesCommon = go sing
   where
-    go :: Sing ts -> Prod (Flip SV.Vector (ResearchIx ts epic Double)) ts
+    go :: Sing ts -> Prod (Flip SV.Vector (ResearchIx ts epic Bock)) ts
     go = \case
       SNil         -> Ø
       SNat `SCons` ss ->
@@ -599,7 +600,7 @@ researchIxesCommon = go sing
 -- | All 'ResearchIx' into epic researches.
 researchIxesEpic
     :: KnownNat epic
-    => SV.Vector epic (ResearchIx tiers epic Integer)
+    => SV.Vector epic (ResearchIx tiers epic GoldenEgg)
 researchIxesEpic = SV.generate RIEpic
 
 -- | All legal 'ResearchIx' for common research.
@@ -607,7 +608,7 @@ legalResearchIxesCommon
     :: forall tiers epic. SingI tiers
     => ResearchData tiers epic
     -> ResearchStatus tiers epic
-    -> Prod (Flip SV.Vector (Either ResearchError (ResearchIx tiers epic Double))) tiers
+    -> Prod (Flip SV.Vector (Either ResearchError (ResearchIx tiers epic Bock))) tiers
 legalResearchIxesCommon rd rs =
     imap1 (\i -> Flip . go i) (zipP (zipP (_rdCommon rd :&: _rsCommon rs) :&: singProd sing))
   where
@@ -615,15 +616,15 @@ legalResearchIxesCommon rd rs =
     go  :: forall t. ()
         => Index tiers t
         -> ((ResearchTier :&: Flip SV.Vector Natural) :&: Sing) t
-        -> SV.Vector t (Either ResearchError (ResearchIx tiers epic Double))
+        -> SV.Vector t (Either ResearchError (ResearchIx tiers epic Bock))
     go i ((rt :&: Flip c) :&: SNat)
       | rt ^. rtUnlock > totCount = pure (Left RELocked)
       | otherwise                 =
           let mkIx
                   :: Finite t
-                  -> Research Double
+                  -> Research Bock
                   -> Natural
-                  -> Either ResearchError (ResearchIx tiers epic Double)
+                  -> Either ResearchError (ResearchIx tiers epic Bock)
               mkIx j r n
                 | n < maxLevel r = Right . RICommon . someSum $ Some (i :&: j)
                 | otherwise      = Left REMaxedOut
@@ -634,13 +635,13 @@ legalResearchIxesEpic
     :: forall tiers epic. KnownNat epic
     => ResearchData tiers epic
     -> ResearchStatus tiers epic
-    -> SV.Vector epic (Maybe (ResearchIx tiers epic Integer))
+    -> SV.Vector epic (Maybe (ResearchIx tiers epic GoldenEgg))
 legalResearchIxesEpic rd rs = SV.izipWith go (_rdEpic rd) (_rsEpic rs)
   where
     go  :: Finite epic
-        -> Research Integer
+        -> Research GoldenEgg
         -> Natural
-        -> Maybe (ResearchIx tiers epic Integer)
+        -> Maybe (ResearchIx tiers epic GoldenEgg)
     go i r n
       | n < maxLevel r = Just . RIEpic $ i
       | otherwise      = Nothing

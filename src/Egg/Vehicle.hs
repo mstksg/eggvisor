@@ -44,6 +44,7 @@ import           Data.Type.Nat              as TCN
 import           Data.Type.Vector
 import           Data.Vector.Sized.Util
 import           Egg.Research
+import           Egg.Types
 import           GHC.Generics               (Generic)
 import           Numeric.Lens
 import           Numeric.Natural
@@ -60,7 +61,7 @@ import qualified Data.Vector.Sized          as SV
 data Vehicle = Vehicle
         { _vName         :: T.Text
         , _vBaseCapacity :: Natural         -- ^ eggs per minute
-        , _vCosts        :: V.Vector Double
+        , _vCosts        :: V.Vector Bock
         }
   deriving (Show, Eq, Ord, Generic)
 
@@ -170,7 +171,7 @@ vehiclePrice
     => VehicleData vs
     -> DepotStatus vs slots
     -> Finite vs
-    -> Maybe Double
+    -> Maybe Bock
 vehiclePrice vd ds v = fmap priceOf
                      . TC.strengthen
                      . fromMaybe FZ
@@ -178,7 +179,7 @@ vehiclePrice vd ds v = fmap priceOf
                      . vehicleHistory
                      $ ds
   where
-    priceOf :: Fin slots -> Double
+    priceOf :: Fin slots -> Bock
     priceOf i = fromMaybe 0 $
                   vd ^? _VehicleData . ixSV v . vCosts . ix (fin i)
 
@@ -194,7 +195,7 @@ upgradeVehicle
     -> Fin slots
     -> Finite vs
     -> DepotStatus vs slots
-    -> Maybe (Double, DepotStatus vs slots)
+    -> Maybe (Bock, DepotStatus vs slots)
 upgradeVehicle vd bs slot v ds0 =
     fmap swap . runWriterT . flip (_DepotStatus . ixV slot) ds0 $ \s0 -> WriterT $ do
       guard $ case lookupMax s0 of
