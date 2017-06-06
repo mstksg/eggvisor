@@ -1,0 +1,68 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds            #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric        #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances    #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE GADTs                #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE KindSignatures       #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE StandaloneDeriving   #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE TemplateHaskell      #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators        #-}</span><span>
+</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><a name="line-10"></a><span>
+</span><a name="line-11"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Farm</span><span> </span><span class="hs-special">(</span><span>
+</span><a name="line-12"></a><span>    </span><a href="Egg.Farm.html#FarmStatus"><span class="hs-identifier hs-type">FarmStatus</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsEgg"><span class="hs-identifier hs-var">fsEgg</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsResearch"><span class="hs-identifier hs-var">fsResearch</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsHabs"><span class="hs-identifier hs-var">fsHabs</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsDepot"><span class="hs-identifier hs-var">fsDepot</span></a><span>
+</span><a name="line-13"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#initFarmStatus"><span class="hs-identifier hs-var">initFarmStatus</span></a><span>
+</span><a name="line-14"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-15"></a><span>
+</span><a name="line-16"></a><span class="hs-comment">-- import           Data.Singletons</span><span>
+</span><a name="line-17"></a><span class="hs-comment">-- import           Data.Type.Combinator.Util</span><span>
+</span><a name="line-18"></a><span class="hs-comment">-- import           Data.Type.Conjunction</span><span>
+</span><a name="line-19"></a><span class="hs-comment">-- import           Egg.Egg</span><span>
+</span><a name="line-20"></a><span class="hs-comment">-- import           GHC.Generics              (Generic)</span><span>
+</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span>
+</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Dependent</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
+</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span>
+</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
+</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
+</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
+</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.GameData.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">GameData</span></a><span>
+</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Habitat.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Habitat</span></a><span>
+</span><a name="line-29"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Research.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Research</span></a><span>
+</span><a name="line-30"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Vehicle.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Vehicle</span></a><span>
+</span><a name="line-31"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Natural</span><span>
+</span><a name="line-32"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Known</span><span>
+</span><a name="line-33"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
+</span><a name="line-34"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>            </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
+</span><a name="line-35"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>                 </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TL</span><span>
+</span><a name="line-36"></a><span>
+</span><a name="line-37"></a><span class="hs-keyword">data</span><span> </span><a name="FarmStatus"><a href="Egg.Farm.html#FarmStatus"><span class="hs-identifier">FarmStatus</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="hs-identifier hs-type">Nat</span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Nat</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-38"></a><span>    </span><a name="FarmStatus"><a href="Egg.Farm.html#FarmStatus"><span class="hs-identifier">FarmStatus</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">{</span><span> </span><a name="_fsEgg"><a href="Egg.Farm.html#_fsEgg"><span class="hs-identifier">_fsEgg</span></a></a><span>      </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Finite</span><span> </span><a href="#local-6989586621680031933"><span class="hs-identifier hs-type">eggs</span></a><span>
+</span><a name="line-39"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsResearch"><a href="Egg.Farm.html#_fsResearch"><span class="hs-identifier">_fsResearch</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Research.html#ResearchStatus"><span class="hs-identifier hs-type">ResearchStatus</span></a><span> </span><a href="#local-6989586621680031934"><span class="hs-identifier hs-type">tiers</span></a><span> </span><a href="#local-6989586621680031935"><span class="hs-identifier hs-type">epic</span></a><span>
+</span><a name="line-40"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsHabs"><a href="Egg.Farm.html#_fsHabs"><span class="hs-identifier">_fsHabs</span></a></a><span>     </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Habitat.html#HabStatus"><span class="hs-identifier hs-type">HabStatus</span></a><span> </span><a href="#local-6989586621680031936"><span class="hs-identifier hs-type">habs</span></a><span>
+</span><a name="line-41"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsDepot"><a href="Egg.Farm.html#_fsDepot"><span class="hs-identifier">_fsDepot</span></a></a><span>   </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Vehicle.html#SomeDepotStatus"><span class="hs-identifier hs-type">SomeDepotStatus</span></a><span> </span><a href="#local-6989586621680031937"><span class="hs-identifier hs-type">vehicles</span></a><span>
+</span><a name="line-42"></a><span>                  </span><span class="hs-special">}</span><span>
+</span><a name="line-43"></a><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Egg.Farm.html#FarmStatus"><span class="hs-identifier hs-type">FarmStatus</span></a><span> </span><a href="#local-6989586621680031933"><span class="hs-identifier hs-type">eggs</span></a><span> </span><span class="hs-char">'(tiers, epic) habs vehicles
+
+deriving instance ListC (Show &lt;$&gt; (Flip SV.Vector Natural &lt;$&gt; tiers))
+    =&gt; Show (FarmStatus eggs '(tiers, epic) habs vehicles)
+deriving instance ListC (Eq &lt;$&gt; (Flip SV.Vector Natural &lt;$&gt; tiers))
+    =&gt; Eq (FarmStatus egg '(tiers, epic) habs vehicles)
+deriving instance (ListC (Eq &lt;$&gt; (Flip SV.Vector Natural &lt;$&gt; tiers)), ListC (Ord &lt;$&gt; (Flip SV.Vector Natural &lt;$&gt; tiers)))
+    =&gt; Ord (FarmStatus egg '(tiers, epic) habs vehicles)
+
+fsEgg :: Lens (FarmStatus e1 '(t, g) h v) (FarmStatus e2 '(t, g) h v) (Finite e1) (Finite e2)
+fsEgg f fs = (\e -&gt; fs { _fsEgg = e }) &lt;$&gt; f (_fsEgg fs)
+fsResearch :: Lens (FarmStatus e '(t1, g1) h v) (FarmStatus e '(t2, g2) h v) (ResearchStatus t1 g1) (ResearchStatus t2 g2)
+fsResearch f fs = f (_fsResearch fs) &lt;&amp;&gt; \r -&gt;
+                        FarmStatus (_fsEgg fs) r (_fsHabs fs) (_fsDepot fs)
+fsHabs :: Lens (FarmStatus e '(t, g) h1 v) (FarmStatus e '(t, g) h2 v) (HabStatus h1) (HabStatus h2)
+fsHabs f fs = (\h -&gt; fs { _fsHabs = h }) &lt;$&gt; f (_fsHabs fs)
+fsDepot :: Lens (FarmStatus e '(t, g) h v1) (FarmStatus e '(t, g) h v2) (SomeDepotStatus v1) (SomeDepotStatus v2)
+fsDepot f fs = (\d -&gt; fs { _fsDepot = d }) &lt;$&gt; f (_fsDepot fs)
+
+initFarmStatus
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles, 1 TL.&lt;= eggs, 1 TL.&lt;= habs, 1 TL.&lt;= vehicles)
+    =&gt; GameData   eggs '(tiers, epic) habs vehicles
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+initFarmStatus (GameData _ rd _ _ _) =
+    FarmStatus 0 (emptyResearchStatus rd) initHabStatus (known :=&gt; initDepotStatus)
+</span></pre></body></html>

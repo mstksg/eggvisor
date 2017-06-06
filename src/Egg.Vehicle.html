@@ -17,7 +17,7 @@
 </span><a name="line-17"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Vehicle</span><span> </span><span class="hs-special">(</span><span>
 </span><a name="line-18"></a><span>    </span><a href="Egg.Vehicle.html#Vehicle"><span class="hs-identifier hs-type">Vehicle</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#vName"><span class="hs-identifier hs-var">vName</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#vBaseCapacity"><span class="hs-identifier hs-var">vBaseCapacity</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#vCosts"><span class="hs-identifier hs-var">vCosts</span></a><span>
 </span><a name="line-19"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#VehicleData"><span class="hs-identifier hs-type">VehicleData</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#_VehicleData"><span class="hs-identifier hs-var">_VehicleData</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#SomeVehicleData"><span class="hs-identifier hs-type">SomeVehicleData</span></a><span>
-</span><a name="line-20"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#DepotStatus"><span class="hs-identifier hs-type">DepotStatus</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#_DepotStatus"><span class="hs-identifier hs-var">_DepotStatus</span></a><span>
+</span><a name="line-20"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#DepotStatus"><span class="hs-identifier hs-type">DepotStatus</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#_DepotStatus"><span class="hs-identifier hs-var">_DepotStatus</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#SomeDepotStatus"><span class="hs-identifier hs-type">SomeDepotStatus</span></a><span>
 </span><a name="line-21"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#initDepotStatus"><span class="hs-identifier hs-var">initDepotStatus</span></a><span>
 </span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#upgradeDepot"><span class="hs-identifier hs-var">upgradeDepot</span></a><span>
 </span><a name="line-23"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Vehicle.html#baseDepotCapacity"><span class="hs-identifier hs-var">baseDepotCapacity</span></a><span>
@@ -53,10 +53,10 @@
 </span><a name="line-53"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
 </span><a name="line-54"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>            </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCN</span><span>
 </span><a name="line-55"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Map</span><span>                   </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">M</span><span>
-</span><a name="line-56"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Set</span><span>                   </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">S</span><span>
-</span><a name="line-57"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Text</span><span>                  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">T</span><span>
-</span><a name="line-58"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>                </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">V</span><span>
-</span><a name="line-59"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>          </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
+</span><a name="line-56"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Text</span><span>                  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">T</span><span>
+</span><a name="line-57"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>                </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">V</span><span>
+</span><a name="line-58"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>          </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
+</span><a name="line-59"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TL</span><span>
 </span><a name="line-60"></a><span>
 </span><a name="line-61"></a><span class="hs-keyword">data</span><span> </span><a name="Vehicle"><a href="Egg.Vehicle.html#Vehicle"><span class="hs-identifier">Vehicle</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Vehicle"><a href="Egg.Vehicle.html#Vehicle"><span class="hs-identifier">Vehicle</span></a></a><span>
 </span><a name="line-62"></a><span>        </span><span class="hs-special">{</span><span> </span><a name="_vName"><a href="Egg.Vehicle.html#_vName"><span class="hs-identifier">_vName</span></a></a><span>         </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">T</span><span class="hs-operator hs-type">.</span><span class="hs-identifier hs-type">Text</span><span>
@@ -76,11 +76,13 @@ makeWrapped ''VehicleData
 type SomeVehicleData = DSum Sing VehicleData
 
 data DepotStatus vs slots
-    = DepotStatus { _dsSlots :: Vec slots (S.Set (Finite vs)) }
+    = DepotStatus { _dsSlots :: Vec slots (Maybe (Finite vs)) }
   deriving (Show, Eq, Ord, Generic)
 
 makePrisms ''DepotStatus
 makeWrapped ''DepotStatus
+
+type SomeDepotStatus vs = DSum TCN.Nat (DepotStatus vs)
 
 vehicleParseOptions :: Options
 vehicleParseOptions = defaultOptions
@@ -115,12 +117,12 @@ instance ToJSON (VehicleData habs) where
     toEncoding = toEncoding . SV.fromSized . _vdVehicles
 
 -- | Initial 'DepotStatus' to start off the game.
-initDepotStatus :: KnownNat vs =&gt; DepotStatus vs N4
-initDepotStatus = DepotStatus $ S.singleton 0 :+ pure S.empty
+initDepotStatus :: (KnownNat vs, 1 TL.&lt;= vs) =&gt; DepotStatus vs N4
+initDepotStatus = DepotStatus $ Just 0 :+ pure Nothing
 
 -- | Add another empty depot slot
 upgradeDepot :: forall vs n. Known TCN.Nat n =&gt; DepotStatus vs n -&gt; DepotStatus vs ('S n)
-upgradeDepot = over _DepotStatus (.++ (S.empty :+ &#216;V))
+upgradeDepot = over _DepotStatus (.++ (Nothing :+ &#216;V))
                  \\ addCommute (known :: TCN.Nat n) (S_ Z_)
 
 -- | Total base capacity of all slots, in eggs per second.
@@ -132,7 +134,7 @@ baseDepotCapacity
 baseDepotCapacity VehicleData{..} =
     sumOf $ _DepotStatus
           . folded
-          . folding lookupMax
+          . folded
           . to (SV.index _vdVehicles)
           . vBaseCapacity
           . to fromIntegral
@@ -194,14 +196,10 @@ upgradeVehicle
     -&gt; Maybe (Bock, DepotStatus vs slots)
 upgradeVehicle vd bs slot v ds0 =
     fmap swap . runWriterT . flip (_DepotStatus . ixV slot) ds0 $ \s0 -&gt; WriterT $ do
-      guard $ case lookupMax s0 of
+      guard $ case s0 of
                 Nothing -&gt; True
                 Just h  -&gt; h &lt; v
       -- should always be valid of the previous condition is true
       price &lt;- vehiclePrice vd ds0 v
-      return (S.insert v s0, price ^. bonusingFor bs BTVehicleCosts)
-
--- | Obsolete with containers-0.5.9, with GHC 8.2
-lookupMax :: S.Set a -&gt; Maybe a
-lookupMax = fmap fst . S.maxView
+      return (Just v, price ^. bonusingFor bs BTVehicleCosts)
 </span></pre></body></html>
