@@ -94,8 +94,8 @@ instance ToJSON Vehicle where
     toEncoding = genericToEncoding vehicleParseOptions
 
 instance FromJSON SomeVehicleData where
-    parseJSON = withObject "VehicleData" $ \v -> do
-      vs <- v .: "vehicles"
+    parseJSON o = do
+      vs <- parseJSON o
       SV.withSized vs $ \vsV ->
         return $ SNat :=> VehicleData vsV
 instance ToJSON SomeVehicleData where
@@ -104,19 +104,15 @@ instance ToJSON SomeVehicleData where
     toEncoding = \case
         _ :=> r -> toEncoding r
 instance KnownNat vs => FromJSON (VehicleData vs) where
-    parseJSON = withObject "VehicleData" $ \v -> do
-      vs <- v .: "vehicles"
+    parseJSON o = do
+      vs <- parseJSON o
       case SV.toSized vs of
         Nothing  -> fail $ printf "Bad number of items in list. (Expected %d, got %d)"
                          (fromSing (SNat @vs)) (length vs)
         Just vsV -> return $ VehicleData vsV
 instance ToJSON (VehicleData habs) where
-    toJSON VehicleData{..} = object
-        [ "vehicles" .= SV.fromSized _vdVehicles
-        ]
-    toEncoding VehicleData{..} = pairs . mconcat $
-        [ "vehicles" .= SV.fromSized _vdVehicles
-        ]
+    toJSON     = toJSON     . SV.fromSized . _vdVehicles
+    toEncoding = toEncoding . SV.fromSized . _vdVehicles
 
 -- | Initial 'DepotStatus' to start off the game.
 initDepotStatus :: KnownNat vs => DepotStatus vs N4

@@ -20,6 +20,7 @@ library
                        Egg.Habitat
                        Egg.Vehicle
                        Egg.Egg
+                       Egg.GameData
   other-modules:       Data.Type.Combinator.Util
                        Data.Vector.Sized.Util
   build-depends:       base >= 4.7 && < 5
@@ -29,6 +30,7 @@ library
                      , dependent-sum
                      , finite-typelits
                      , lens
+                     , lens-aeson
                      , singletons
                      , text
                      , transformers

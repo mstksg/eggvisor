@@ -302,7 +302,7 @@ instance ToJSON SomeResearchTier where
         SNat :=> r -> toEncoding r
 instance FromJSON SomeResearchData where
     parseJSON = withObject "ResearchData" $ \v -> do
-        res   <- v .: "research"
+        res   <- v .: "common"
         epics <- v .: "epic"
         withV res $ \resV ->
           some (withProd (dsumSome . getI) resV) $ \(_ :&: (unzipP->(resS :&: resP))) ->
@@ -315,7 +315,7 @@ instance ToJSON SomeResearchData where
         _ :=> Uncur r -> toEncoding r
 instance (SingI tiers, KnownNat epic) => FromJSON (ResearchData tiers epic) where
     parseJSON = withObject "ResearchData" $ \v -> do
-        res   <- v .: "research"
+        res   <- v .: "common"
         resV  <- go sing res
         epics <- v .: "epic"
         epicsV <- case SV.toSized epics of
@@ -334,20 +334,20 @@ instance (SingI tiers, KnownNat epic) => FromJSON (ResearchData tiers epic) wher
 
 instance ToJSON (ResearchData tiers epic) where
     toJSON ResearchData{..} = object
-        [ "research" .= TCP.toList (\ResearchTier{..} ->
-                            object [ "unlock" .= _rtUnlock
-                                   , "techs"  .= SV.fromSized _rtTechs
-                                   ]
-                          ) _rdCommon
-        , "epic"     .= SV.fromSized _rdEpic
+        [ "common" .= TCP.toList (\ResearchTier{..} ->
+                          object [ "unlock" .= _rtUnlock
+                                 , "techs"  .= SV.fromSized _rtTechs
+                                 ]
+                        ) _rdCommon
+        , "epic"   .= SV.fromSized _rdEpic
         ]
     toEncoding ResearchData{..} = pairs . mconcat $
-        [ "research" .= TCP.toList (\ResearchTier{..} ->
-                            object [ "unlock" .= _rtUnlock
-                                   , "techs"  .= SV.fromSized _rtTechs
-                                   ]
-                          ) _rdCommon
-        , "epic"     .= SV.fromSized _rdEpic
+        [ "common" .= TCP.toList (\ResearchTier{..} ->
+                          object [ "unlock" .= _rtUnlock
+                                 , "techs"  .= SV.fromSized _rtTechs
+                                 ]
+                        ) _rdCommon
+        , "epic"   .= SV.fromSized _rdEpic
         ]
 
 

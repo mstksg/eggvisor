@@ -110,8 +110,8 @@ instance ToJSON Hab where
     toEncoding = genericToEncoding habParseOptions
 
 instance FromJSON SomeHabData where
-    parseJSON = withObject "HabData" $ \v -> do
-      habs <- v .: "habitats"
+    parseJSON o = do
+      habs <- parseJSON o
       SV.withSized habs $ \habsV ->
         return $ SNat :=> HabData habsV
 instance ToJSON SomeHabData where
@@ -120,19 +120,15 @@ instance ToJSON SomeHabData where
     toEncoding = \case
         _ :=> r -> toEncoding r
 instance KnownNat habs => FromJSON (HabData habs) where
-    parseJSON = withObject "HabData" $ \v -> do
-      habs <- v .: "habitats"
+    parseJSON o = do
+      habs <- parseJSON o
       case SV.toSized habs of
         Nothing    -> fail $ printf "Bad number of items in list. (Expected %d, got %d)"
                          (fromSing (SNat @habs)) (length habs)
         Just habsV -> return $ HabData habsV
 instance ToJSON (HabData habs) where
-    toJSON HabData{..} = object
-        [ "habitats" .= SV.fromSized _hdHabs
-        ]
-    toEncoding HabData{..} = pairs . mconcat $
-        [ "habitats" .= SV.fromSized _hdHabs
-        ]
+    toJSON     = toJSON     . SV.fromSized . _hdHabs
+    toEncoding = toEncoding . SV.fromSized . _hdHabs
 
 data IsCalm = NotCalm | Calm
     deriving (Show, Eq, Ord, Enum)

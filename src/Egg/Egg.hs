@@ -60,8 +60,8 @@ instance ToJSON Egg where
     toEncoding = genericToEncoding eggParseOptions
 
 instance FromJSON SomeEggData where
-    parseJSON = withObject "EggData" $ \v -> do
-      es <- v .: "eggs"
+    parseJSON o = do
+      es <- parseJSON o
       SV.withSized es $ \esV ->
         return $ SNat :=> EggData esV
 instance ToJSON SomeEggData where
@@ -70,16 +70,12 @@ instance ToJSON SomeEggData where
     toEncoding = \case
         _ :=> r -> toEncoding r
 instance KnownNat eggs => FromJSON (EggData eggs) where
-    parseJSON = withObject "EggData" $ \v -> do
-      es <- v .: "eggs"
+    parseJSON o = do
+      es <- parseJSON o
       case SV.toSized es of
         Nothing  -> fail $ printf "Bad number of items in list. (Expected %d, got %d)"
                          (fromSing (SNat @eggs)) (length es)
         Just esV -> return $ EggData esV
 instance ToJSON (EggData eggs) where
-    toJSON EggData{..} = object
-        [ "eggs" .= SV.fromSized _edEggs
-        ]
-    toEncoding EggData{..} = pairs . mconcat $
-        [ "eggs" .= SV.fromSized _edEggs
-        ]
+    toJSON     = toJSON     . SV.fromSized . _edEggs
+    toEncoding = toEncoding . SV.fromSized . _edEggs
