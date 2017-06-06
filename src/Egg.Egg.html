@@ -1,0 +1,82 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveGeneric         #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances     #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE InstanceSigs          #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase            #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings     #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE RecordWildCards       #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables   #-}</span><span>
+</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE TemplateHaskell       #-}</span><span>
+</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications      #-}</span><span>
+</span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies          #-}</span><span>
+</span><a name="line-12"></a><span>
+</span><a name="line-13"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Egg</span><span> </span><span class="hs-special">(</span><span>
+</span><a name="line-14"></a><span>    </span><a href="Egg.Egg.html#Egg"><span class="hs-identifier hs-type">Egg</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-15"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Egg.html#eggName"><span class="hs-identifier hs-var">eggName</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Egg.html#eggDescription"><span class="hs-identifier hs-var">eggDescription</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Egg.html#eggValue"><span class="hs-identifier hs-var">eggValue</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Egg.html#eggDiscover"><span class="hs-identifier hs-var">eggDiscover</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Egg.html#eggUnlock"><span class="hs-identifier hs-var">eggUnlock</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Egg.html#eggMultiplier"><span class="hs-identifier hs-var">eggMultiplier</span></a><span>
+</span><a name="line-16"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Egg.html#EggData"><span class="hs-identifier hs-type">EggData</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Egg.html#_EggData"><span class="hs-identifier hs-var">_EggData</span></a><span>
+</span><a name="line-17"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Egg.html#SomeEggData"><span class="hs-identifier hs-type">SomeEggData</span></a><span>
+</span><a name="line-18"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-19"></a><span>
+</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span> </span><span class="hs-keyword">hiding</span><span>      </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-var">.=</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span>
+</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span><span>
+</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Dependent</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
+</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
+</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
+</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Types.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span></a><span>
+</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">Generics</span><span>             </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Text</span><span class="hs-operator">.</span><span class="hs-identifier">Printf</span><span>
+</span><a name="line-29"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Text</span><span>                </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">T</span><span>
+</span><a name="line-30"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
+</span><a name="line-31"></a><span>
+</span><a name="line-32"></a><span class="hs-keyword">data</span><span> </span><a name="Egg"><a href="Egg.Egg.html#Egg"><span class="hs-identifier">Egg</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Egg"><a href="Egg.Egg.html#Egg"><span class="hs-identifier">Egg</span></a></a><span> </span><span class="hs-special">{</span><span> </span><a name="_eggName"><a href="Egg.Egg.html#_eggName"><span class="hs-identifier">_eggName</span></a></a><span>        </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">T</span><span class="hs-operator hs-type">.</span><span class="hs-identifier hs-type">Text</span><span>
+</span><a name="line-33"></a><span>               </span><span class="hs-special">,</span><span> </span><a name="_eggDescription"><a href="Egg.Egg.html#_eggDescription"><span class="hs-identifier">_eggDescription</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">T</span><span class="hs-operator hs-type">.</span><span class="hs-identifier hs-type">Text</span><span>
+</span><a name="line-34"></a><span>               </span><span class="hs-special">,</span><span> </span><a name="_eggValue"><a href="Egg.Egg.html#_eggValue"><span class="hs-identifier">_eggValue</span></a></a><span>       </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Types.html#Bock"><span class="hs-identifier hs-type">Bock</span></a><span>
+</span><a name="line-35"></a><span>               </span><span class="hs-special">,</span><span> </span><a name="_eggDiscover"><a href="Egg.Egg.html#_eggDiscover"><span class="hs-identifier">_eggDiscover</span></a></a><span>    </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Types.html#Bock"><span class="hs-identifier hs-type">Bock</span></a><span>
+</span><a name="line-36"></a><span>               </span><span class="hs-special">,</span><span> </span><a name="_eggUnlock"><a href="Egg.Egg.html#_eggUnlock"><span class="hs-identifier">_eggUnlock</span></a></a><span>      </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Types.html#Bock"><span class="hs-identifier hs-type">Bock</span></a><span>
+</span><a name="line-37"></a><span>               </span><span class="hs-special">,</span><span> </span><a name="_eggMultiplier"><a href="Egg.Egg.html#_eggMultiplier"><span class="hs-identifier">_eggMultiplier</span></a></a><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Double</span><span>
+</span><a name="line-38"></a><span>               </span><span class="hs-special">}</span><span>
+</span><a name="line-39"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-40"></a><span>
+</span><a name="line-41"></a><span class="hs-identifier hs-var">makeLenses</span><span> </span><span class="hs-char">''Egg
+
+data EggData eggs = EggData { _edEggs :: SV.Vector eggs Egg }
+  deriving (Show, Eq, Ord, Generic)
+
+makePrisms ''EggData
+makeWrapped ''EggData
+
+type SomeEggData = DSum Sing EggData
+
+eggParseOptions :: Options
+eggParseOptions = defaultOptions
+    { fieldLabelModifier = camelTo2 '-' . drop 4
+    }
+
+instance FromJSON Egg where
+    parseJSON  = genericParseJSON  eggParseOptions
+instance ToJSON Egg where
+    toJSON     = genericToJSON     eggParseOptions
+    toEncoding = genericToEncoding eggParseOptions
+
+instance FromJSON SomeEggData where
+    parseJSON o = do
+      es &lt;- parseJSON o
+      SV.withSized es $ \esV -&gt;
+        return $ SNat :=&gt; EggData esV
+instance ToJSON SomeEggData where
+    toJSON = \case
+        _ :=&gt; r -&gt; toJSON r
+    toEncoding = \case
+        _ :=&gt; r -&gt; toEncoding r
+instance KnownNat eggs =&gt; FromJSON (EggData eggs) where
+    parseJSON o = do
+      es &lt;- parseJSON o
+      case SV.toSized es of
+        Nothing  -&gt; fail $ printf &quot;Bad number of items in list. (Expected %d, got %d)&quot;
+                         (fromSing (SNat @eggs)) (length es)
+        Just esV -&gt; return $ EggData esV
+instance ToJSON (EggData eggs) where
+    toJSON     = toJSON     . SV.fromSized . _edEggs
+    toEncoding = toEncoding . SV.fromSized . _edEggs
+</span></pre></body></html>

@@ -89,31 +89,32 @@
 </span><a name="line-89"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
 </span><a name="line-90"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>
 </span><a name="line-91"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Vector.Sized.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
-</span><a name="line-92"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">Generics</span><span>                    </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-93"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span>
-</span><a name="line-94"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Natural</span><span>
-</span><a name="line-95"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span>
-</span><a name="line-96"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
-</span><a name="line-97"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Tuple</span><span>
-</span><a name="line-98"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Map</span><span>                        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">M</span><span>
-</span><a name="line-99"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Text</span><span>                       </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">T</span><span>
-</span><a name="line-100"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>                     </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">V</span><span>
-</span><a name="line-101"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
-</span><a name="line-102"></a><span>
-</span><a name="line-103"></a><span class="hs-keyword">data</span><span> </span><a name="BonusAmount"><a href="Egg.Research.html#BonusAmount"><span class="hs-identifier">BonusAmount</span></a></a><span>
-</span><a name="line-104"></a><span>    </span><span class="hs-comment">-- | Bonus adds an absolute amount.  Scales by multiplication, and</span><span>
-</span><a name="line-105"></a><span>    </span><span class="hs-comment">-- compounds by addition.</span><span>
-</span><a name="line-106"></a><span>    </span><span class="hs-glyph">=</span><span> </span><a name="BAIncrement"><a href="Egg.Research.html#BAIncrement"><span class="hs-identifier">BAIncrement</span></a></a><span> </span><span class="hs-identifier hs-type">Double</span><span>
-</span><a name="line-107"></a><span>    </span><span class="hs-comment">-- | Bonus adds a percentage point multiplier.  Scales by</span><span>
-</span><a name="line-108"></a><span>    </span><span class="hs-comment">-- multiplication (three 10% buffs is a 15% buff) and compounds by</span><span>
-</span><a name="line-109"></a><span>    </span><span class="hs-comment">-- appropriate multiplication.</span><span>
-</span><a name="line-110"></a><span>    </span><span class="hs-glyph">|</span><span> </span><a name="BAPercent"><a href="Egg.Research.html#BAPercent"><span class="hs-identifier">BAPercent</span></a></a><span> </span><span class="hs-identifier hs-type">Double</span><span>
-</span><a name="line-111"></a><span>    </span><span class="hs-comment">-- | Bonus multiplies by a given ratio.  Scales by exponentiation</span><span>
-</span><a name="line-112"></a><span>    </span><span class="hs-comment">-- (three 2x buffs is a 8x buff) and compounds by multiplication.</span><span>
-</span><a name="line-113"></a><span>    </span><span class="hs-glyph">|</span><span> </span><a name="BAMultiplier"><a href="Egg.Research.html#BAMultiplier"><span class="hs-identifier">BAMultiplier</span></a></a><span> </span><span class="hs-identifier hs-type">Double</span><span>
-</span><a name="line-114"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-115"></a><span>
-</span><a name="line-116"></a><span class="hs-identifier hs-var">makeClassyPrisms</span><span> </span><span class="hs-char">''BonusAmount
+</span><a name="line-92"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Types.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span></a><span>
+</span><a name="line-93"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">Generics</span><span>                    </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-94"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span>
+</span><a name="line-95"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Natural</span><span>
+</span><a name="line-96"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span>
+</span><a name="line-97"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
+</span><a name="line-98"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Tuple</span><span>
+</span><a name="line-99"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Map</span><span>                        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">M</span><span>
+</span><a name="line-100"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Text</span><span>                       </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">T</span><span>
+</span><a name="line-101"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>                     </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">V</span><span>
+</span><a name="line-102"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
+</span><a name="line-103"></a><span>
+</span><a name="line-104"></a><span class="hs-keyword">data</span><span> </span><a name="BonusAmount"><a href="Egg.Research.html#BonusAmount"><span class="hs-identifier">BonusAmount</span></a></a><span>
+</span><a name="line-105"></a><span>    </span><span class="hs-comment">-- | Bonus adds an absolute amount.  Scales by multiplication, and</span><span>
+</span><a name="line-106"></a><span>    </span><span class="hs-comment">-- compounds by addition.</span><span>
+</span><a name="line-107"></a><span>    </span><span class="hs-glyph">=</span><span> </span><a name="BAIncrement"><a href="Egg.Research.html#BAIncrement"><span class="hs-identifier">BAIncrement</span></a></a><span> </span><span class="hs-identifier hs-type">Double</span><span>
+</span><a name="line-108"></a><span>    </span><span class="hs-comment">-- | Bonus adds a percentage point multiplier.  Scales by</span><span>
+</span><a name="line-109"></a><span>    </span><span class="hs-comment">-- multiplication (three 10% buffs is a 15% buff) and compounds by</span><span>
+</span><a name="line-110"></a><span>    </span><span class="hs-comment">-- appropriate multiplication.</span><span>
+</span><a name="line-111"></a><span>    </span><span class="hs-glyph">|</span><span> </span><a name="BAPercent"><a href="Egg.Research.html#BAPercent"><span class="hs-identifier">BAPercent</span></a></a><span> </span><span class="hs-identifier hs-type">Double</span><span>
+</span><a name="line-112"></a><span>    </span><span class="hs-comment">-- | Bonus multiplies by a given ratio.  Scales by exponentiation</span><span>
+</span><a name="line-113"></a><span>    </span><span class="hs-comment">-- (three 2x buffs is a 8x buff) and compounds by multiplication.</span><span>
+</span><a name="line-114"></a><span>    </span><span class="hs-glyph">|</span><span> </span><a name="BAMultiplier"><a href="Egg.Research.html#BAMultiplier"><span class="hs-identifier">BAMultiplier</span></a></a><span> </span><span class="hs-identifier hs-type">Double</span><span>
+</span><a name="line-115"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-116"></a><span>
+</span><a name="line-117"></a><span class="hs-identifier hs-var">makeClassyPrisms</span><span> </span><span class="hs-char">''BonusAmount
 
 data BonusType =
         BTBuildCosts
@@ -166,7 +167,7 @@ makeClassy ''Research
 data ResearchTier :: Nat -&gt; Type where
     ResearchTier
         :: { _rtUnlock :: Natural
-           , _rtTechs  :: SV.Vector n (Research Double)
+           , _rtTechs  :: SV.Vector n (Research Bock)
            }
         -&gt; ResearchTier n
   deriving (Show, Eq, Ord, Generic)
@@ -178,7 +179,7 @@ type SomeResearchTier = DSum Sing ResearchTier
 data ResearchData :: [Nat] -&gt; Nat -&gt; Type where
     ResearchData
         :: { _rdCommon :: Prod ResearchTier tiers
-           , _rdEpic   :: SV.Vector epic (Research Integer)
+           , _rdEpic   :: SV.Vector epic (Research GoldenEgg)
            }
         -&gt; ResearchData tiers epic
   deriving (Show, Eq, Ord)
@@ -202,17 +203,17 @@ type SomeResearchStatus = DSum Sing (Uncur ResearchStatus)
 -- | A safe index for a given research item, usable with 'ResearchData' and
 -- 'ResearchStatus'.
 data ResearchIx :: [Nat] -&gt; Nat -&gt; Type -&gt; Type where
-    RICommon :: Sum Finite tiers -&gt; ResearchIx tiers epic Double
-    RIEpic   :: Finite epic      -&gt; ResearchIx tiers epic Integer
+    RICommon :: Sum Finite tiers -&gt; ResearchIx tiers epic Bock
+    RIEpic   :: Finite epic      -&gt; ResearchIx tiers epic GoldenEgg
 
 deriving instance Show (Sum Finite tiers) =&gt; Show (ResearchIx tiers epic a)
 
-_RICommon :: Iso (ResearchIx t1 epic Double) (ResearchIx t2 epic Double)
-                 (Sum Finite t1            ) (Sum Finite t2            )
+_RICommon :: Iso (ResearchIx t1 epic Bock) (ResearchIx t2 epic Bock)
+                 (Sum Finite t1          ) (Sum Finite t2          )
 _RICommon = iso (\case RICommon i -&gt; i) RICommon
 
-_RIEpic :: Iso (ResearchIx tiers e1 Integer) (ResearchIx tiers e2 Integer)
-               (Finite e1                  ) (Finite e2                  )
+_RIEpic :: Iso (ResearchIx tiers e1 GoldenEgg) (ResearchIx tiers e2 GoldenEgg)
+               (Finite e1                    ) (Finite e2                    )
 _RIEpic = iso (\case RIEpic i -&gt; i) RIEpic
 
 bonusAmountParseOptions :: Options
@@ -301,7 +302,7 @@ instance ToJSON SomeResearchTier where
         SNat :=&gt; r -&gt; toEncoding r
 instance FromJSON SomeResearchData where
     parseJSON = withObject &quot;ResearchData&quot; $ \v -&gt; do
-        res   &lt;- v .: &quot;research&quot;
+        res   &lt;- v .: &quot;common&quot;
         epics &lt;- v .: &quot;epic&quot;
         withV res $ \resV -&gt;
           some (withProd (dsumSome . getI) resV) $ \(_ :&amp;: (unzipP-&gt;(resS :&amp;: resP))) -&gt;
@@ -314,7 +315,7 @@ instance ToJSON SomeResearchData where
         _ :=&gt; Uncur r -&gt; toEncoding r
 instance (SingI tiers, KnownNat epic) =&gt; FromJSON (ResearchData tiers epic) where
     parseJSON = withObject &quot;ResearchData&quot; $ \v -&gt; do
-        res   &lt;- v .: &quot;research&quot;
+        res   &lt;- v .: &quot;common&quot;
         resV  &lt;- go sing res
         epics &lt;- v .: &quot;epic&quot;
         epicsV &lt;- case SV.toSized epics of
@@ -333,20 +334,20 @@ instance (SingI tiers, KnownNat epic) =&gt; FromJSON (ResearchData tiers epic) w
 
 instance ToJSON (ResearchData tiers epic) where
     toJSON ResearchData{..} = object
-        [ &quot;research&quot; .= TCP.toList (\ResearchTier{..} -&gt;
-                            object [ &quot;unlock&quot; .= _rtUnlock
-                                   , &quot;techs&quot;  .= SV.fromSized _rtTechs
-                                   ]
-                          ) _rdCommon
-        , &quot;epic&quot;     .= SV.fromSized _rdEpic
+        [ &quot;common&quot; .= TCP.toList (\ResearchTier{..} -&gt;
+                          object [ &quot;unlock&quot; .= _rtUnlock
+                                 , &quot;techs&quot;  .= SV.fromSized _rtTechs
+                                 ]
+                        ) _rdCommon
+        , &quot;epic&quot;   .= SV.fromSized _rdEpic
         ]
     toEncoding ResearchData{..} = pairs . mconcat $
-        [ &quot;research&quot; .= TCP.toList (\ResearchTier{..} -&gt;
-                            object [ &quot;unlock&quot; .= _rtUnlock
-                                   , &quot;techs&quot;  .= SV.fromSized _rtTechs
-                                   ]
-                          ) _rdCommon
-        , &quot;epic&quot;     .= SV.fromSized _rdEpic
+        [ &quot;common&quot; .= TCP.toList (\ResearchTier{..} -&gt;
+                          object [ &quot;unlock&quot; .= _rtUnlock
+                                 , &quot;techs&quot;  .= SV.fromSized _rtTechs
+                                 ]
+                        ) _rdCommon
+        , &quot;epic&quot;   .= SV.fromSized _rdEpic
         ]
 
 
@@ -415,7 +416,7 @@ emptyResearchStatus ResearchData{..} =
 -- accumulator.
 foldResearch
     :: Monoid b
-    =&gt; (Either (Research Double) (Research Integer) -&gt; Natural -&gt; b)
+    =&gt; (Either (Research Bock) (Research GoldenEgg) -&gt; Natural -&gt; b)
     -&gt; ResearchData tiers epic
     -&gt; ResearchStatus tiers epic
     -&gt; b
@@ -530,7 +531,7 @@ rdrsCommon f (Uncur rd :&amp;: Uncur rs) =
 rdrsEpic
     :: KnownNat epic
     =&gt; Lens' ((Uncur ResearchData :&amp;: Uncur ResearchStatus) (tiers # epic))
-             (SV.Vector epic (Research Integer, Natural))
+             (SV.Vector epic (Research GoldenEgg, Natural))
 rdrsEpic f (Uncur rd :&amp;: Uncur rs) =
     f (liftA2 (,) (_rdEpic rd) (_rsEpic rs)) &lt;&amp;&gt; \rdrs -&gt;
       Uncur (rd &amp; rdEpic .~ fmap fst rdrs) :&amp;: Uncur (rs &amp; rsEpic .~ fmap snd rdrs)
@@ -586,10 +587,10 @@ researchIxStatusLegal rd = \case
 -- | All 'ResearchIx' into common researches.
 researchIxesCommon
     :: SingI tiers
-    =&gt; Prod (Flip SV.Vector (ResearchIx tiers epic Double)) tiers
+    =&gt; Prod (Flip SV.Vector (ResearchIx tiers epic Bock)) tiers
 researchIxesCommon = go sing
   where
-    go :: Sing ts -&gt; Prod (Flip SV.Vector (ResearchIx ts epic Double)) ts
+    go :: Sing ts -&gt; Prod (Flip SV.Vector (ResearchIx ts epic Bock)) ts
     go = \case
       SNil         -&gt; &#216;
       SNat `SCons` ss -&gt;
@@ -599,7 +600,7 @@ researchIxesCommon = go sing
 -- | All 'ResearchIx' into epic researches.
 researchIxesEpic
     :: KnownNat epic
-    =&gt; SV.Vector epic (ResearchIx tiers epic Integer)
+    =&gt; SV.Vector epic (ResearchIx tiers epic GoldenEgg)
 researchIxesEpic = SV.generate RIEpic
 
 -- | All legal 'ResearchIx' for common research.
@@ -607,7 +608,7 @@ legalResearchIxesCommon
     :: forall tiers epic. SingI tiers
     =&gt; ResearchData tiers epic
     -&gt; ResearchStatus tiers epic
-    -&gt; Prod (Flip SV.Vector (Either ResearchError (ResearchIx tiers epic Double))) tiers
+    -&gt; Prod (Flip SV.Vector (Either ResearchError (ResearchIx tiers epic Bock))) tiers
 legalResearchIxesCommon rd rs =
     imap1 (\i -&gt; Flip . go i) (zipP (zipP (_rdCommon rd :&amp;: _rsCommon rs) :&amp;: singProd sing))
   where
@@ -615,15 +616,15 @@ legalResearchIxesCommon rd rs =
     go  :: forall t. ()
         =&gt; Index tiers t
         -&gt; ((ResearchTier :&amp;: Flip SV.Vector Natural) :&amp;: Sing) t
-        -&gt; SV.Vector t (Either ResearchError (ResearchIx tiers epic Double))
+        -&gt; SV.Vector t (Either ResearchError (ResearchIx tiers epic Bock))
     go i ((rt :&amp;: Flip c) :&amp;: SNat)
       | rt ^. rtUnlock &gt; totCount = pure (Left RELocked)
       | otherwise                 =
           let mkIx
                   :: Finite t
-                  -&gt; Research Double
+                  -&gt; Research Bock
                   -&gt; Natural
-                  -&gt; Either ResearchError (ResearchIx tiers epic Double)
+                  -&gt; Either ResearchError (ResearchIx tiers epic Bock)
               mkIx j r n
                 | n &lt; maxLevel r = Right . RICommon . someSum $ Some (i :&amp;: j)
                 | otherwise      = Left REMaxedOut
@@ -634,13 +635,13 @@ legalResearchIxesEpic
     :: forall tiers epic. KnownNat epic
     =&gt; ResearchData tiers epic
     -&gt; ResearchStatus tiers epic
-    -&gt; SV.Vector epic (Maybe (ResearchIx tiers epic Integer))
+    -&gt; SV.Vector epic (Maybe (ResearchIx tiers epic GoldenEgg))
 legalResearchIxesEpic rd rs = SV.izipWith go (_rdEpic rd) (_rsEpic rs)
   where
     go  :: Finite epic
-        -&gt; Research Integer
+        -&gt; Research GoldenEgg
         -&gt; Natural
-        -&gt; Maybe (ResearchIx tiers epic Integer)
+        -&gt; Maybe (ResearchIx tiers epic GoldenEgg)
     go i r n
       | n &lt; maxLevel r = Just . RIEpic $ i
       | otherwise      = Nothing

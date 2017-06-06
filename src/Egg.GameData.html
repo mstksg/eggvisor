@@ -1,0 +1,124 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds            #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric        #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances    #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE GADTs                #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE KindSignatures       #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase           #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE OverloadedStrings    #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE RecordWildCards      #-}</span><span>
+</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables  #-}</span><span>
+</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE StandaloneDeriving   #-}</span><span>
+</span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE TemplateHaskell      #-}</span><span>
+</span><a name="line-12"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators        #-}</span><span>
+</span><a name="line-13"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><a name="line-14"></a><span>
+</span><a name="line-15"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">GameData</span><span> </span><span class="hs-special">(</span><span>
+</span><a name="line-16"></a><span>    </span><a href="Egg.GameData.html#GameConstants"><span class="hs-identifier hs-type">GameConstants</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.GameData.html#gcBaseLayingRate"><span class="hs-identifier hs-var">gcBaseLayingRate</span></a><span class="hs-special">,</span><span> </span><a href="Egg.GameData.html#gcBaseSoulEggBonus"><span class="hs-identifier hs-var">gcBaseSoulEggBonus</span></a><span>
+</span><a name="line-17"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.GameData.html#GameData"><span class="hs-identifier hs-type">GameData</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.GameData.html#gdEggData"><span class="hs-identifier hs-var">gdEggData</span></a><span class="hs-special">,</span><span> </span><a href="Egg.GameData.html#gdResearchData"><span class="hs-identifier hs-var">gdResearchData</span></a><span class="hs-special">,</span><span> </span><a href="Egg.GameData.html#gdHabData"><span class="hs-identifier hs-var">gdHabData</span></a><span class="hs-special">,</span><span> </span><a href="Egg.GameData.html#gdVehicleData"><span class="hs-identifier hs-var">gdVehicleData</span></a><span class="hs-special">,</span><span> </span><a href="Egg.GameData.html#gdConstants"><span class="hs-identifier hs-var">gdConstants</span></a><span>
+</span><a name="line-18"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.GameData.html#SomeGameData"><span class="hs-identifier hs-type">SomeGameData</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-19"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-20"></a><span>
+</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span> </span><span class="hs-keyword">hiding</span><span>      </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-var">.=</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span>
+</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span><span>
+</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Dependent</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
+</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
+</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
+</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
+</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
+</span><a name="line-29"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Egg</span><span>
+</span><a name="line-30"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Habitat</span><span>
+</span><a name="line-31"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Egg.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span></a><span class="hs-identifier">Research</span><span>
+</span><a name="line-32"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Habitat.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Vehicle</span></a><span>
+</span><a name="line-33"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Research.html"><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">Generics</span></a><span>             </span><span class="hs-special">(</span><span class="hs-identifier">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-34"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Vehicle.html"><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span></a><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
+</span><a name="line-35"></a><span>
+</span><a name="line-36"></a><span class="hs-keyword">data</span><span> </span><span class="hs-identifier">GameConstants</span><span> </span><span class="hs-glyph">=</span><span>
+</span><a name="line-37"></a><span>    </span><span class="hs-identifier">GameConstants</span><span> </span><span class="hs-special">{</span><span> </span><span class="hs-identifier">_gcBaseLayingRate</span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier">Double</span><span>     </span><span class="hs-comment">-- ^ eggs per minute</span><span>
+</span><a name="line-38"></a><span>                  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">_gcBaseSoulEggBonus</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier">Double</span><span>
+</span><a name="line-39"></a><span>                  </span><span class="hs-special">}</span><span>
+</span><a name="line-40"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><a name="GameConstants"><a href="Egg.GameData.html#GameConstants"><span class="hs-identifier">Show</span></a></a><span class="hs-special">,</span><span> </span><span class="hs-identifier">Eq</span><span class="hs-special">,</span><span> </span><a name="_gcBaseLayingRate"><a href="Egg.GameData.html#_gcBaseLayingRate"><span class="hs-identifier">Ord</span></a></a><span class="hs-special">,</span><span> </span><a name="_gcBaseLayingRate"><a href="Egg.GameData.html#_gcBaseLayingRate"><span class="hs-identifier">Generic</span></a></a><span class="hs-special">)</span><span>
+</span><a name="line-41"></a><span>
+</span><a name="line-42"></a><span class="hs-identifier">makeLenses</span><span> </span><span class="hs-char">''GameConstants
+
+data GameData :: Nat -&gt; ([Nat], Nat) -&gt; Nat -&gt; Nat -&gt; Type where
+    GameData :: { _gdEggData      :: EggData eggs
+                , _gdResearchData :: ResearchData tiers epic
+                , _gdHabData      :: HabData habs
+                , _gdVehicleData  :: VehicleData vehicles
+                , _gdConstants    :: GameConstants
+                }
+             -&gt; GameData eggs '(tiers, epic) habs vehicles
+
+deriving instance ListC (Show &lt;$&gt; (ResearchTier &lt;$&gt; tiers))
+    =&gt; Show (GameData eggs '(tiers, epic) habs vehicles)
+
+gdEggData :: Lens (GameData e1 '(t, g) h v) (GameData e2 '(t, g) h v) (EggData e1) (EggData e2)
+gdEggData f gd = (\ed -&gt; gd { _gdEggData = ed }) &lt;$&gt; f (_gdEggData gd)
+gdResearchData :: Lens (GameData e '(t1, g1) h v) (GameData e '(t2, g2) h v) (ResearchData t1 g1) (ResearchData t2 g2)
+gdResearchData f gd = f (_gdResearchData gd) &lt;&amp;&gt; \rd -&gt;
+                        GameData (_gdEggData gd) rd (_gdHabData gd) (_gdVehicleData gd) (_gdConstants gd)
+gdHabData :: Lens (GameData e '(t, g) h1 v) (GameData e '(t, g) h2 v) (HabData h1) (HabData h2)
+gdHabData f gd = (\hd -&gt; gd { _gdHabData = hd }) &lt;$&gt; f (_gdHabData gd)
+gdVehicleData :: Lens (GameData e '(t, g) h v1) (GameData e '(t, g) h v2) (VehicleData v1) (VehicleData v2)
+gdVehicleData f gd = (\vd -&gt; gd { _gdVehicleData = vd }) &lt;$&gt; f (_gdVehicleData gd)
+gdConstants :: Lens' (GameData e '(t, g) h v) GameConstants
+gdConstants f gd = (\vd -&gt; gd { _gdConstants = vd }) &lt;$&gt; f (_gdConstants gd)
+
+data SomeGameData :: Type where
+    SomeGameData
+        :: Sing eggs
+        -&gt; Sing '(tiers, epic)
+        -&gt; Sing habs
+        -&gt; Sing vehicles
+        -&gt; GameData eggs '(tiers, epic) habs vehicles
+        -&gt; SomeGameData
+
+gdParseOptions :: Options
+gdParseOptions = defaultOptions
+    { fieldLabelModifier = camelTo2 '-' . drop 3
+    }
+
+instance FromJSON GameConstants where
+    parseJSON  = genericParseJSON  gdParseOptions
+instance ToJSON GameConstants where
+    toJSON     = genericToJSON     gdParseOptions
+    toEncoding = genericToEncoding gdParseOptions
+
+instance (KnownNat egg, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
+      =&gt; FromJSON (GameData egg '(tiers, epic) habs vehicles) where
+    parseJSON  = withObject &quot;GameData&quot; $ \v -&gt;
+        GameData &lt;$&gt; v .: &quot;eggs&quot;
+                 &lt;*&gt; v .: &quot;research&quot;
+                 &lt;*&gt; v .: &quot;habitats&quot;
+                 &lt;*&gt; v .: &quot;vehicles&quot;
+                 &lt;*&gt; v .: &quot;constants&quot;
+
+instance ToJSON (GameData egg research habs vehicles) where
+    toJSON GameData{..} = object
+        [ &quot;eggs&quot;      .= _gdEggData
+        , &quot;research&quot;  .= _gdResearchData
+        , &quot;habitats&quot;  .= _gdHabData
+        , &quot;vehicles&quot;  .= _gdVehicleData
+        , &quot;constants&quot; .= _gdConstants
+        ]
+    toEncoding GameData{..} = pairs . mconcat $
+        [ &quot;eggs&quot;      .= _gdEggData
+        , &quot;research&quot;  .= _gdResearchData
+        , &quot;habitats&quot;  .= _gdHabData
+        , &quot;vehicles&quot;  .= _gdVehicleData
+        , &quot;constants&quot; .= _gdConstants
+        ]
+
+instance FromJSON SomeGameData where
+    parseJSON = withObject &quot;GameData&quot; $ \v -&gt; do
+      sed :=&gt; ed       :: SomeEggData      &lt;- v .: &quot;eggs&quot;
+      srd :=&gt; Uncur rd :: SomeResearchData &lt;- v .: &quot;research&quot;
+      shd :=&gt; hd       :: SomeHabData      &lt;- v .: &quot;habitats&quot;
+      svd :=&gt; vd       :: SomeVehicleData  &lt;- v .: &quot;vehicles&quot;
+      cs               :: GameConstants    &lt;- v .: &quot;constants&quot;
+      return $ SomeGameData sed srd shd svd $ GameData ed rd hd vd cs
+instance ToJSON SomeGameData where
+    toJSON     (SomeGameData _ _ _ _ gd) = toJSON     gd
+    toEncoding (SomeGameData _ _ _ _ gd) = toEncoding gd
+</span></pre></body></html>
