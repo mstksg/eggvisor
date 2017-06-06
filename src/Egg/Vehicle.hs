@@ -53,7 +53,6 @@ import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.Nat            as TCN
 import qualified Data.Map                   as M
-import qualified Data.Set                   as S
 import qualified Data.Text                  as T
 import qualified Data.Vector                as V
 import qualified Data.Vector.Sized          as SV
@@ -76,7 +75,7 @@ makeWrapped ''VehicleData
 type SomeVehicleData = DSum Sing VehicleData
 
 data DepotStatus vs slots
-    = DepotStatus { _dsSlots :: Vec slots (S.Set (Finite vs)) }
+    = DepotStatus { _dsSlots :: Vec slots (Maybe (Finite vs)) }
   deriving (Show, Eq, Ord, Generic)
 
 makePrisms ''DepotStatus
@@ -116,11 +115,11 @@ instance ToJSON (VehicleData habs) where
 
 -- | Initial 'DepotStatus' to start off the game.
 initDepotStatus :: KnownNat vs => DepotStatus vs N4
-initDepotStatus = DepotStatus $ S.singleton 0 :+ pure S.empty
+initDepotStatus = DepotStatus $ Just 0 :+ pure Nothing
 
 -- | Add another empty depot slot
 upgradeDepot :: forall vs n. Known TCN.Nat n => DepotStatus vs n -> DepotStatus vs ('S n)
-upgradeDepot = over _DepotStatus (.++ (S.empty :+ ØV))
+upgradeDepot = over _DepotStatus (.++ (Nothing :+ ØV))
                  \\ addCommute (known :: TCN.Nat n) (S_ Z_)
 
 -- | Total base capacity of all slots, in eggs per second.
@@ -132,7 +131,7 @@ baseDepotCapacity
 baseDepotCapacity VehicleData{..} =
     sumOf $ _DepotStatus
           . folded
-          . folding lookupMax
+          . folded
           . to (SV.index _vdVehicles)
           . vBaseCapacity
           . to fromIntegral
@@ -194,13 +193,9 @@ upgradeVehicle
     -> Maybe (Bock, DepotStatus vs slots)
 upgradeVehicle vd bs slot v ds0 =
     fmap swap . runWriterT . flip (_DepotStatus . ixV slot) ds0 $ \s0 -> WriterT $ do
-      guard $ case lookupMax s0 of
+      guard $ case s0 of
                 Nothing -> True
                 Just h  -> h < v
       -- should always be valid of the previous condition is true
       price <- vehiclePrice vd ds0 v
-      return (S.insert v s0, price ^. bonusingFor bs BTVehicleCosts)
-
--- | Obsolete with containers-0.5.9, with GHC 8.2
-lookupMax :: S.Set a -> Maybe a
-lookupMax = fmap fst . S.maxView
+      return (Just v, price ^. bonusingFor bs BTVehicleCosts)

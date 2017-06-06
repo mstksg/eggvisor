@@ -12,6 +12,7 @@
 {-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
 
 module Egg.Habitat (
@@ -61,12 +62,12 @@ import           Data.Vector.Sized.Util
 import           Egg.Research
 import           Egg.Types
 import           GHC.Generics               (Generic)
+import           GHC.TypeLits               as TL
 import           Numeric.Lens
 import           Numeric.Natural
 import           Text.Printf
 import           Type.Family.Nat
 import qualified Data.Map                   as M
-import qualified Data.Set                   as S
 import qualified Data.Text                  as T
 import qualified Data.Vector.Sized          as SV
 
@@ -87,14 +88,14 @@ makeWrapped ''HabData
 type SomeHabData = DSum Sing HabData
 
 data HabStatus habs
-    = HabStatus { _hsSlots :: Vec N4 (S.Set (Finite habs))
+    = HabStatus { _hsSlots :: Vec N4 (Maybe (Finite habs))
                 , _hsPop   :: Vec N4 Bock
                 }
   deriving (Show, Eq, Ord, Generic)
 
 makeLenses ''HabStatus
 
-_HabStatus :: Iso' (HabStatus habs) (Vec N4 (S.Set (Finite habs), Double))
+_HabStatus :: Iso' (HabStatus habs) (Vec N4 (Maybe (Finite habs), Double))
 _HabStatus = iso (\hs -> liftA2 (,) (_hsSlots hs) (_hsPop hs))
                  (uncurry HabStatus . unzipV)
 
@@ -151,8 +152,8 @@ data WaitError = WENoInternalHatcheries
 makePrisms ''WaitError
 
 -- | Initial 'HabStatus' to start off the game.
-initHabStatus :: KnownNat habs => HabStatus habs
-initHabStatus = HabStatus (S.singleton 0 :+ pure S.empty) (pure 0)
+initHabStatus :: (KnownNat habs, 1 TL.<= habs) => HabStatus habs
+initHabStatus = HabStatus (Just 0 :+ pure Nothing) (pure 0)
 
 -- | Base capacity of each slot.
 baseHabCapacities
@@ -163,7 +164,6 @@ baseHabCapacities
 baseHabCapacities hd = fmap go . _hsSlots
   where
     go = maybe 0 (\h -> hd ^. _HabData . ixSV h . habBaseCapacity)
-       . lookupMax
 
 -- | Total base capacity of all slots.
 baseHabCapacity
@@ -174,7 +174,7 @@ baseHabCapacity
 baseHabCapacity HabData{..} =
     sumOf $ hsSlots
           . folded
-          . folding lookupMax
+          . folded
           . to (SV.index _hdHabs)
           . habBaseCapacity
 
@@ -206,10 +206,10 @@ habCapacities hd bs = fmap ( round
 
 -- | Hab at the given slot
 habAt :: KnownNat habs => HabData habs -> HabStatus habs -> Fin N4 -> Maybe Hab
-habAt HabData{..} hs i = hs ^? hsSlots . ixV i . to lookupMax . folded . to (SV.index _hdHabs)
+habAt HabData{..} hs i = hs ^? hsSlots . ixV i . folded . to (SV.index _hdHabs)
 
--- | How many of each hab has been purchased so far.  If key is not found,
--- zero purchases is implied.
+-- | How many of each hab is currently owned.  If key is not found, zero
+-- purchases is implied.
 habHistory :: HabStatus habs -> M.Map (Finite habs) (Fin N5)
 habHistory = M.mapMaybe (natFin . someNat)
            . M.fromListWith (+)
@@ -221,7 +221,6 @@ habPrice :: KnownNat habs => HabData habs -> HabStatus habs -> Finite habs -> Ma
 habPrice hd hs hab = fmap priceOf
                    . TC.strengthen
                    . fromMaybe FZ
-                   -- . maybe FZ (fromJust . natFin . someNat . fromIntegral)
                    . M.lookup hab
                    . habHistory
                    $ hs
@@ -264,16 +263,12 @@ upgradeHab
     -> Maybe (Bock, HabStatus habs)
 upgradeHab hd bs slot hab hs0 =
     fmap swap . runWriterT . flip (hsSlots . ixV slot) hs0 $ \s0 -> WriterT $ do
-      guard $ case lookupMax s0 of
-                    Nothing -> True
-                    Just h  -> h < hab
+      guard $ case s0 of
+                Nothing -> True
+                Just h  -> h < hab
       -- should always be valid of the previous condition is true
       price <- habPrice hd hs0 hab
-      return (S.insert hab s0, price ^. bonusingFor bs BTBuildCosts)
-
--- | Obsolete with containers-0.5.9, with GHC 8.2
-lookupMax :: S.Set a -> Maybe a
-lookupMax = fmap fst . S.maxView
+      return (Just hab, price ^. bonusingFor bs BTBuildCosts)
 
 -- | Which habs are full?
 fullHabs
@@ -284,8 +279,8 @@ fullHabs
     -> Vec N4 Bool
 fullHabs hd bs = fmap (uncurry isFull) . view _HabStatus
   where
-    isFull :: S.Set (Finite habs) -> Double -> Bool
-    isFull s c = case lookupMax s of
+    isFull :: Maybe (Finite habs) -> Double -> Bool
+    isFull s c = case s of
       Nothing -> True
       Just m  ->
         let totCap = hd ^. _HabData . ixSV m . to (habCapacity bs)
