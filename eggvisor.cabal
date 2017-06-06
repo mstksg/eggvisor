@@ -30,7 +30,6 @@ library
                      , dependent-sum
                      , finite-typelits
                      , lens
-                     , lens-aeson
                      , singletons
                      , text
                      , transformers

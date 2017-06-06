@@ -45,8 +45,10 @@ module Data.Type.Combinator.Util (
   , vecToAnyProd
   , addFinCap
   , strengthen
+  , strengthenN
   , natFin
   , natFinCap
+  , zipFins
   , someNat
   , unzipV
   , fins'
@@ -63,7 +65,7 @@ import           Data.Bifunctor
 import           Data.Dependent.Sum
 import           Data.Foldable            as F
 import           Data.Kind
-import           Data.Maybe
+-- import           Data.Maybe
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
 import           Data.Type.Fin
@@ -82,7 +84,7 @@ import           Type.Class.Witness
 import           Type.Family.Constraint
 import           Type.Family.List
 import           Type.Family.Nat
-import qualified GHC.TypeLits             as TL
+-- import qualified GHC.TypeLits             as TL
 
 data HasLen :: N -> [k] -> Type where
     HLZ :: HasLen 'Z '[]

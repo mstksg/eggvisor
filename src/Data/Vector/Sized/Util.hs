@@ -1,6 +1,7 @@
-{-# LANGUAGE DataKinds    #-}
-{-# LANGUAGE RankNTypes   #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Data.Vector.Sized.Util (
     ixSV
@@ -9,7 +10,7 @@ module Data.Vector.Sized.Util (
 import           Control.Lens
 import           Data.Aeson
 import           Data.Finite
-import           Data.Finite.Internal
+-- import           Data.Finite.Internal
 import           GHC.TypeLits
 import qualified Data.Vector.Generic       as UVG
 import qualified Data.Vector.Generic.Sized as VG
@@ -28,7 +29,7 @@ instance (ToJSON (v a), UVG.Vector v a, KnownNat n) => ToJSON (VG.Vector v n a) 
 ixSV
     :: (KnownNat n, UVG.Vector v a)
     => Finite n -> Lens' (VG.Vector v n a) a
-ixSV ix f v = (\x -> v VG.// [(fromIntegral ix, x)]) <$> f (VG.index v ix)
+ixSV i f v = (\x -> v VG.// [(fromIntegral i, x)]) <$> f (VG.index v i)
 
 type instance Index   (VG.Vector v n a) = Finite n
 type instance IxValue (VG.Vector v n a) = a
