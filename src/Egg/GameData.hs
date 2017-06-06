@@ -1,0 +1,5 @@
+
+module Egg.GameData (
+  ) where
+
+
