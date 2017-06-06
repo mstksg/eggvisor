@@ -17,7 +17,7 @@
 module Egg.Vehicle (
     Vehicle(..), vName, vBaseCapacity, vCosts
   , VehicleData(..), _VehicleData, SomeVehicleData
-  , DepotStatus(..), _DepotStatus
+  , DepotStatus(..), _DepotStatus, SomeDepotStatus
   , initDepotStatus
   , upgradeDepot
   , baseDepotCapacity
@@ -56,6 +56,7 @@ import qualified Data.Map                   as M
 import qualified Data.Text                  as T
 import qualified Data.Vector                as V
 import qualified Data.Vector.Sized          as SV
+import qualified GHC.TypeLits               as TL
 
 data Vehicle = Vehicle
         { _vName         :: T.Text
@@ -80,6 +81,8 @@ data DepotStatus vs slots
 
 makePrisms ''DepotStatus
 makeWrapped ''DepotStatus
+
+type SomeDepotStatus vs = DSum TCN.Nat (DepotStatus vs)
 
 vehicleParseOptions :: Options
 vehicleParseOptions = defaultOptions
@@ -114,7 +117,7 @@ instance ToJSON (VehicleData habs) where
     toEncoding = toEncoding . SV.fromSized . _vdVehicles
 
 -- | Initial 'DepotStatus' to start off the game.
-initDepotStatus :: KnownNat vs => DepotStatus vs N4
+initDepotStatus :: (KnownNat vs, 1 TL.<= vs) => DepotStatus vs N4
 initDepotStatus = DepotStatus $ Just 0 :+ pure Nothing
 
 -- | Add another empty depot slot

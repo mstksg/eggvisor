@@ -1,26 +1,28 @@
-{-# LANGUAGE AllowAmbiguousTypes    #-}
-{-# LANGUAGE ConstraintKinds        #-}
-{-# LANGUAGE DataKinds              #-}
-{-# LANGUAGE DeriveGeneric          #-}
-{-# LANGUAGE EmptyCase              #-}
-{-# LANGUAGE FlexibleContexts       #-}
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE GADTs                  #-}
-{-# LANGUAGE LambdaCase             #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE PolyKinds              #-}
-{-# LANGUAGE RankNTypes             #-}
-{-# LANGUAGE ScopedTypeVariables    #-}
-{-# LANGUAGE StandaloneDeriving     #-}
-{-# LANGUAGE TemplateHaskell        #-}
-{-# LANGUAGE TupleSections          #-}
-{-# LANGUAGE TypeApplications       #-}
-{-# LANGUAGE TypeFamilies           #-}
-{-# LANGUAGE TypeFamilyDependencies #-}
-{-# LANGUAGE TypeInType             #-}
-{-# LANGUAGE TypeOperators          #-}
-{-# LANGUAGE UndecidableInstances   #-}
-{-# OPTIONS_GHC -fno-warn-orphans   #-}
+{-# LANGUAGE AllowAmbiguousTypes                  #-}
+{-# LANGUAGE ConstraintKinds                      #-}
+{-# LANGUAGE DataKinds                            #-}
+{-# LANGUAGE DeriveGeneric                        #-}
+{-# LANGUAGE EmptyCase                            #-}
+{-# LANGUAGE FlexibleContexts                     #-}
+{-# LANGUAGE FlexibleInstances                    #-}
+{-# LANGUAGE GADTs                                #-}
+{-# LANGUAGE LambdaCase                           #-}
+{-# LANGUAGE MultiParamTypeClasses                #-}
+{-# LANGUAGE PartialTypeSignatures                #-}
+{-# LANGUAGE PolyKinds                            #-}
+{-# LANGUAGE RankNTypes                           #-}
+{-# LANGUAGE ScopedTypeVariables                  #-}
+{-# LANGUAGE StandaloneDeriving                   #-}
+{-# LANGUAGE TemplateHaskell                      #-}
+{-# LANGUAGE TupleSections                        #-}
+{-# LANGUAGE TypeApplications                     #-}
+{-# LANGUAGE TypeFamilies                         #-}
+{-# LANGUAGE TypeFamilyDependencies               #-}
+{-# LANGUAGE TypeInType                           #-}
+{-# LANGUAGE TypeOperators                        #-}
+{-# LANGUAGE UndecidableInstances                 #-}
+{-# OPTIONS_GHC -fno-warn-orphans                 #-}
+{-# OPTIONS_GHC -fno-warn-partial-type-signatures #-}
 
 module Data.Type.Combinator.Util (
     HasLen(..)
@@ -62,16 +64,19 @@ import           Control.Lens as L hiding ((:<), Index, Traversable1(..))
 import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.Bifunctor
+import           Data.Constraint.Forall
 import           Data.Dependent.Sum
 import           Data.Foldable            as F
+import           Data.GADT.Compare
+import           Data.GADT.Show
 import           Data.Kind
--- import           Data.Maybe
 import           Data.Type.Combinator
 import           Data.Type.Conjunction
 import           Data.Type.Fin
 import           Data.Type.Index
 import           Data.Type.Length
 import           Data.Type.Nat
+import           Data.Type.Nat.Inequality
 import           Data.Type.Product        as TCP
 import           Data.Type.Sum
 import           Data.Type.Vector         as TCV
@@ -84,7 +89,7 @@ import           Type.Class.Witness
 import           Type.Family.Constraint
 import           Type.Family.List
 import           Type.Family.Nat
--- import qualified GHC.TypeLits             as TL
+import qualified Data.Constraint          as C
 
 data HasLen :: N -> [k] -> Type where
     HLZ :: HasLen 'Z '[]
@@ -394,3 +399,23 @@ addCommute = \case
     S_ n -> \case
       Z_ -> Refl \\ addZ n
       S_ m -> Refl \\ addCommute n m \\ addS n m \\ addS m n
+
+instance GShow Nat where
+    gshowsPrec = showsPrec
+instance GEq Nat where
+    geq x y = case natCompare x y of
+      Left _         -> Nothing
+      Right (Left e) -> Just Refl \\ e
+      Right _        -> Nothing
+instance GCompare Nat where
+    gcompare x y = case natCompare x y of
+      Left _         -> GLT
+      Right (Left e) -> GEQ \\ e
+      Right _        -> GGT
+
+instance ForallF Show f => ShowTag Nat f where
+    showTaggedPrec (_ :: _ a) = showsPrec C.\\ instF @Show @f @a
+instance ForallF Eq f => EqTag Nat f where
+    eqTagged      (_ :: _ a) _ x y = x == y C.\\ instF @Eq @f @a
+instance (ForallF Ord f, ForallF Eq f) => OrdTag Nat f where
+    compareTagged (_ :: _ a) _ x y = compare x y C.\\ instF @Ord @f @a
