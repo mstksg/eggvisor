@@ -50,6 +50,8 @@ module Data.Type.Combinator.Util (
   , strengthenN
   , natFin
   , natFinCap
+  , ixListFin
+  , ixListNat
   , zipFins
   , someNat
   , unzipV
@@ -419,3 +421,21 @@ instance ForallF Eq f => EqTag Nat f where
     eqTagged      (_ :: _ a) _ x y = x == y C.\\ instF @Eq @f @a
 instance (ForallF Ord f, ForallF Eq f) => OrdTag Nat f where
     compareTagged (_ :: _ a) _ x y = compare x y C.\\ instF @Ord @f @a
+
+ixListFin :: Fin n -> Traversal' [a] a
+ixListFin = \case
+    FZ -> \f -> \case
+      []   -> pure []
+      x:xs -> (: xs) <$> f x
+    FS i -> \f -> \case
+      []   -> pure []
+      x:xs -> (x :) <$> ixListFin i f xs
+
+ixListNat :: Nat n -> Traversal' [a] a
+ixListNat= \case
+    Z_ -> \f -> \case
+      []   -> pure []
+      x:xs -> (: xs) <$> f x
+    S_ n -> \f -> \case
+      []   -> pure []
+      x:xs -> (x :) <$> ixListNat n f xs

@@ -631,12 +631,14 @@ legalResearchIxesCommon rd rs =
           in  SV.izipWith mkIx (rt ^. rtTechs) c
 
 -- | All legal 'ResearchIx' for epic research.
+--
+-- 'Nothing' implies research is maxed-out.
 legalResearchIxesEpic
     :: forall tiers epic. KnownNat epic
     => ResearchData tiers epic
     -> ResearchStatus tiers epic
-    -> SV.Vector epic (Maybe (ResearchIx tiers epic GoldenEgg))
-legalResearchIxesEpic rd rs = SV.izipWith go (_rdEpic rd) (_rsEpic rs)
+    -> (SV.Vector epic :.: Maybe) (ResearchIx tiers epic GoldenEgg)
+legalResearchIxesEpic rd rs = Comp $ SV.izipWith go (_rdEpic rd) (_rsEpic rs)
   where
     go  :: Finite epic
         -> Research GoldenEgg
