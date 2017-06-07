@@ -150,6 +150,16 @@ farmLayingRatePerChicken gd fs =
         . dividing 60
         . bonusingFor (farmBonuses gd fs) BTLayingRate
 
+-- | Total income (bocks per second), per chicken.
+farmIncomePerChicken
+    :: (KnownNat eggs, KnownNat vehicles)
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Double
+farmIncomePerChicken gd fs = fs ^. to (farmLayingRatePerChicken gd)
+                                 . to (* farmEggValue gd fs)
+                                 . to (* farmSoulEggBonus gd fs)
+
 -- | Total income (bocks per second)
 farmIncome
     :: (KnownNat eggs, KnownNat vehicles)
@@ -172,6 +182,8 @@ farmSoulEggBonus gd fs =
         . bonusingFor (farmBonuses gd fs) BTSoulEggBonus
 
 -- | Time until depots are full
+--
+-- TODO: increase bocks
 waitTilDepotFull
     :: (KnownNat habs, KnownNat vehicles)
     => GameData   eggs '(tiers, epic) habs vehicles
@@ -196,6 +208,12 @@ farmBonuses
     -> Bonuses
 farmBonuses gd fs = totalBonuses (gd ^. gdResearchData) (fs ^. fsResearch)
 
+-- | Step the farm over a given time interval
+--
+-- TODO: properly manage quadratic bock increase
+--
+-- Should be += integral (R c(t)) dt
+--   where c'(t) = rt
 stepFarm
     :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs, KnownNat vehicles)
     => GameData   eggs '(tiers, epic) habs vehicles
@@ -226,4 +244,12 @@ stepFarm gd ic dt0 fs0 = go dt0 fs0
         | otherwise  -> go (dt - tFill) $ fs2 & fsBocks +~ (income * tFill)
       where
         income = farmIncome gd fs1
-        avails = availableSpace (gd ^. gdHabData) bs (fs1 ^. fsHabs)
+        avails = slotAvailability (gd ^. gdHabData) bs (fs1 ^. fsHabs)
+
+-- waitUntilBocks
+--     ::
+
+--     => GameData   eggs '(tiers, epic) habs vehicles
+--     -> IsCalm
+--     -> FarmStatus eggs '(tiers, epic) habs vehicles
+--     -> WaitTilRes (FarmStatus eggs '(tiers, epic) habs vehicles)

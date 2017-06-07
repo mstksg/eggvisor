@@ -5,6 +5,7 @@
 {-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
@@ -29,6 +30,7 @@ module Egg.Habitat (
   , totalHabCapacity
   , habCapacity
   , fullHabs
+  , slotAvailability
   , availableSpace
   , maxOutHabs
   , habCapacities
@@ -54,6 +56,7 @@ import           Control.Monad.Trans.Writer
 import           Data.Aeson.Types
 import           Data.Dependent.Sum
 import           Data.Finite
+import           Data.Maybe
 import           Data.Singletons
 import           Data.Singletons.TypeLits
 import           Data.Tuple
@@ -92,7 +95,7 @@ type SomeHabData = DSum Sing HabData
 
 data HabStatus habs
     = HabStatus { _hsSlots :: Vec N4 (Maybe (Finite habs))
-                , _hsPop   :: Vec N4 Bock
+                , _hsPop   :: Vec N4 Double
                 }
   deriving (Show, Eq, Ord, Generic)
 
@@ -318,22 +321,103 @@ fullHabs hd bs = fmap (uncurry isFull) . view _HabStatus
 
 -- | Gives total avaiable space of each hab (Nothing if hab full), and also
 -- the capacity of each hab.
-availableSpace
+slotAvailability
     :: forall habs. KnownNat habs
     => HabData habs
     -> Bonuses
     -> HabStatus habs
     -> Vec N4 (Maybe Double, Natural)
-availableSpace hd bs hs = checkAvail <$> caps <*> (hs ^. hsPop)
+slotAvailability hd bs hs = checkAvail <$> caps <*> (hs ^. hsPop)
   where
     caps :: Vec N4 Natural
-    caps   = habCapacities hd bs hs
+    caps = habCapacities hd bs hs
     checkAvail :: Natural -> Double -> (Maybe Double, Natural)
     checkAvail cap pop
         | pop >= cap' = (Nothing, cap)
         | otherwise   = (Just (cap' - pop), cap)
       where
         cap' = fromIntegral cap
+
+-- | Traverse over the available space of each hab slot.
+--
+-- 'Nothing' means slot is full, @'Just' a@ means there is @a@ room left.
+--
+-- Will truncate the set @a@ if it's too big, making it an improper
+-- traversal if @a@ is set to be too large.
+--
+-- Will truncate the set @a@ if it's negative (to zero), making it an
+-- imporper traversal if @a@ is set to be negative.
+availableSpace
+    :: forall habs. KnownNat habs
+    => HabData habs
+    -> Bonuses
+    -> Traversal' (HabStatus habs) (Maybe Double)
+availableSpace hd bs f0 hs = (_HabStatus . traverse) (uncurry (go f0)) hs
+  where
+    go  :: Applicative f
+        => (Maybe Double -> f (Maybe Double))
+        -> Maybe (Finite habs)
+        -> Double
+        -> f (Maybe (Finite habs), Double)
+    go f h p = f avail <&> \case
+        Nothing -> (h, fromMaybe 0 cap)
+        Just a' -> (h, case cap of
+                         Nothing -> 0
+                         Just c
+                           | a' <= 0 -> c
+                           | otherwise -> max 0 (c - a')
+                   )
+      where
+        avail = case cap of
+                  Nothing -> Nothing
+                  Just c  | p < c     -> Just (c - p)
+                          | otherwise -> Nothing
+        cap = h <&> \i -> hd ^. _HabData
+                              . ixSV i
+                              . habBaseCapacity
+                              . to  fromIntegral
+                              . bonusingFor bs BTHabCapacity
+
+-- -- | Traverse over the available space of each hab slot.
+-- --
+-- -- 'Nothing' means slot is full, @'Just' a@ means there is @a@ room left.
+-- --
+-- -- Will truncate the set @a@ if it's too big, making it an improper
+-- -- traversal if @a@ is set to be too large.
+-- --
+-- -- Will truncate the set @a@ if it's negative (to zero), making it an
+-- -- imporper traversal if @a@ is set to be negative.
+-- availableSpaces
+--     :: forall habs. KnownNat habs
+--     => HabData habs
+--     -> Bonuses
+--     -> Traversal' (HabStatus habs) (Vec N4 (Maybe Double))
+-- availableSpaces hd bs f0 hs = (_HabStatus) (go f0) hs
+--   where
+--     go  :: Applicative f
+--         => (Vec N4 (Maybe Double) -> f (Vec N4 (Maybe Double)))
+--         -> Vec N4 (Maybe (Finite habs), Double)
+--         -> f (Vec N4 (Maybe (Finite habs), Double))
+--     go f hv = liftA3 restore (fst <$> hv) caps <$> f avails
+--       where
+--         restore h cap = \case
+--           Nothing -> (h, fromMaybe 0 cap)
+--           Just a' -> (h, case cap of
+--                            Nothing -> 0
+--                            Just c
+--                              | a' <= 0 -> c
+--                              | otherwise -> max 0 (c - a')
+--                      )
+--         (avails, caps) = unzipV $ uncurry availCap <$> hv
+--     availCap :: Maybe (Finite habs) -> Double -> (Maybe Double, Maybe Double)
+--     availCap h p = (subtract p <$> mfilter (> p) cap, cap)
+--       where
+--         cap = h <&> \i -> hd ^. _HabData
+--                               . ixSV i
+--                               . habBaseCapacity
+--                               . to  fromIntegral
+--                               . bonusingFor bs BTHabCapacity
+-- 
 
 -- | Fill up with max chickens
 maxOutHabs
@@ -342,12 +426,7 @@ maxOutHabs
     -> Bonuses
     -> HabStatus habs
     -> HabStatus habs
-maxOutHabs hd bs = over (_HabStatus . mapped) $ \(h, _) ->
-    case h of
-      Nothing -> (h, 0)
-      Just m  ->
-        let totCap = hd ^. _HabData . ixSV m . to (habCapacity bs)
-        in  (h, fromIntegral totCap)
+maxOutHabs hd bs = set (availableSpace hd bs) Nothing
 
 -- | Calculate the time until the next hab is full, and return the updated
 -- habs after that time.  Returns Nothing if all habs are full.
@@ -374,7 +453,7 @@ waitTilNextFilled hd bs cm hs
         Just r@(_,t) -> Right ((r, totalRate), fillIt t)
   where
     avails :: Vec N4 (Maybe Double, Natural)
-    avails = availableSpace hd bs hs
+    avails = slotAvailability hd bs hs
     internalRate :: Double
     internalRate = internalHatcheryRate bs cm
     numFull      :: Natural
@@ -397,8 +476,7 @@ waitTilNextFilled hd bs cm hs
         go i mt      Nothing                       = (i,) <$> mt
         go _ Nothing m@(Just _)                    = m
     fillIt :: Double -> HabStatus habs
-    fillIt t = hs & hsPop %~
-      liftA2 (\(a, _) -> maybe id (const (+ totalRate * t)) a) avails
+    fillIt t = hs & availableSpace hd bs . mapped -~ totalRate * t
 
 -- | Times for each hab to be filled.
 fillTimes
@@ -411,7 +489,7 @@ fillTimes
 fillTimes hd bs cm hs0 = go space0 hs0
   where
     space0 = maybe (Just 0) (const Nothing ) . fst <$>
-               availableSpace hd bs hs0
+               slotAvailability hd bs hs0
     go  :: Vec N4 (Maybe Double)
         -> HabStatus habs
         -> Either HWaitError (Vec N4 Double)
@@ -437,12 +515,36 @@ stepHabs hd bs cm = go
     go dt hs0 = case waitTilNextFilled hd bs cm hs0 of
         Left  _                       -> hs0
         Right (((_, tFill), rt), hs1)
-          | dt < tFill -> hs0 & hsPop %~
-                liftA2 (\(a, _) -> maybe id (const (+ rt * dt)) a) avails
+          | dt < tFill -> hs0 & availableSpace hd bs . mapped -~ rt * dt
           | otherwise  ->
                 go (dt - tFill) hs1
-      where
-        avails = availableSpace hd bs hs0
+
+-- | Step the 'HabStatus' over a sufficiently SMALL (infinitessimal) time
+-- interval @dt@.
+--
+-- Assumes that a hab will not become newly filled during this time
+-- interval.
+--
+-- Mostly useful for "continuous" simulations.  For larger time periods
+-- where habs may fill up over the period, use 'stepHabs'.
+stepHabsDT
+    :: KnownNat habs
+    => HabData habs
+    -> Bonuses
+    -> IsCalm
+    -> Double           -- ^ small (infinitessimal) time interval to step
+    -> HabStatus habs   -- ^ initial status
+    -> HabStatus habs
+stepHabsDT hd bs cm dt hs = hs & availableSpace hd bs . mapped -~ totalRate * dt
+  where
+    internalRate :: Double
+    internalRate = internalHatcheryRate bs cm
+    numFull      :: Natural
+    numFull      = sumOf (availableSpace hd bs . to (maybe 1 (const 0))) hs
+    sharingRate  :: Double
+    sharingRate  = 0 ^. bonusingFor bs BTInternalHatcherySharing
+    totalRate    :: Double
+    totalRate    = internalRate * (1 + sharingRate * fromIntegral numFull)
 
 -- | Time until a given population is reached.
 waitTilPop
@@ -466,10 +568,8 @@ waitTilPop hd bs cm goal hs0
       Left HWEMaxHabCapacity       -> MaxPopIn 0
       Right (((_, dt), rt), hs2)  ->
         let newPop = sumOf (hsPop . traversed) hs2
-            avails = availableSpace hd bs hs1
         in  if newPop >= goal'
               then let dt'    = (goal' - currPop) / rt
-                       filled = hs2 & hsPop %~
-                         liftA2 (\(a, _) -> maybe id (const (+ rt * dt')) a) avails
+                       filled = hs2 & availableSpace hd bs . traverse -~ rt * dt'
                    in  WaitTilSuccess dt' filled
               else go newPop hs2 & wtrTime +~ dt
