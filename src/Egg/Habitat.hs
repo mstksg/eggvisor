@@ -30,17 +30,18 @@ module Egg.Habitat (
   , habCapacity
   , fullHabs
   , availableSpace
+  , maxOutHabs
   , habCapacities
   , habHistory
   , habPrice
   , upgradeHab
   , internalHatcheryRate
-  , WaitError(..), _WENoInternalHatcheries, _WEMaxHabCapacity
+  , HWaitError(..), _HWENoInternalHatcheries, _HWEMaxHabCapacity
   , waitTilNextFilled
   , stepHabs
-  , WaitTilRes(WaitTilSuccess, MaxHabPopIn, NoWait, NoInternalHatcheries)
-  , _WaitTilSuccess, _MaxHabPopIn, _NoWait, _NoInternalHatcheries
-  , wtrRes, wtrStatus
+  , WaitTilRes(WaitTilSuccess, MaxPopIn, NoWait, NoInternalHatcheries)
+  , _WaitTilSuccess, _MaxPopIn, _NoWait, _NoInternalHatcheries
+  , wtrTime, wtrRes
   , waitTilPop
   , fillTimes
   ) where
@@ -137,20 +138,20 @@ data IsCalm = NotCalm | Calm
 
 makePrisms ''IsCalm
 
-data WaitTilRes habs
-    = WaitTilSuccess { _wtrRes :: Double, _wtrStatus :: HabStatus habs }
-    | MaxHabPopIn    { _wtrRes :: Double }
+data WaitTilRes a
+    = WaitTilSuccess { _wtrTime :: Double, _wtrRes :: a }
+    | MaxPopIn       { _wtrTime :: Double }
     | NoWait
     | NoInternalHatcheries
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Functor)
 
 makePrisms ''WaitTilRes
 makeLenses ''WaitTilRes
 
-data WaitError = WENoInternalHatcheries
-               | WEMaxHabCapacity
+data HWaitError = HWENoInternalHatcheries
+                | HWEMaxHabCapacity
 
-makePrisms ''WaitError
+makePrisms ''HWaitError
 
 -- | Initial 'HabStatus' to start off the game.
 initHabStatus :: (KnownNat habs, 1 TL.<= habs) => HabStatus habs
@@ -313,6 +314,20 @@ availableSpace hd bs hs = checkAvail <$> caps <*> (hs ^. hsPop)
       where
         cap' = fromIntegral cap
 
+-- | Fill up with max chickens
+maxOutHabs
+    :: KnownNat habs
+    => HabData habs
+    -> Bonuses
+    -> HabStatus habs
+    -> HabStatus habs
+maxOutHabs hd bs = over (_HabStatus . mapped) $ \(h, _) ->
+    case h of
+      Nothing -> (h, 0)
+      Just m  ->
+        let totCap = hd ^. _HabData . ixSV m . to (habCapacity bs)
+        in  (h, fromIntegral totCap)
+
 -- | Calculate the time until the next hab is full, and return the updated
 -- habs after that time.  Returns Nothing if all habs are full.
 --
@@ -330,12 +345,12 @@ waitTilNextFilled
     -> Bonuses
     -> IsCalm
     -> HabStatus habs
-    -> Either WaitError ((Fin N4, Double), (HabStatus habs, Double))
+    -> Either HWaitError (((Fin N4, Double), Double), HabStatus habs)
 waitTilNextFilled hd bs cm hs
-    | internalRate <= 0 = Left WENoInternalHatcheries
+    | internalRate <= 0 = Left HWENoInternalHatcheries
     | otherwise         = case nextFill of
-        Nothing      -> Left WEMaxHabCapacity
-        Just r@(_,t) -> Right (r, (fillIt t, totalRate))
+        Nothing      -> Left HWEMaxHabCapacity
+        Just r@(_,t) -> Right ((r, totalRate), fillIt t)
   where
     avails :: Vec N4 (Maybe Double, Natural)
     avails = availableSpace hd bs hs
@@ -371,16 +386,16 @@ fillTimes
     -> Bonuses
     -> IsCalm
     -> HabStatus habs
-    -> Either WaitError (Vec N4 Double)
+    -> Either HWaitError (Vec N4 Double)
 fillTimes hd bs cm hs0 = go space0 hs0
   where
     space0 = maybe (Just 0) (const Nothing ) . fst <$>
                availableSpace hd bs hs0
     go  :: Vec N4 (Maybe Double)
         -> HabStatus habs
-        -> Either WaitError (Vec N4 Double)
+        -> Either HWaitError (Vec N4 Double)
     go ts0 hs1 = do
-      ((n, t), (hs2, _)) <- waitTilNextFilled hd bs cm hs1
+      (((n, t), _), hs2) <- waitTilNextFilled hd bs cm hs1
       let ts1 = ts0 & ixV n .~ Just t
       case sequence ts1 of
         Just ts -> return ts
@@ -400,7 +415,7 @@ stepHabs hd bs cm = go
     go :: Double -> HabStatus habs -> HabStatus habs
     go dt hs0 = case waitTilNextFilled hd bs cm hs0 of
         Left  _                       -> hs0
-        Right ((_, tFill), (hs1, rt))
+        Right (((_, tFill), rt), hs1)
           | dt < tFill -> hs0 & hsPop %~
                 liftA2 (\(a, _) -> maybe id (const (+ rt * dt)) a) avails
           | otherwise  ->
@@ -416,7 +431,7 @@ waitTilPop
     -> IsCalm
     -> Natural
     -> HabStatus habs
-    -> WaitTilRes habs
+    -> WaitTilRes (HabStatus habs)
 waitTilPop hd bs cm goal hs0
     | pop0 > goal' = NoWait
     | otherwise    = go pop0 hs0
@@ -424,11 +439,11 @@ waitTilPop hd bs cm goal hs0
     goal' = fromIntegral goal
     pop0 :: Double
     pop0 = sumOf (hsPop . traverse) hs0
-    go :: Double -> HabStatus habs -> WaitTilRes habs
+    go :: Double -> HabStatus habs -> WaitTilRes (HabStatus habs)
     go currPop hs1 = case waitTilNextFilled hd bs cm hs1 of
-      Left WENoInternalHatcheries -> NoInternalHatcheries
-      Left WEMaxHabCapacity       -> MaxHabPopIn 0
-      Right ((_, dt), (hs2, rt))  ->
+      Left HWENoInternalHatcheries -> NoInternalHatcheries
+      Left HWEMaxHabCapacity       -> MaxPopIn 0
+      Right (((_, dt), rt), hs2)  ->
         let newPop = sumOf (hsPop . traversed) hs2
             avails = availableSpace hd bs hs1
         in  if newPop >= goal'
@@ -436,26 +451,4 @@ waitTilPop hd bs cm goal hs0
                        filled = hs2 & hsPop %~
                          liftA2 (\(a, _) -> maybe id (const (+ rt * dt')) a) avails
                    in  WaitTilSuccess dt' filled
-              else go newPop hs2 & wtrRes +~ dt
-
--- -- | TODO: should move to somewhere more general
--- totalEggLayingRate
---     :: HabStatus habs
---     -> Double
---     -> Bonuses
---     -> Double
--- totalEggLayingRate hs br bs = br ^. multiplying (sumOf (hsPop . traverse) hs)
---                                   . bonusingFor bs BTLayingRate
-
--- waitUntilDepotFull
---     :: forall habs vs slots. ()
---     => HabData habs
---     -> VehicleData vs
---     -> Bonuses
---     -> IsCalm
---     -> DepotStatus vs slots
---     -> HabStatus habs
---     -> WaitTilRes habs
--- waitUntilDepotFull hd vd bs cm ds0 hs0 = undefined
---   where
---     dCap = totalDepotCapacity vd bs ds0
+              else go newPop hs2 & wtrTime +~ dt

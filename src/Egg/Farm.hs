@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE GADTs                #-}
 {-# LANGUAGE KindSignatures       #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE StandaloneDeriving   #-}
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeOperators        #-}
@@ -17,18 +18,24 @@ module Egg.Farm (
   , farmIncome
   , farmSoulEggBonus
   , farmBonuses
+  , waitTilDepotFull
+  , stepFarm
   ) where
 
 -- import           Data.Singletons
 -- import           Data.Type.Combinator.Util
 -- import           Data.Type.Conjunction
 -- import           GHC.Generics              (Generic)
+import           Control.Applicative
 import           Control.Lens
+import           Control.Monad.Trans.Writer
 import           Data.Dependent.Sum
 import           Data.Finite
 import           Data.Kind
 import           Data.Singletons.TypeLits
+import           Data.Tuple
 import           Data.Type.Combinator
+import           Data.Type.Fin
 import           Data.Vector.Sized.Util
 import           Egg.Commodity
 import           Egg.Egg
@@ -40,6 +47,7 @@ import           Numeric.Lens
 import           Numeric.Natural
 import           Type.Class.Known
 import           Type.Family.List
+import           Type.Family.Nat
 import qualified Data.Vector.Sized            as SV
 import qualified GHC.TypeLits                 as TL
 
@@ -109,30 +117,48 @@ farmEggValue gd fs = gd ^. gdEggData
                          . eggValue
                          . bonusingFor (farmBonuses gd fs) BTEggValue
 
--- | Egg rate in eggs per second
+-- | Egg rate in eggs per second.
+--
+-- Multiplies 'farmLayingRatePerChicken' by the number of chickens, and
+-- caps it based on the depot capacity.
 farmLayingRate
-    :: GameData   eggs '(tiers, epic) habs vehicles
+    :: KnownNat vehicles
+    => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Double
 farmLayingRate gd fs =
-    gd ^. gdConstants
-        . gcBaseLayingRate
-        . dividing 60
-        . multiplying chickens
-        . bonusingFor (farmBonuses gd fs) BTLayingRate
+    fs ^. to (farmLayingRatePerChicken gd)
+        . to (* chickens)
+        . to (max cap)
   where
     chickens :: Double
     chickens = fs ^. fsHabs . to (totalChickens (gd ^. gdHabData))
+    cap :: Double
+    cap = case fs ^. fsDepot of
+      _ :=> d -> totalDepotCapacity (gd ^. gdVehicleData)
+                                    (farmBonuses gd fs)
+                                    d
+
+-- | How many eggs are laid per second, per chicken.
+farmLayingRatePerChicken
+    :: GameData   eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Double
+farmLayingRatePerChicken gd fs =
+    gd ^. gdConstants
+        . gcBaseLayingRate
+        . dividing 60
+        . bonusingFor (farmBonuses gd fs) BTLayingRate
 
 -- | Total income (bocks per second)
 farmIncome
-    :: KnownNat eggs
+    :: (KnownNat eggs, KnownNat vehicles)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Double
 farmIncome gd fs = fs ^. to (farmLayingRate gd)
-                       . multiplying (farmEggValue gd fs)
-                       . multiplying (farmSoulEggBonus gd fs)
+                       . to (* farmEggValue gd fs)
+                       . to (* farmSoulEggBonus gd fs)
 
 -- | Soul egg bonus
 farmSoulEggBonus
@@ -142,8 +168,26 @@ farmSoulEggBonus
 farmSoulEggBonus gd fs =
     gd ^. gdConstants
         . gcBaseSoulEggBonus
-        . multiplying (fs ^. fsSoulEggs . to fromIntegral)
+        . to (* (fs ^. fsSoulEggs . to fromIntegral))
         . bonusingFor (farmBonuses gd fs) BTSoulEggBonus
+
+-- | Time until depots are full
+waitTilDepotFull
+    :: (KnownNat habs, KnownNat vehicles)
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> IsCalm
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> WaitTilRes (FarmStatus eggs '(tiers, epic) habs vehicles)
+waitTilDepotFull gd ic fs =
+    fsHabs (waitTilPop (gd ^. gdHabData) bs ic (round chickensAtCap)) fs
+  where
+    bs :: Bonuses
+    bs = farmBonuses gd fs
+    depotCap :: Double
+    depotCap = case fs ^. fsDepot of
+      _ :=> d -> totalDepotCapacity (gd ^. gdVehicleData) bs d
+    chickensAtCap :: Double
+    chickensAtCap = depotCap / farmLayingRatePerChicken gd fs
 
 -- | Bonuses from a given 'GameData' and 'FarmStatus'
 farmBonuses
@@ -151,3 +195,35 @@ farmBonuses
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Bonuses
 farmBonuses gd fs = totalBonuses (gd ^. gdResearchData) (fs ^. fsResearch)
+
+stepFarm
+    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> IsCalm
+    -> Double       -- ^ time interval to step
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+stepFarm gd ic dt0 fs0 = go dt0 fs0
+  where
+    traverseWait
+        :: HabStatus habs
+        -> WriterT ((Fin N4, Double), Double) (Either HWaitError) (HabStatus habs)
+    traverseWait = WriterT
+                 . fmap swap
+                 . waitTilNextFilled (gd ^. gdHabData) bs ic
+    bs :: Bonuses
+    bs = farmBonuses gd fs0
+    go  :: Double
+        -> FarmStatus eggs '(tiers, epic) habs vehicles
+        -> FarmStatus eggs '(tiers, epic) habs vehicles
+    go dt fs1 = case runWriterT $ fsHabs traverseWait fs1 of
+      Left  _                       -> fs1 & fsBocks +~ (income * dt)
+      Right (fs2, ((_, tFill), rt))
+        | dt < tFill ->
+            fs1 & fsHabs . hsPop
+                    %~ liftA2 (\(a, _) -> maybe id (const (+ rt * dt)) a) avails
+                & fsBocks +~ (income * dt)
+        | otherwise  -> go (dt - tFill) $ fs2 & fsBocks +~ (income * tFill)
+      where
+        income = farmIncome gd fs1
+        avails = availableSpace (gd ^. gdHabData) bs (fs1 ^. fsHabs)
