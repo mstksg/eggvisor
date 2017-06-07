@@ -23,7 +23,7 @@ import           Data.Aeson.Types
 import           Data.Dependent.Sum
 import           Data.Singletons
 import           Data.Singletons.TypeLits
-import           Egg.Types
+import           Egg.Commodity
 import           GHC.Generics             (Generic)
 import           Text.Printf
 import qualified Data.Text                as T

@@ -23,6 +23,7 @@ module Egg.Habitat (
   , IsCalm(..), _NotCalm, _Calm
   , initHabStatus
   , habAt
+  , totalChickens
   , baseHabCapacity
   , baseHabCapacities
   , totalHabCapacity
@@ -59,8 +60,8 @@ import           Data.Type.Combinator.Util  as TC
 import           Data.Type.Fin
 import           Data.Type.Vector           as TCV
 import           Data.Vector.Sized.Util
+import           Egg.Commodity
 import           Egg.Research
-import           Egg.Types
 import           GHC.Generics               (Generic)
 import           GHC.TypeLits               as TL
 import           Numeric.Lens
@@ -173,8 +174,8 @@ baseHabCapacity
     -> Natural
 baseHabCapacity HabData{..} =
     sumOf $ hsSlots
-          . folded
-          . folded
+          . traverse
+          . traverse
           . to (SV.index _hdHabs)
           . habBaseCapacity
 
@@ -206,14 +207,21 @@ habCapacities hd bs = fmap ( round
 
 -- | Hab at the given slot
 habAt :: KnownNat habs => HabData habs -> HabStatus habs -> Fin N4 -> Maybe Hab
-habAt HabData{..} hs i = hs ^? hsSlots . ixV i . folded . to (SV.index _hdHabs)
+habAt HabData{..} hs i = hs ^? hsSlots . ixV i . traverse . to (SV.index _hdHabs)
+
+-- | Total number of chickens
+totalChickens
+    :: HabData habs
+    -> HabStatus habs
+    -> Double
+totalChickens HabData{..} = sumOf $ hsPop . traverse
 
 -- | How many of each hab is currently owned.  If key is not found, zero
 -- purchases is implied.
 habHistory :: HabStatus habs -> M.Map (Finite habs) (Fin N5)
 habHistory = M.mapMaybe (natFin . someNat)
            . M.fromListWith (+)
-           . toListOf (hsSlots . folded . folded . to (, 1))
+           . toListOf (hsSlots . traverse . traverse . to (, 1))
 
 -- | Get the BASE price of a given hab, if a purchase were to be made.
 -- Does not check if purchase is legal (see 'upgradeHab').
@@ -334,7 +342,7 @@ waitTilNextFilled hd bs cm hs
     internalRate :: Double
     internalRate = internalHatcheryRate bs cm
     numFull      :: Natural
-    numFull      = sumOf (folded . to (maybe 1 (const 0) . fst)) avails
+    numFull      = sumOf (traverse . to (maybe 1 (const 0) . fst)) avails
     sharingRate  :: Double
     sharingRate  = 0 ^. bonusingFor bs BTInternalHatcherySharing
     totalRate    :: Double

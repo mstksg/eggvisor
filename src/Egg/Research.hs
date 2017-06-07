@@ -89,7 +89,7 @@ import           Data.Type.Product               as TCP
 import           Data.Type.Sum
 import           Data.Type.Vector
 import           Data.Vector.Sized.Util
-import           Egg.Types
+import           Egg.Commodity
 import           GHC.Generics                    (Generic)
 import           Numeric.Lens
 import           Numeric.Natural

@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Egg.Types
+  exposed-modules:     Egg.Commodity
                        Egg.Research
                        Egg.Habitat
                        Egg.Vehicle
