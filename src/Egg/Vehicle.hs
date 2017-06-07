@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
@@ -25,6 +26,8 @@ module Egg.Vehicle (
   , vehicleHistory
   , vehiclePrice
   , upgradeVehicle
+  , vehicleUpgrades
+  , someVehicleUpgrades
   ) where
 
 import           Control.Lens hiding        ((.=))
@@ -38,10 +41,11 @@ import           Data.Maybe
 import           Data.Singletons
 import           Data.Singletons.TypeLits
 import           Data.Tuple
+import           Data.Type.Combinator
 import           Data.Type.Combinator.Util  as TC
 import           Data.Type.Fin
 import           Data.Type.Nat              as TCN
-import           Data.Type.Vector
+import           Data.Type.Vector           as TCV
 import           Data.Vector.Sized.Util
 import           Egg.Commodity
 import           Egg.Research
@@ -49,6 +53,7 @@ import           GHC.Generics               (Generic)
 import           Numeric.Lens
 import           Numeric.Natural
 import           Text.Printf
+import           Type.Class.Higher
 import           Type.Class.Known
 import           Type.Class.Witness
 import           Type.Family.Nat            as TCN
@@ -202,3 +207,35 @@ upgradeVehicle vd bs slot v ds0 =
       -- should always be valid of the previous condition is true
       price <- vehiclePrice vd ds0 v
       return (Just v, price ^. bonusingFor bs BTVehicleCosts)
+
+-- | List all possible vehicle upgrades.
+vehicleUpgrades
+    :: forall vs slots. Known TCN.Nat slots
+    => VehicleData vs
+    -> Bonuses
+    -> DepotStatus vs slots
+    -> VecT slots (SV.Vector vs) (Maybe Bock)
+vehicleUpgrades vd bs ds = ds ^. _DepotStatus
+                               & vmap (go . getI)
+  where
+    hist :: M.Map (Finite vs) (Fin ('S slots))
+    hist = vehicleHistory ds
+    go :: Maybe (Finite vs) -> SV.Vector vs (Maybe Bock)
+    go i = vd ^. _VehicleData
+               & SV.imap
+                   (\j h -> do
+                       guard (Just j > i)
+                       let n = M.findWithDefault FZ j hist
+                       h ^? vCosts . ix (fin n) . bonusingFor bs BTVehicleCosts
+                   )
+
+-- | List all possible vehicle upgrades for a 'SomeDepotStatus'.
+someVehicleUpgrades
+    :: forall vs. ()
+    => VehicleData vs
+    -> Bonuses
+    -> SomeDepotStatus vs
+    -> ([] :.: (,) (Some TCN.Nat) :.: SV.Vector vs) (Maybe Bock)
+someVehicleUpgrades vd bs = \case
+    (n :: TCN.Nat slots) :=> (ds :: DepotStatus vs slots) -> (n //) $
+      Comp . Comp . TCV.ifoldMap (\i x -> [(finNat i, x)]) $ vehicleUpgrades vd bs ds

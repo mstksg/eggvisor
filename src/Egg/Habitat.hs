@@ -35,6 +35,7 @@ module Egg.Habitat (
   , habHistory
   , habPrice
   , upgradeHab
+  , habUpgrades
   , internalHatcheryRate
   , HWaitError(..), _HWENoInternalHatcheries, _HWEMaxHabCapacity
   , waitTilNextFilled
@@ -53,10 +54,10 @@ import           Control.Monad.Trans.Writer
 import           Data.Aeson.Types
 import           Data.Dependent.Sum
 import           Data.Finite
-import           Data.Maybe
 import           Data.Singletons
 import           Data.Singletons.TypeLits
 import           Data.Tuple
+import           Data.Type.Combinator
 import           Data.Type.Combinator.Util  as TC
 import           Data.Type.Fin
 import           Data.Type.Vector           as TCV
@@ -228,8 +229,7 @@ habHistory = M.mapMaybe (natFin . someNat)
 -- Does not check if purchase is legal (see 'upgradeHab').
 habPrice :: KnownNat habs => HabData habs -> HabStatus habs -> Finite habs -> Maybe Bock
 habPrice hd hs hab = fmap priceOf
-                   . TC.strengthen
-                   . fromMaybe FZ
+                   . maybe (Just FZ) TC.strengthen
                    . M.lookup hab
                    . habHistory
                    $ hs
@@ -278,6 +278,27 @@ upgradeHab hd bs slot hab hs0 =
       -- should always be valid of the previous condition is true
       price <- habPrice hd hs0 hab
       return (Just hab, price ^. bonusingFor bs BTBuildCosts)
+
+-- | Get all possible Hab upgrades
+habUpgrades
+    :: forall habs. (KnownNat habs)
+    => HabData habs
+    -> Bonuses
+    -> HabStatus habs
+    -> VecT N4 (SV.Vector habs) (Maybe Bock)
+habUpgrades hd bs hs = hs ^. hsSlots
+                           & vmap (go . getI)
+  where
+    hist :: M.Map (Finite habs) (Fin N5)
+    hist = habHistory hs
+    go :: Maybe (Finite habs) -> SV.Vector habs (Maybe Bock)
+    go i = hd ^. _HabData
+               & SV.imap
+                   (\j h -> do
+                       guard (Just j > i)
+                       n <- maybe (Just FZ) TC.strengthen $ M.lookup j hist
+                       return $ h ^. habCosts . ixV n . bonusingFor bs BTBuildCosts
+                   )
 
 -- | Which habs are full?
 fullHabs
