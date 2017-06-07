@@ -44,8 +44,8 @@ module Egg.Habitat (
   , waitTilNextFilled
   , stepHabs
   , stepHabsDT
-  , WaitTilRes(WaitTilSuccess, MaxPopIn, NoWait, NoInternalHatcheries)
-  , _WaitTilSuccess, _MaxPopIn, _NoWait, _NoInternalHatcheries
+  , WaitTilRes(WaitTilSuccess, NoWait, NonStarter)
+  , _WaitTilSuccess, _NoWait, _NonStarter
   , wtrTime, wtrRes
   , waitTilPop
   , fillTimes
@@ -144,11 +144,11 @@ data IsCalm = NotCalm | Calm
 
 makePrisms ''IsCalm
 
-data WaitTilRes a
-    = WaitTilSuccess { _wtrTime :: Double, _wtrRes :: a }
-    | MaxPopIn       { _wtrTime :: Double }
+data WaitTilRes f a
+    = WaitTilSuccess { _wtrTime :: Double, _wtrRes :: f a }
+    -- | MaxPopIn       { _wtrTime :: Double }
     | NoWait
-    | NoInternalHatcheries
+    | NonStarter
   deriving (Show, Eq, Ord, Functor)
 
 makePrisms ''WaitTilRes
@@ -192,12 +192,11 @@ totalHabCapacity
     => HabData habs
     -> Bonuses
     -> HabStatus habs
-    -> Natural
+    -> Double
 totalHabCapacity hd bs =
     sumOf $ to (baseHabCapacity hd)
           . to fromIntegral
           . bonusingFor bs BTHabCapacity
-          . to round
 
 -- | Capacities of all slots, factoring in bonuses.
 habCapacities
@@ -205,11 +204,10 @@ habCapacities
     => HabData habs
     -> Bonuses
     -> HabStatus habs
-    -> Vec N4 Natural
-habCapacities hd bs = fmap ( round
-                        . bonusEffectFor bs BTHabCapacity
-                        . fromIntegral
-                        )
+    -> Vec N4 Double
+habCapacities hd bs = fmap ( bonusEffectFor bs BTHabCapacity
+                           . fromIntegral
+                           )
                     . baseHabCapacities hd
 
 -- | Hab at the given slot
@@ -246,11 +244,10 @@ habPrice hd hs hab = fmap priceOf
 habCapacity
     :: Bonuses
     -> Hab
-    -> Natural
+    -> Double
 habCapacity bs = view $ habBaseCapacity
                       . to fromIntegral
                       . bonusingFor bs BTHabCapacity
-                      . to round
 
 -- | Compute the base internal hatchery rate (chickens per second per
 -- hatchery) from bonuses.
@@ -337,7 +334,7 @@ fullHabs hd bs = fmap (uncurry isFull) . view _HabStatus
       Nothing -> True
       Just m  ->
         let totCap = hd ^. _HabData . ixSV m . to (habCapacity bs)
-        in  c >= fromIntegral totCap
+        in  c >= totCap
 
 -- | Gives total avaiable space of each hab (Nothing if hab full), and also
 -- the capacity of each hab.
@@ -346,17 +343,15 @@ slotAvailability
     => HabData habs
     -> Bonuses
     -> HabStatus habs
-    -> Vec N4 (Maybe Double, Natural)
+    -> Vec N4 (Maybe Double, Double)
 slotAvailability hd bs hs = checkAvail <$> caps <*> (hs ^. hsPop)
   where
-    caps :: Vec N4 Natural
+    caps :: Vec N4 Double
     caps = habCapacities hd bs hs
-    checkAvail :: Natural -> Double -> (Maybe Double, Natural)
+    checkAvail :: Double -> Double -> (Maybe Double, Double)
     checkAvail cap pop
-        | pop >= cap' = (Nothing, cap)
-        | otherwise   = (Just (cap' - pop), cap)
-      where
-        cap' = fromIntegral cap
+        | pop >= cap = (Nothing, cap)
+        | otherwise  = (Just (cap - pop), cap)
 
 -- | Traverse over the available space of each hab slot.
 --
@@ -472,7 +467,7 @@ waitTilNextFilled hd bs cm hs
         Nothing      -> Left HWEMaxHabCapacity
         Just r@(_,t) -> Right ((r, totalRate), fillIt t)
   where
-    avails :: Vec N4 (Maybe Double, Natural)
+    avails :: Vec N4 (Maybe Double, Double)
     avails = slotAvailability hd bs hs
     internalRate :: Double
     internalRate = internalHatcheryRate bs cm
@@ -567,6 +562,9 @@ stepHabsDT hd bs cm dt hs = hs & availableSpace hd bs . mapped -~ totalRate * dt
     totalRate    = internalRate * (1 + sharingRate * fromIntegral numFull)
 
 -- | Time until a given population is reached.
+--
+-- If wait and no result, it means the result is the time until habs are
+-- full.
 waitTilPop
     :: forall habs. KnownNat habs
     => HabData habs
@@ -574,7 +572,7 @@ waitTilPop
     -> IsCalm
     -> Natural
     -> HabStatus habs
-    -> WaitTilRes (HabStatus habs)
+    -> WaitTilRes Maybe (HabStatus habs)
 waitTilPop hd bs cm goal hs0
     | pop0 > goal' = NoWait
     | otherwise    = go pop0 hs0
@@ -582,14 +580,14 @@ waitTilPop hd bs cm goal hs0
     goal' = fromIntegral goal
     pop0 :: Double
     pop0 = sumOf (hsPop . traverse) hs0
-    go :: Double -> HabStatus habs -> WaitTilRes (HabStatus habs)
+    go :: Double -> HabStatus habs -> WaitTilRes Maybe (HabStatus habs)
     go currPop hs1 = case waitTilNextFilled hd bs cm hs1 of
-      Left HWENoInternalHatcheries -> NoInternalHatcheries
-      Left HWEMaxHabCapacity       -> MaxPopIn 0
+      Left HWENoInternalHatcheries -> NonStarter
+      Left HWEMaxHabCapacity       -> WaitTilSuccess 0 Nothing
       Right (((_, dt), rt), hs2)  ->
         let newPop = sumOf (hsPop . traversed) hs2
         in  if newPop >= goal'
               then let dt'    = (goal' - currPop) / rt
                        filled = hs2 & availableSpace hd bs . traverse -~ rt * dt'
-                   in  WaitTilSuccess dt' filled
+                   in  WaitTilSuccess dt' (Just filled)
               else go newPop hs2 & wtrTime +~ dt
