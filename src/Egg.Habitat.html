@@ -192,12 +192,11 @@ totalHabCapacity
     =&gt; HabData habs
     -&gt; Bonuses
     -&gt; HabStatus habs
-    -&gt; Natural
+    -&gt; Double
 totalHabCapacity hd bs =
     sumOf $ to (baseHabCapacity hd)
           . to fromIntegral
           . bonusingFor bs BTHabCapacity
-          . to round
 
 -- | Capacities of all slots, factoring in bonuses.
 habCapacities
@@ -205,11 +204,10 @@ habCapacities
     =&gt; HabData habs
     -&gt; Bonuses
     -&gt; HabStatus habs
-    -&gt; Vec N4 Natural
-habCapacities hd bs = fmap ( round
-                        . bonusEffectFor bs BTHabCapacity
-                        . fromIntegral
-                        )
+    -&gt; Vec N4 Double
+habCapacities hd bs = fmap ( bonusEffectFor bs BTHabCapacity
+                           . fromIntegral
+                           )
                     . baseHabCapacities hd
 
 -- | Hab at the given slot
@@ -246,11 +244,10 @@ habPrice hd hs hab = fmap priceOf
 habCapacity
     :: Bonuses
     -&gt; Hab
-    -&gt; Natural
+    -&gt; Double
 habCapacity bs = view $ habBaseCapacity
                       . to fromIntegral
                       . bonusingFor bs BTHabCapacity
-                      . to round
 
 -- | Compute the base internal hatchery rate (chickens per second per
 -- hatchery) from bonuses.
@@ -337,7 +334,7 @@ fullHabs hd bs = fmap (uncurry isFull) . view _HabStatus
       Nothing -&gt; True
       Just m  -&gt;
         let totCap = hd ^. _HabData . ixSV m . to (habCapacity bs)
-        in  c &gt;= fromIntegral totCap
+        in  c &gt;= totCap
 
 -- | Gives total avaiable space of each hab (Nothing if hab full), and also
 -- the capacity of each hab.
@@ -346,17 +343,15 @@ slotAvailability
     =&gt; HabData habs
     -&gt; Bonuses
     -&gt; HabStatus habs
-    -&gt; Vec N4 (Maybe Double, Natural)
+    -&gt; Vec N4 (Maybe Double, Double)
 slotAvailability hd bs hs = checkAvail &lt;$&gt; caps &lt;*&gt; (hs ^. hsPop)
   where
-    caps :: Vec N4 Natural
+    caps :: Vec N4 Double
     caps = habCapacities hd bs hs
-    checkAvail :: Natural -&gt; Double -&gt; (Maybe Double, Natural)
+    checkAvail :: Double -&gt; Double -&gt; (Maybe Double, Double)
     checkAvail cap pop
-        | pop &gt;= cap' = (Nothing, cap)
-        | otherwise   = (Just (cap' - pop), cap)
-      where
-        cap' = fromIntegral cap
+        | pop &gt;= cap = (Nothing, cap)
+        | otherwise  = (Just (cap - pop), cap)
 
 -- | Traverse over the available space of each hab slot.
 --
@@ -472,7 +467,7 @@ waitTilNextFilled hd bs cm hs
         Nothing      -&gt; Left HWEMaxHabCapacity
         Just r@(_,t) -&gt; Right ((r, totalRate), fillIt t)
   where
-    avails :: Vec N4 (Maybe Double, Natural)
+    avails :: Vec N4 (Maybe Double, Double)
     avails = slotAvailability hd bs hs
     internalRate :: Double
     internalRate = internalHatcheryRate bs cm
