@@ -44,8 +44,8 @@
 </span><a name="line-44"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#waitTilNextFilled"><span class="hs-identifier hs-var">waitTilNextFilled</span></a><span>
 </span><a name="line-45"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#stepHabs"><span class="hs-identifier hs-var">stepHabs</span></a><span>
 </span><a name="line-46"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#stepHabsDT"><span class="hs-identifier hs-var">stepHabsDT</span></a><span>
-</span><a name="line-47"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#WaitTilRes"><span class="hs-identifier hs-type">WaitTilRes</span></a><span class="hs-special">(</span><a href="Egg.Habitat.html#WaitTilSuccess"><span class="hs-identifier hs-var">WaitTilSuccess</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#MaxPopIn"><span class="hs-identifier hs-var">MaxPopIn</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#NoWait"><span class="hs-identifier hs-var">NoWait</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#NoInternalHatcheries"><span class="hs-identifier hs-var">NoInternalHatcheries</span></a><span class="hs-special">)</span><span>
-</span><a name="line-48"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#_WaitTilSuccess"><span class="hs-identifier hs-var">_WaitTilSuccess</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#_MaxPopIn"><span class="hs-identifier hs-var">_MaxPopIn</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#_NoWait"><span class="hs-identifier hs-var">_NoWait</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#_NoInternalHatcheries"><span class="hs-identifier hs-var">_NoInternalHatcheries</span></a><span>
+</span><a name="line-47"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#WaitTilRes"><span class="hs-identifier hs-type">WaitTilRes</span></a><span class="hs-special">(</span><a href="Egg.Habitat.html#WaitTilSuccess"><span class="hs-identifier hs-var">WaitTilSuccess</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#NoWait"><span class="hs-identifier hs-var">NoWait</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#NonStarter"><span class="hs-identifier hs-var">NonStarter</span></a><span class="hs-special">)</span><span>
+</span><a name="line-48"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#_WaitTilSuccess"><span class="hs-identifier hs-var">_WaitTilSuccess</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#_NoWait"><span class="hs-identifier hs-var">_NoWait</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#_NonStarter"><span class="hs-identifier hs-var">_NonStarter</span></a><span>
 </span><a name="line-49"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#wtrTime"><span class="hs-identifier hs-var">wtrTime</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#wtrRes"><span class="hs-identifier hs-var">wtrRes</span></a><span>
 </span><a name="line-50"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#waitTilPop"><span class="hs-identifier hs-var">waitTilPop</span></a><span>
 </span><a name="line-51"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#fillTimes"><span class="hs-identifier hs-var">fillTimes</span></a><span>
@@ -144,11 +144,11 @@ data IsCalm = NotCalm | Calm
 
 makePrisms ''IsCalm
 
-data WaitTilRes a
-    = WaitTilSuccess { _wtrTime :: Double, _wtrRes :: a }
-    | MaxPopIn       { _wtrTime :: Double }
+data WaitTilRes f a
+    = WaitTilSuccess { _wtrTime :: Double, _wtrRes :: f a }
+    -- | MaxPopIn       { _wtrTime :: Double }
     | NoWait
-    | NoInternalHatcheries
+    | NonStarter
   deriving (Show, Eq, Ord, Functor)
 
 makePrisms ''WaitTilRes
@@ -562,6 +562,9 @@ stepHabsDT hd bs cm dt hs = hs &amp; availableSpace hd bs . mapped -~ totalRate 
     totalRate    = internalRate * (1 + sharingRate * fromIntegral numFull)
 
 -- | Time until a given population is reached.
+--
+-- If wait and no result, it means the result is the time until habs are
+-- full.
 waitTilPop
     :: forall habs. KnownNat habs
     =&gt; HabData habs
@@ -569,7 +572,7 @@ waitTilPop
     -&gt; IsCalm
     -&gt; Natural
     -&gt; HabStatus habs
-    -&gt; WaitTilRes (HabStatus habs)
+    -&gt; WaitTilRes Maybe (HabStatus habs)
 waitTilPop hd bs cm goal hs0
     | pop0 &gt; goal' = NoWait
     | otherwise    = go pop0 hs0
@@ -577,15 +580,15 @@ waitTilPop hd bs cm goal hs0
     goal' = fromIntegral goal
     pop0 :: Double
     pop0 = sumOf (hsPop . traverse) hs0
-    go :: Double -&gt; HabStatus habs -&gt; WaitTilRes (HabStatus habs)
+    go :: Double -&gt; HabStatus habs -&gt; WaitTilRes Maybe (HabStatus habs)
     go currPop hs1 = case waitTilNextFilled hd bs cm hs1 of
-      Left HWENoInternalHatcheries -&gt; NoInternalHatcheries
-      Left HWEMaxHabCapacity       -&gt; MaxPopIn 0
+      Left HWENoInternalHatcheries -&gt; NonStarter
+      Left HWEMaxHabCapacity       -&gt; WaitTilSuccess 0 Nothing
       Right (((_, dt), rt), hs2)  -&gt;
         let newPop = sumOf (hsPop . traversed) hs2
         in  if newPop &gt;= goal'
               then let dt'    = (goal' - currPop) / rt
                        filled = hs2 &amp; availableSpace hd bs . traverse -~ rt * dt'
-                   in  WaitTilSuccess dt' filled
+                   in  WaitTilSuccess dt' (Just filled)
               else go newPop hs2 &amp; wtrTime +~ dt
 </span></pre></body></html>
