@@ -39,9 +39,11 @@ module Egg.Habitat (
   , upgradeHab
   , habUpgrades
   , internalHatcheryRate
+  , totalGrowthRate
   , HWaitError(..), _HWENoInternalHatcheries, _HWEMaxHabCapacity
   , waitTilNextFilled
   , stepHabs
+  , stepHabsDT
   , WaitTilRes(WaitTilSuccess, MaxPopIn, NoWait, NoInternalHatcheries)
   , _WaitTilSuccess, _MaxPopIn, _NoWait, _NoInternalHatcheries
   , wtrTime, wtrRes
@@ -260,6 +262,24 @@ internalHatcheryRate bs cm =
         NotCalm -> 1
         Calm    -> 1 ^. bonusingFor bs BTInternalHatcheryCalm
 
+-- | Total hab growth rate, in chickens per second.
+totalGrowthRate
+    :: KnownNat habs
+    => HabData habs
+    -> Bonuses
+    -> IsCalm
+    -> HabStatus habs
+    -> Double
+totalGrowthRate hd bs cm hs =
+    internalHatcheryRate bs cm
+        ^. multiplying (1 + sharingRate * fromIntegral numFull)
+         . multiplying (4 - fromIntegral numFull)
+  where
+    numFull      :: Finite 5
+    numFull      = sumOf (availableSpace hd bs . to (maybe 1 (const 0))) hs
+    sharingRate  :: Double
+    sharingRate  = 0 ^. bonusingFor bs BTInternalHatcherySharing
+
 -- | Purchase a hab upgrade.  Returns cost and new hab status, if
 -- purchase is valid.
 --
@@ -417,7 +437,7 @@ availableSpace hd bs f0 hs = (_HabStatus . traverse) (uncurry (go f0)) hs
 --                               . habBaseCapacity
 --                               . to  fromIntegral
 --                               . bonusingFor bs BTHabCapacity
--- 
+--
 
 -- | Fill up with max chickens
 maxOutHabs

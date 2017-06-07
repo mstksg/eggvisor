@@ -20,13 +20,9 @@ module Egg.Farm (
   , farmBonuses
   , waitTilDepotFull
   , stepFarm
+  , stepFarmDT
   ) where
 
--- import           Data.Singletons
--- import           Data.Type.Combinator.Util
--- import           Data.Type.Conjunction
--- import           GHC.Generics              (Generic)
-import           Control.Applicative
 import           Control.Lens
 import           Control.Monad.Trans.Writer
 import           Data.Dependent.Sum
@@ -150,15 +146,15 @@ farmLayingRatePerChicken gd fs =
         . dividing 60
         . bonusingFor (farmBonuses gd fs) BTLayingRate
 
--- | Total income (bocks per second), per chicken.
-farmIncomePerChicken
-    :: (KnownNat eggs, KnownNat vehicles)
-    => GameData   eggs '(tiers, epic) habs vehicles
-    -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> Double
-farmIncomePerChicken gd fs = fs ^. to (farmLayingRatePerChicken gd)
-                                 . to (* farmEggValue gd fs)
-                                 . to (* farmSoulEggBonus gd fs)
+-- -- | Total income (bocks per second), per chicken.
+-- farmIncomePerChicken
+--     :: (KnownNat eggs, KnownNat vehicles)
+--     => GameData   eggs '(tiers, epic) habs vehicles
+--     -> FarmStatus eggs '(tiers, epic) habs vehicles
+--     -> Double
+-- farmIncomePerChicken gd fs = fs ^. to (farmLayingRatePerChicken gd)
+--                                  . to (* farmEggValue gd fs)
+--                                  . to (* farmSoulEggBonus gd fs)
 
 -- | Total income (bocks per second)
 farmIncome
@@ -169,6 +165,49 @@ farmIncome
 farmIncome gd fs = fs ^. to (farmLayingRate gd)
                        . to (* farmEggValue gd fs)
                        . to (* farmSoulEggBonus gd fs)
+
+-- | Total bock income over a given small-ish period of time, assuming
+-- no habs get filled up or depots get filled up in this time interval.
+--
+-- Time step should be small (dt^3 = 0) enough to avoid discontinuities,
+-- but this function still takes into account quadratic growth due to dt^2
+-- terms.
+--
+-- habSize(t) = initHabSize + growthRate * t
+-- incomerate(t) = capped (habSize(t) * layingRate) * eggValue
+--
+-- Assuming capped:
+--
+-- incomerate(t) = (initHabSize + growthRate * t) * layingRate * eggValue
+-- totalincome = [initHabSize * dt + 1/2 growthRate * dt^2] * layingRate * eggValue
+--
+-- Assuming uncapped:
+--
+-- incomerate(t) = capped (initHabSize * layingRate) * eggValue
+-- totalincome = dt * capped (initHabSize * layingRate) * eggValue
+--
+farmIncomeDT
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> IsCalm
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Double     -- ^ small time step (dt^3 = 0)
+    -> Double
+farmIncomeDT gd ic fs dt
+    | initLaying >= cap = dt * cap * eggVal
+    | otherwise         = (initHabSize * dt + growthRate * dt * dt / 2)
+                            * layingRate * eggVal
+  where
+    bs          = farmBonuses gd fs
+    layingRate  = farmLayingRatePerChicken gd fs
+    eggVal      = farmEggValue   gd fs
+    initHabSize = fs ^. fsHabs . to (totalChickens (gd ^. gdHabData))
+    growthRate  = fs ^. fsHabs . to (totalGrowthRate (gd ^. gdHabData) bs ic)
+    initLaying  = layingRate * initHabSize
+    cap         = case fs ^. fsDepot of
+      _ :=> d -> totalDepotCapacity (gd ^. gdVehicleData)
+                                    (farmBonuses gd fs)
+                                    d
 
 -- | Soul egg bonus
 farmSoulEggBonus
@@ -235,16 +274,36 @@ stepFarm gd ic dt0 fs0 = go dt0 fs0
         -> FarmStatus eggs '(tiers, epic) habs vehicles
         -> FarmStatus eggs '(tiers, epic) habs vehicles
     go dt fs1 = case runWriterT $ fsHabs traverseWait fs1 of
-      Left  _                       -> fs1 & fsBocks +~ (income * dt)
+      -- habs aren't growing
+      Left  _                       ->
+            fs1 & fsBocks +~ (farmIncome gd fs1 * dt)
       Right (fs2, ((_, tFill), rt))
+        -- habs are growing but slow enough to not change in the interval
         | dt < tFill ->
-            fs1 & fsHabs . hsPop
-                    %~ liftA2 (\(a, _) -> maybe id (const (+ rt * dt)) a) avails
-                & fsBocks +~ (income * dt)
-        | otherwise  -> go (dt - tFill) $ fs2 & fsBocks +~ (income * tFill)
-      where
-        income = farmIncome gd fs1
-        avails = slotAvailability (gd ^. gdHabData) bs (fs1 ^. fsHabs)
+            fs1 & fsHabs . availableSpace (gd ^. gdHabData) bs . mapped -~ rt * dt
+                & fsBocks +~ farmIncomeDT gd ic fs1 dt
+        -- habs are growing quickly enough to change in the interval
+        | otherwise  -> go (dt - tFill) $
+            fs2 & fsBocks +~ farmIncomeDT gd ic fs1 dt
+
+-- | Step farm over a SMALL (infinitessimal) time step.  Assumes that
+-- nothing discontinuous changes during the time inveral, including things
+-- like:
+--
+-- 1. habs filling up
+-- 2. depots filling up
+--
+-- Useful for stepping continuous simulations.
+stepFarmDT
+    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> IsCalm
+    -> Double       -- ^ small (infinitessimal) time interval to step
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+stepFarmDT gd ic dt fs = fs
+    & fsHabs  %~ stepHabs (gd ^. gdHabData) (farmBonuses gd fs) ic dt
+    & fsBocks +~ farmIncomeDT gd ic fs dt
 
 -- waitUntilBocks
 --     ::
