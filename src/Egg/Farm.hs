@@ -23,6 +23,7 @@ module Egg.Farm (
   -- , waitTilDepotFull
   , stepFarm
   , stepFarmDT
+  , waitUntilBocks
   ) where
 
 import           Control.Lens
@@ -286,27 +287,17 @@ stepFarm
     -> FarmStatus eggs '(tiers, epic) habs vehicles
 stepFarm gd ic dt0 fs0 = go dt0 fs0
   where
-    traverseWait
-        :: HabStatus habs
-        -> WriterT ((Fin N4, Double), Double) (Either HWaitError) (HabStatus habs)
-    traverseWait = WriterT
-                 . fmap swap
-                 . waitTilNextFilled (gd ^. gdHabData) bs ic
-    bs :: Bonuses
-    bs = farmBonuses gd fs0
     go  :: Double
         -> FarmStatus eggs '(tiers, epic) habs vehicles
         -> FarmStatus eggs '(tiers, epic) habs vehicles
     go dt fs1 = case waitTilNextHabOrDepotFilled gd ic fs1 of
-      -- growth rate constant, and depots won't change status
-      NonStarter -> fs1 & fsBocks +~ (farmIncome gd fs1 * dt)
-      -- growth rate constant, and depots won't change status
-      NoWait     -> fs1 & fsBocks +~ (farmIncome gd fs1 * dt)
       WaitTilSuccess tFill (_, fs2)
         -- habs are growing slowly enough that nothing something changes
         | dt < tFill -> stepFarmDT gd ic dt fs1
         -- habs are growing quickly enough that something changes
         | otherwise  -> go (dt - tFill) fs2
+      -- growth rate constant, and depots won't change status
+      _ -> fs1 & fsBocks +~ (farmIncome gd fs1 * dt)
 
 -- | Step farm over a SMALL (infinitessimal) time step.  Assumes that
 -- nothing discontinuous changes during the time inveral, including things
@@ -335,14 +326,20 @@ waitUntilBocks
     -> Bock       -- ^ goal
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> WaitTilRes I (FarmStatus eggs '(tiers, epic) habs vehicles)
-waitUntilBocks gd ic goal0 fs0 = go goal0 fs0
+waitUntilBocks gd ic goal fs0
+    | fs0 ^. fsBocks >= goal = NoWait
+    | otherwise              = go fs0
   where
-    bs :: Bonuses
-    bs = farmBonuses gd fs0
-    go  :: Bock
-        -> FarmStatus eggs '(tiers, epic) habs vehicles
+    go  :: FarmStatus eggs '(tiers, epic) habs vehicles
         -> WaitTilRes I (FarmStatus eggs '(tiers, epic) habs vehicles)
-    go goal fs1 = undefined
+    go fs1 = case waitTilNextHabOrDepotFilled gd ic fs1 of
+        WaitTilSuccess tFill (_, fs2)
+          | fs2 ^. fsBocks > goal -> go fs2 & wtrTime +~ tFill
+        _ | initIncome <= 0 -> NonStarter
+          | otherwise       -> let dt = (goal - fs1 ^. fsBocks) / initIncome
+                               in  WaitTilSuccess dt (I (stepFarmDT gd ic dt fs1))
+      where
+        initIncome = farmIncome gd fs1
 
 -- | Results:
 --
