@@ -43,6 +43,7 @@ import           Data.Aeson.Types
 import           Data.Dependent.Sum
 import           Data.Finite
 import           Data.Finite.Internal
+import           Data.Map.Lens
 import           Data.Maybe
 import           Data.Singletons
 import           Data.Singletons.Prelude.Num
@@ -298,15 +299,15 @@ someVehicleUpgrades
     => VehicleData vs
     -> Bonuses
     -> SomeDepotStatus vs
-    -> ([] :.: (,) Integer :.: SV.Vector vs) (Maybe Bock)
+    -> (M.Map Integer :.: SV.Vector vs) (Maybe Bock)
 someVehicleUpgrades vd bs = view $ _SomeDepotStatus bs go
-                                 . _Unwrapped
                                  . _Unwrapped
   where
     go  :: KnownNat slots
-        => Getter (DepotStatus vs slots) [(Integer, SV.Vector vs (Maybe Bock))]
+        => Getter (DepotStatus vs slots) (M.Map Integer (SV.Vector vs (Maybe Bock)))
     go = to (vehicleUpgrades vd bs)
        . _Wrapped
        . _Wrapped
        . to (itoListOf ifolded)
        . to (over (mapped . _1) fromIntegral)
+       . to M.fromAscList
