@@ -13,7 +13,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Egg.GameData (
-    GameConstants(..), gcBaseLayingRate, gcBaseSoulEggBonus, gcBaseVideoDoublerTime, gcVideoBonus
+    GameConstants(..), HasGameConstants(..)
   , GameData(..), gdEggData, gdResearchData, gdHabData, gdVehicleData, gdConstants
   , SomeGameData(..)
   ) where
@@ -38,10 +38,11 @@ data GameConstants =
                   , _gcBaseSoulEggBonus     :: Double
                   , _gcBaseVideoDoublerTime :: Double     -- ^ minutes
                   , _gcVideoBonus           :: Double
+                  , _gcPrestigeFactor       :: Double
                   }
   deriving (Show, Eq, Ord, Generic)
 
-makeLenses ''GameConstants
+makeClassy ''GameConstants
 
 data GameData :: Nat -> ([Nat], Nat) -> Nat -> Nat -> Type where
     GameData :: { _gdEggData      :: EggData eggs

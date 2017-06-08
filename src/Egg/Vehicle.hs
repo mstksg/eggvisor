@@ -20,6 +20,7 @@ module Egg.Vehicle (
   , VehicleData(..), _VehicleData, SomeVehicleData
   , DepotStatus(..), _DepotStatus, SomeDepotStatus
   , initDepotStatus
+  , initSomeDepotStatus
   , upgradeDepot
   , baseDepotCapacity
   , totalDepotCapacity
@@ -124,6 +125,11 @@ instance ToJSON (VehicleData habs) where
 -- | Initial 'DepotStatus' to start off the game.
 initDepotStatus :: (KnownNat vs, 1 TL.<= vs) => DepotStatus vs N4
 initDepotStatus = DepotStatus $ Just 0 :+ pure Nothing
+
+-- | Initial 'SomeDepotStatus' to start off the game.
+initSomeDepotStatus :: (KnownNat vs, 1 TL.<= vs) => SomeDepotStatus vs
+initSomeDepotStatus = known :=> initDepotStatus
+
 
 -- | Add another empty depot slot
 upgradeDepot :: forall vs n. Known TCN.Nat n => DepotStatus vs n -> DepotStatus vs ('S n)

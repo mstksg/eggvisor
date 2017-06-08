@@ -5,6 +5,7 @@
 {-# LANGUAGE GADTs                  #-}
 {-# LANGUAGE KindSignatures         #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE MultiWayIf             #-}
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
 {-# LANGUAGE StandaloneDeriving     #-}
@@ -16,7 +17,9 @@
 module Egg.Farm (
     FarmStatus(..)
   , fsEgg, fsResearch, fsHabs, fsDepot, fsBocks, fsGoldenEggs, fsSoulEggs
-  , fsVideoBonus, fsPastEarnings
+  , fsVideoBonus, fsPrestEarnings
+  , IncomeChange(..), _ICHabFill, _ICDepotFill, _ICVideoDoublerExpire
+  , UpgradeError(..), _UELocked, _UERegression
   , initFarmStatus
   , farmEggValue
   , farmLayingRate
@@ -24,6 +27,7 @@ module Egg.Farm (
   , farmIncome
   , farmIncomeDT
   , farmIncomeDTInv
+  , farmValue
   , bonusingSoulEggs
   , videoDoubling
   , farmBonuses
@@ -32,6 +36,10 @@ module Egg.Farm (
   , waitUntilBocks
   , waitTilFarmPop
   , waitTilDepotFull
+  , upgradeEgg
+  , eggUpgrades
+  , eggsVisible
+  , prestige
   ) where
 
 import           Control.Lens
@@ -39,11 +47,13 @@ import           Control.Monad
 import           Control.Monad.Trans.Writer
 import           Data.Dependent.Sum
 import           Data.Finite
+import           Data.Functor
 import           Data.Kind
 import           Data.Semigroup
 import           Data.Singletons.TypeLits
 import           Data.Tuple
 import           Data.Type.Combinator
+import           Data.Type.Combinator.Util
 import           Data.Type.Fin
 import           Data.Vector.Sized.Util
 import           Egg.Commodity
@@ -69,7 +79,7 @@ data FarmStatus :: Nat -> ([Nat], Nat) -> Nat -> Nat -> Type where
                   , _fsGoldenEggs   :: GoldenEgg
                   , _fsSoulEggs     :: SoulEgg
                   , _fsVideoBonus   :: Maybe Double   -- ^ in seconds
-                  , _fsPastEarnings :: Double
+                  , _fsPrestEarnings :: Double
                   }
                -> FarmStatus eggs '(tiers, epic) habs vehicles
 
@@ -82,11 +92,17 @@ deriving instance (ListC (Eq <$> (Flip SV.Vector Natural <$> tiers)), ListC (Ord
 
 data IncomeChange
        = ICHabFill (Fin N4)
-       | ICDepotFull
+       | ICDepotFill
        | ICVideoDoublerExpire
   deriving (Show, Eq, Ord)
 
 makePrisms ''IncomeChange
+
+data UpgradeError = UELocked
+                  | UERegression
+  deriving (Show, Eq, Ord)
+
+makePrisms ''UpgradeError
 
 fsEgg :: Lens (FarmStatus e1 '(t, g) h v) (FarmStatus e2 '(t, g) h v) (Finite e1) (Finite e2)
 fsEgg f fs = (\e -> fs { _fsEgg = e }) <$> f (_fsEgg fs)
@@ -100,7 +116,7 @@ fsResearch f fs = f (_fsResearch fs) <&> \r ->
                 <*> _fsGoldenEggs
                 <*> _fsSoulEggs
                 <*> _fsVideoBonus
-                <*> _fsPastEarnings
+                <*> _fsPrestEarnings
     ) fs
 fsHabs :: Lens (FarmStatus e '(t, g) h1 v) (FarmStatus e '(t, g) h2 v) (HabStatus h1) (HabStatus h2)
 fsHabs f fs = (\h -> fs { _fsHabs = h }) <$> f (_fsHabs fs)
@@ -112,8 +128,14 @@ fsGoldenEggs :: Lens' (FarmStatus e '(t, g) h v) GoldenEgg
 fsGoldenEggs f fs = (\e -> fs { _fsGoldenEggs = max 0 e }) <$> f (_fsGoldenEggs fs)
 fsSoulEggs :: Lens' (FarmStatus e '(t, g) h v) SoulEgg
 fsSoulEggs f fs = (\s -> fs { _fsSoulEggs = max 0 s }) <$> f (_fsSoulEggs fs)
-fsPastEarnings :: Lens' (FarmStatus e '(t, g) h v) Double
-fsPastEarnings f fs = (\pe -> fs { _fsPastEarnings = max 0 pe }) <$> f (_fsPastEarnings fs)
+fsPrestEarnings :: Lens' (FarmStatus e '(t, g) h v) Double
+fsPrestEarnings f fs = (\pe -> fs { _fsPrestEarnings = max 0 pe }) <$> f (_fsPrestEarnings fs)
+
+-- | Only for incrementing
+fsBocksAndPrest :: Traversal' (FarmStatus e '(t, g) h v) Double
+fsBocksAndPrest f fs = (\b p -> fs { _fsBocks = max 0 b, _fsPrestEarnings = max 0 p })
+    <$> f (_fsBocks fs)
+    <*> f (_fsPrestEarnings fs)
 
 -- | Enforces only postive Just
 fsVideoBonus :: Lens' (FarmStatus e '(t, g) h v) (Maybe Double)
@@ -129,7 +151,7 @@ initFarmStatus (GameData _ rd _ _ _) =
     FarmStatus 0
                (emptyResearchStatus rd)
                initHabStatus
-               (known :=> initDepotStatus)
+               initSomeDepotStatus
                0
                0
                0
@@ -385,7 +407,7 @@ stepFarmDT
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
 stepFarmDT gd ic dt fs = fs
-    & fsBocks               +~ farmIncomeDT gd ic fs dt
+    & fsBocksAndPrest       +~ farmIncomeDT gd ic fs dt
     & fsHabs                %~ stepHabs (gd ^. gdHabData) (farmBonuses gd fs) ic dt
     & fsVideoBonus . mapped -~ dt
 
@@ -443,19 +465,19 @@ waitTilNextIncomeChange gd ic fs0 = case runWriterT $ fsHabs traverseWait fs0 of
       -> let depotStatChangeIn = do
                avail0 <- depotAvail0
                case snd (farmLayingRateAvailability gd fs1) of
-                 Nothing -> return . Min $ Arg (avail0 / rt) ICDepotFull
+                 Nothing -> return . Min $ Arg (avail0 / rt) ICDepotFill
                  Just _  -> Nothing
              videoDoublerChangeIn =
                fs0 ^. fsVideoBonus
                     & mapped %~ \x -> Min (Arg x ICVideoDoublerExpire)
          in  case depotStatChangeIn <> videoDoublerChangeIn of
                Just (Min (Arg tChange ich)) ->
-                 let fs2 = fs0 & fsBocks               +~ farmIncomeDT gd ic fs0 tChange
+                 let fs2 = fs0 & fsBocksAndPrest       +~ farmIncomeDT gd ic fs0 tChange
                                & fsHabs  . availableSpace (gd ^. gdHabData) bs . mapped -~ rt * tChange
                                & fsVideoBonus . mapped -~ tChange
                  in  WaitTilSuccess tChange (ich, fs2)
                Nothing                      ->
-                 let fs2 = fs0 & fsBocks               +~ farmIncomeDT gd ic fs0 tFill
+                 let fs2 = fs0 & fsBocksAndPrest       +~ farmIncomeDT gd ic fs0 tFill
                                & fsHabs                .~ (fs1 ^. fsHabs)
                                & fsVideoBonus . mapped -~ tFill
                  in  WaitTilSuccess tFill (ICHabFill s, fs2)
@@ -512,6 +534,102 @@ waitTilDepotFull gd ic fs0 = waitTilFarmPop gd ic (ceiling chickensAtCap) fs0
     chickensAtCap :: Double
     chickensAtCap = depotCap / farmLayingRatePerChicken gd fs0
 
+-- | Upgrade your egg!
+--
+upgradeEgg
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles, 1 TL.<= habs, 1 TL.<= vehicles)
+    => GameData  eggs '(tiers, epic) habs vehicles
+    -> Finite eggs
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Either UpgradeError (FarmStatus eggs '(tiers, epic) habs vehicles)
+upgradeEgg gd e fs
+    | e <= fs ^. fsEgg         = Left UERegression
+    | farmValue gd fs < unlock = Left UELocked
+    | otherwise                = Right $
+        fs & fsEgg           .~ e
+           & fsResearch . rsCommon . liftTraversal (_Flip . mapped) .~ 0
+           & fsHabs          .~ initHabStatus
+           & fsDepot         .~ initSomeDepotStatus
+           & fsBocks         .~ 0
+           & fsGoldenEggs    %~ id
+           & fsSoulEggs      %~ id
+           & fsVideoBonus    %~ id
+           & fsPrestEarnings %~ id
+  where
+    unlock = gd ^. gdEggData . _EggData . ixSV e . eggUnlock
+
+-- | Vector of possible upgrades
+eggUpgrades
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    => GameData  eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> (SV.Vector eggs :.: Either UpgradeError) (Finite eggs)
+eggUpgrades gd fs = Comp . SV.generate $ \e ->
+    let unlock = gd ^. gdEggData . _EggData . ixSV e . eggUnlock
+    in  if | e < fs ^. fsEgg          -> Left UERegression
+           | farmValue gd fs < unlock -> Left UELocked
+           | otherwise                -> Right e
+
+-- | Vector of visible eggs
+eggsVisible
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    => GameData  eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> (SV.Vector eggs :.: Maybe) (Finite eggs)
+eggsVisible gd fs = Comp . SV.generate $ \e ->
+    let unlock = gd ^. gdEggData . _EggData . ixSV e . eggUnlock
+    in  guard (farmValue gd fs >= unlock) $> e
+
+-- | Farm value
+--
+-- Formula is current hardcoded.
+--
+-- Credit /u/patashu:
+--
+-- <https://www.reddit.com/r/EggsInc/comments/63pfye/patashus_egg_inc_guide_xpost_from_regginc/>
+--
+-- TODO: figure out if income should be capped by depot or not
+farmValue
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    => GameData  eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Bock
+farmValue gd fs = (x + y + z) ^. bonusingFor bs BTFarmValue
+                               . multiplying eggBonus
+  where
+    eggBonus = gd ^. gdEggData . _EggData . ixSV (fs ^. fsEgg) . eggMultiplier
+    bs       = farmBonuses gd fs
+    hd       = gd ^. gdHabData
+    income   = farmIncome gd fs
+    chickens = fs ^. fsHabs . to (totalChickens hd)
+    incomepc = income / chickens
+    capacity = fs ^. fsHabs . to (totalHabCapacity hd bs)
+    hatchery = internalHatcheryRate bs NotCalm * 60
+    x = income * 54000
+    y = incomepc * capacity * 6000
+    z = incomepc * hatchery * 7200000
+
+-- | Prestige!  Resets farm, increments soul eggs.
+prestige
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles, 1 TL.<= habs, 1 TL.<= vehicles)
+    => GameData  eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+prestige gd fs =
+    fs & fsEgg           .~ 0
+       & fsResearch . rsCommon . liftTraversal (_Flip . mapped) .~ 0
+       & fsHabs          .~ initHabStatus
+       & fsDepot         .~ initSomeDepotStatus
+       & fsBocks         .~ 0
+       & fsGoldenEggs    %~ id
+       & fsSoulEggs      +~ round pBonus
+       & fsVideoBonus    %~ id
+       & fsPrestEarnings .~ 0
+  where
+    pBonus = fs ^. fsPrestEarnings
+                 . dividing (gd ^. gdConstants . gcPrestigeFactor)
+                 . exponentiating 0.15
+                 . bonusingFor (farmBonuses gd fs) BTPrestigeEggs
 
 -- | Largest root to a x^2 + b x + c, if any
 quadratic :: Double -> Double -> Double -> Maybe Double
@@ -520,5 +638,5 @@ quadratic a b c = case compare discr 0 of
     LT -> Nothing
     EQ -> Just (- b / (2 * a))
     GT -> Just ((- b + sqrt discr) / (2 * a))
-  where discr = b * b - 4 * a * c
-
+  where
+    discr = b * b - 4 * a * c
