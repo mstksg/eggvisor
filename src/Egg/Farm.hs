@@ -208,7 +208,7 @@ farmLayingRateAvailability gd fs =
     chickens :: Double
     chickens = fs ^. fsHabs . to (totalChickens (gd ^. gdHabData))
     cap :: Double
-    cap = withSomeDepotStatus bs (fs ^. fsDepot) $ \_ ->
+    cap = withSomeDepotStatus bs (fs ^. fsDepot) $
             totalDepotCapacity (gd ^. gdVehicleData) bs
 
 -- | How many eggs are laid per second, per chicken.
@@ -293,7 +293,7 @@ farmDepotCapacity
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Double
-farmDepotCapacity gd fs = withSomeDepotStatus bs (fs ^. fsDepot) $ \_ ->
+farmDepotCapacity gd fs = withSomeDepotStatus bs (fs ^. fsDepot) $
     totalDepotCapacity (gd ^. gdVehicleData) bs
   where
     bs = farmBonuses gd fs

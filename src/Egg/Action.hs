@@ -3,6 +3,7 @@
 {-# LANGUAGE KindSignatures #-}
 
 module Egg.Action (
+    Action(..)
   ) where
 
 import           Control.Lens

@@ -21,6 +21,7 @@ module Egg.Vehicle (
     Vehicle(..), vName, vBaseCapacity, vCosts
   , VehicleData(..), _VehicleData, SomeVehicleData
   , DepotStatus(..), _DepotStatus, SomeDepotStatus, _SomeDepotStatus
+  , SomeVehicleUpgradeError(..), _SVUERegression, _SVUENoSlot
   , withSomeDepotStatus
   , initDepotStatus
   , initSomeDepotStatus
@@ -29,11 +30,12 @@ module Egg.Vehicle (
   , vehicleHistory
   , vehiclePrice
   , upgradeVehicle
+  , upgradeSomeVehicle
   , vehicleUpgrades
   , someVehicleUpgrades
   ) where
 
-import           Control.Lens hiding                  ((.=))
+import           Control.Lens hiding         ((.=))
 import           Control.Monad
 import           Control.Monad.Trans.Writer
 import           Data.Aeson
@@ -50,15 +52,15 @@ import           Data.Type.Combinator
 import           Data.Vector.Sized.Util
 import           Egg.Commodity
 import           Egg.Research
-import           GHC.Generics                         (Generic)
+import           GHC.Generics                (Generic)
 import           Numeric.Lens
 import           Numeric.Natural
 import           Text.Printf
-import qualified Data.Map                             as M
-import qualified Data.Text                            as T
-import qualified Data.Vector                          as V
-import qualified Data.Vector.Sized                    as SV
-import qualified GHC.TypeLits                         as TL
+import qualified Data.Map                    as M
+import qualified Data.Text                   as T
+import qualified Data.Vector                 as V
+import qualified Data.Vector.Sized           as SV
+import qualified GHC.TypeLits                as TL
 
 data Vehicle = Vehicle
         { _vName         :: T.Text
@@ -84,6 +86,12 @@ data DepotStatus vs slots
 makePrisms ''DepotStatus
 makeWrapped ''DepotStatus
 
+data SomeVehicleUpgradeError = SVUERegression
+                             | SVUENoSlot
+  deriving (Show, Eq, Ord)
+
+makePrisms ''SomeVehicleUpgradeError
+
 data SomeDepotStatus vs
     = SomeDepotStatus { _sdsSlots :: M.Map Integer (Finite vs) }
   deriving (Show, Eq, Ord, Generic)
@@ -91,25 +99,33 @@ data SomeDepotStatus vs
 _SomeDepotStatus
     :: Functor f
     => Bonuses
-    -> (forall slots. Sing slots -> LensLike' f (DepotStatus vs slots) b)
+    -> (forall slots. KnownNat slots => LensLike' f (DepotStatus vs slots) b)
     -> LensLike' f (SomeDepotStatus vs) b
-_SomeDepotStatus bs f g sds0 = withSomeSing fleetSize $ \s@SNat ->
+_SomeDepotStatus bs f g = traverseSomeDepotStatus bs (f g)
+
+withSomeDepotStatus
+    :: Bonuses
+    -> SomeDepotStatus vs
+    -> (forall slots. KnownNat slots => DepotStatus vs slots -> r)
+    -> r
+withSomeDepotStatus bs sd f = sd ^. _SomeDepotStatus bs (to f)
+
+traverseSomeDepotStatus
+    :: Functor f
+    => Bonuses
+    -> (forall slots. KnownNat slots => DepotStatus vs slots -> f (DepotStatus vs slots))
+    -> SomeDepotStatus vs
+    -> f (SomeDepotStatus vs)
+traverseSomeDepotStatus bs f sds0 = withSomeSing fleetSize $ \(SNat :: Sing slots) ->
     let ds0 = DepotStatus
             . M.mapKeysMonotonic Finite
             . M.filterWithKey (\k _ -> k < fleetSize)
             $ _sdsSlots sds0
     in  SomeDepotStatus . M.mapKeysMonotonic getFinite . _dsSlots
-          <$> f s g ds0
+          <$> f @slots ds0
   where
     fleetSize :: Integer
     fleetSize = 4 ^. bonusingFor bs BTFleetSize . to round
-
-withSomeDepotStatus
-    :: Bonuses
-    -> SomeDepotStatus vs
-    -> (forall slots. Sing slots -> DepotStatus vs slots -> r)
-    -> r
-withSomeDepotStatus bs sd f = sd ^. _SomeDepotStatus bs (to . f)
 
 vehicleParseOptions :: Options
 vehicleParseOptions = defaultOptions
@@ -228,6 +244,30 @@ upgradeVehicle vd bs slot v ds0 =
       price <- vehiclePrice vd ds0 v
       return (Just v, price ^. bonusingFor bs BTVehicleCosts)
 
+-- | Purchase a vehicle upgrade.  Returns cost and new depot status,
+-- if purchase is valid.
+--
+-- Purchase is invalid if purchasing a vehicle in a slot where a greater
+-- vehicle is already purchased, and also if there is no such slot.
+upgradeSomeVehicle
+    :: forall vs. KnownNat vs
+    => VehicleData vs
+    -> Bonuses
+    -> Integer
+    -> Finite vs
+    -> SomeDepotStatus vs
+    -> Either SomeVehicleUpgradeError (Bock, SomeDepotStatus vs)
+upgradeSomeVehicle vd bs slot v sds0 =
+    fmap swap . runWriterT . traverseSomeDepotStatus bs (WriterT . go) $ sds0
+  where
+    go  :: KnownNat slots
+        => DepotStatus vs slots
+        -> Either SomeVehicleUpgradeError (DepotStatus vs slots, Bock)
+    go ds0 = case packFinite slot of
+      Nothing    -> Left SVUENoSlot
+      Just slot' -> maybe (Left SVUERegression) (Right . swap) $
+                      upgradeVehicle vd bs slot' v ds0
+
 -- | List all possible vehicle upgrades.
 vehicleUpgrades
     :: forall vs slots. KnownNat slots
@@ -263,10 +303,10 @@ someVehicleUpgrades vd bs = view $ _SomeDepotStatus bs go
                                  . _Unwrapped
                                  . _Unwrapped
   where
-    go  :: Sing slots
-        -> Getter (DepotStatus vs slots) [(Integer, SV.Vector vs (Maybe Bock))]
-    go SNat = to (vehicleUpgrades vd bs)
-            . _Wrapped
-            . _Wrapped
-            . to (itoListOf ifolded)
-            . to (over (mapped . _1) fromIntegral)
+    go  :: KnownNat slots
+        => Getter (DepotStatus vs slots) [(Integer, SV.Vector vs (Maybe Bock))]
+    go = to (vehicleUpgrades vd bs)
+       . _Wrapped
+       . _Wrapped
+       . to (itoListOf ifolded)
+       . to (over (mapped . _1) fromIntegral)
