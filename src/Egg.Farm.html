@@ -1,64 +1,87 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds            #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric        #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances    #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE GADTs                #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE KindSignatures       #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables  #-}</span><span>
-</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE StandaloneDeriving   #-}</span><span>
-</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE TemplateHaskell      #-}</span><span>
-</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators        #-}</span><span>
-</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
-</span><a name="line-11"></a><span>
-</span><a name="line-12"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Farm</span><span> </span><span class="hs-special">(</span><span>
-</span><a name="line-13"></a><span>    </span><a href="Egg.Farm.html#FarmStatus"><span class="hs-identifier hs-type">FarmStatus</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-14"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsEgg"><span class="hs-identifier hs-var">fsEgg</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsResearch"><span class="hs-identifier hs-var">fsResearch</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsHabs"><span class="hs-identifier hs-var">fsHabs</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsDepot"><span class="hs-identifier hs-var">fsDepot</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsBocks"><span class="hs-identifier hs-var">fsBocks</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsGoldenEggs"><span class="hs-identifier hs-var">fsGoldenEggs</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsSoulEggs"><span class="hs-identifier hs-var">fsSoulEggs</span></a><span>
-</span><a name="line-15"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#initFarmStatus"><span class="hs-identifier hs-var">initFarmStatus</span></a><span>
-</span><a name="line-16"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#farmEggValue"><span class="hs-identifier hs-var">farmEggValue</span></a><span>
-</span><a name="line-17"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#farmLayingRate"><span class="hs-identifier hs-var">farmLayingRate</span></a><span>
-</span><a name="line-18"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#farmLayingRateAvailability"><span class="hs-identifier hs-var">farmLayingRateAvailability</span></a><span>
-</span><a name="line-19"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#farmIncome"><span class="hs-identifier hs-var">farmIncome</span></a><span>
-</span><a name="line-20"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#farmIncomeDT"><span class="hs-identifier hs-var">farmIncomeDT</span></a><span>
-</span><a name="line-21"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#farmSoulEggBonus"><span class="hs-identifier hs-var">farmSoulEggBonus</span></a><span>
-</span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#farmBonuses"><span class="hs-identifier hs-var">farmBonuses</span></a><span>
-</span><a name="line-23"></a><span>  </span><span class="hs-comment">-- , waitTilDepotFull</span><span>
-</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#stepFarm"><span class="hs-identifier hs-var">stepFarm</span></a><span>
-</span><a name="line-25"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#stepFarmDT"><span class="hs-identifier hs-var">stepFarmDT</span></a><span>
-</span><a name="line-26"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-27"></a><span>
-</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span>
-</span><a name="line-29"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span class="hs-operator">.</span><span class="hs-identifier">Trans</span><span class="hs-operator">.</span><span class="hs-identifier">Writer</span><span>
-</span><a name="line-30"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Dependent</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
-</span><a name="line-31"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span>
-</span><a name="line-32"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
-</span><a name="line-33"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
-</span><a name="line-34"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Tuple</span><span>
-</span><a name="line-35"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
-</span><a name="line-36"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Fin</span><span>
-</span><a name="line-37"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Vector.Sized.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
-</span><a name="line-38"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Commodity.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Commodity</span></a><span>
-</span><a name="line-39"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Egg.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Egg</span></a><span>
-</span><a name="line-40"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.GameData.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">GameData</span></a><span>
-</span><a name="line-41"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Habitat.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Habitat</span></a><span>
-</span><a name="line-42"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Research.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Research</span></a><span>
-</span><a name="line-43"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Vehicle.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Vehicle</span></a><span>
-</span><a name="line-44"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span>
-</span><a name="line-45"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Natural</span><span>
-</span><a name="line-46"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Known</span><span>
-</span><a name="line-47"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
-</span><a name="line-48"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
-</span><a name="line-49"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>            </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
-</span><a name="line-50"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>                 </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TL</span><span>
-</span><a name="line-51"></a><span>
-</span><a name="line-52"></a><span class="hs-keyword">data</span><span> </span><a name="FarmStatus"><a href="Egg.Farm.html#FarmStatus"><span class="hs-identifier">FarmStatus</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="hs-identifier hs-type">Nat</span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Nat</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-53"></a><span>    </span><a name="FarmStatus"><a href="Egg.Farm.html#FarmStatus"><span class="hs-identifier">FarmStatus</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">{</span><span> </span><a name="_fsEgg"><a href="Egg.Farm.html#_fsEgg"><span class="hs-identifier">_fsEgg</span></a></a><span>        </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Finite</span><span> </span><a href="#local-6989586621680044748"><span class="hs-identifier hs-type">eggs</span></a><span>
-</span><a name="line-54"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsResearch"><a href="Egg.Farm.html#_fsResearch"><span class="hs-identifier">_fsResearch</span></a></a><span>   </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Research.html#ResearchStatus"><span class="hs-identifier hs-type">ResearchStatus</span></a><span> </span><a href="#local-6989586621680044749"><span class="hs-identifier hs-type">tiers</span></a><span> </span><a href="#local-6989586621680044750"><span class="hs-identifier hs-type">epic</span></a><span>
-</span><a name="line-55"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsHabs"><a href="Egg.Farm.html#_fsHabs"><span class="hs-identifier">_fsHabs</span></a></a><span>       </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Habitat.html#HabStatus"><span class="hs-identifier hs-type">HabStatus</span></a><span> </span><a href="#local-6989586621680044751"><span class="hs-identifier hs-type">habs</span></a><span>
-</span><a name="line-56"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsDepot"><a href="Egg.Farm.html#_fsDepot"><span class="hs-identifier">_fsDepot</span></a></a><span>      </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Vehicle.html#SomeDepotStatus"><span class="hs-identifier hs-type">SomeDepotStatus</span></a><span> </span><a href="#local-6989586621680044752"><span class="hs-identifier hs-type">vehicles</span></a><span>
-</span><a name="line-57"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsBocks"><a href="Egg.Farm.html#_fsBocks"><span class="hs-identifier">_fsBocks</span></a></a><span>      </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Commodity.html#Bock"><span class="hs-identifier hs-type">Bock</span></a><span>
-</span><a name="line-58"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsGoldenEggs"><a href="Egg.Farm.html#_fsGoldenEggs"><span class="hs-identifier">_fsGoldenEggs</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Commodity.html#GoldenEgg"><span class="hs-identifier hs-type">GoldenEgg</span></a><span>
-</span><a name="line-59"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsSoulEggs"><a href="Egg.Farm.html#_fsSoulEggs"><span class="hs-identifier">_fsSoulEggs</span></a></a><span>   </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Commodity.html#SoulEgg"><span class="hs-identifier hs-type">SoulEgg</span></a><span>
-</span><a name="line-60"></a><span>                  </span><span class="hs-special">}</span><span>
-</span><a name="line-61"></a><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Egg.Farm.html#FarmStatus"><span class="hs-identifier hs-type">FarmStatus</span></a><span> </span><a href="#local-6989586621680044748"><span class="hs-identifier hs-type">eggs</span></a><span> </span><span class="hs-char">'(tiers, epic) habs vehicles
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds              #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric          #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances      #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE FunctionalDependencies #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE GADTs                  #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE KindSignatures         #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses  #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE MultiWayIf             #-}</span><span>
+</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE RankNTypes             #-}</span><span>
+</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables    #-}</span><span>
+</span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE StandaloneDeriving     #-}</span><span>
+</span><a name="line-12"></a><span class="hs-pragma">{-# LANGUAGE TemplateHaskell        #-}</span><span>
+</span><a name="line-13"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators          #-}</span><span>
+</span><a name="line-14"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances   #-}</span><span>
+</span><a name="line-15"></a><span class="hs-pragma">{-# LANGUAGE ViewPatterns           #-}</span><span>
+</span><a name="line-16"></a><span>
+</span><a name="line-17"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Farm</span><span> </span><span class="hs-special">(</span><span>
+</span><a name="line-18"></a><span>    </span><a href="Egg.Farm.html#FarmStatus"><span class="hs-identifier hs-type">FarmStatus</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-19"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsEgg"><span class="hs-identifier hs-var">fsEgg</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsResearch"><span class="hs-identifier hs-var">fsResearch</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsHabs"><span class="hs-identifier hs-var">fsHabs</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsDepot"><span class="hs-identifier hs-var">fsDepot</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsBocks"><span class="hs-identifier hs-var">fsBocks</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsGoldenEggs"><span class="hs-identifier hs-var">fsGoldenEggs</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsSoulEggs"><span class="hs-identifier hs-var">fsSoulEggs</span></a><span>
+</span><a name="line-20"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsVideoBonus"><span class="hs-identifier hs-var">fsVideoBonus</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#fsPrestEarnings"><span class="hs-identifier hs-var">fsPrestEarnings</span></a><span>
+</span><a name="line-21"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#IncomeChange"><span class="hs-identifier hs-type">IncomeChange</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#_ICHabFill"><span class="hs-identifier hs-var">_ICHabFill</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#_ICDepotFill"><span class="hs-identifier hs-var">_ICDepotFill</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#_ICVideoDoublerExpire"><span class="hs-identifier hs-var">_ICVideoDoublerExpire</span></a><span>
+</span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#UpgradeError"><span class="hs-identifier hs-type">UpgradeError</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#_UELocked"><span class="hs-identifier hs-var">_UELocked</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#_UERegression"><span class="hs-identifier hs-var">_UERegression</span></a><span>
+</span><a name="line-23"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#initFarmStatus"><span class="hs-identifier hs-var">initFarmStatus</span></a><span>
+</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#farmEggValue"><span class="hs-identifier hs-var">farmEggValue</span></a><span>
+</span><a name="line-25"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#farmLayingRate"><span class="hs-identifier hs-var">farmLayingRate</span></a><span>
+</span><a name="line-26"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#farmLayingRateAvailability"><span class="hs-identifier hs-var">farmLayingRateAvailability</span></a><span>
+</span><a name="line-27"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#farmIncome"><span class="hs-identifier hs-var">farmIncome</span></a><span>
+</span><a name="line-28"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#farmIncomeDT"><span class="hs-identifier hs-var">farmIncomeDT</span></a><span>
+</span><a name="line-29"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#farmIncomeDTInv"><span class="hs-identifier hs-var">farmIncomeDTInv</span></a><span>
+</span><a name="line-30"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#farmValue"><span class="hs-identifier hs-var">farmValue</span></a><span>
+</span><a name="line-31"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#bonusingSoulEggs"><span class="hs-identifier hs-var">bonusingSoulEggs</span></a><span>
+</span><a name="line-32"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#videoDoubling"><span class="hs-identifier hs-var">videoDoubling</span></a><span>
+</span><a name="line-33"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#farmBonuses"><span class="hs-identifier hs-var">farmBonuses</span></a><span>
+</span><a name="line-34"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#stepFarm"><span class="hs-identifier hs-var">stepFarm</span></a><span>
+</span><a name="line-35"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#stepFarmDT"><span class="hs-identifier hs-var">stepFarmDT</span></a><span>
+</span><a name="line-36"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#waitUntilBocks"><span class="hs-identifier hs-var">waitUntilBocks</span></a><span>
+</span><a name="line-37"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#waitTilFarmPop"><span class="hs-identifier hs-var">waitTilFarmPop</span></a><span>
+</span><a name="line-38"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#waitTilDepotFull"><span class="hs-identifier hs-var">waitTilDepotFull</span></a><span>
+</span><a name="line-39"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#upgradeEgg"><span class="hs-identifier hs-var">upgradeEgg</span></a><span>
+</span><a name="line-40"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#eggUpgrades"><span class="hs-identifier hs-var">eggUpgrades</span></a><span>
+</span><a name="line-41"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#eggsVisible"><span class="hs-identifier hs-var">eggsVisible</span></a><span>
+</span><a name="line-42"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Farm.html#prestige"><span class="hs-identifier hs-var">prestige</span></a><span>
+</span><a name="line-43"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-44"></a><span>
+</span><a name="line-45"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span>
+</span><a name="line-46"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span>
+</span><a name="line-47"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span class="hs-operator">.</span><span class="hs-identifier">Trans</span><span class="hs-operator">.</span><span class="hs-identifier">Writer</span><span>
+</span><a name="line-48"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Dependent</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
+</span><a name="line-49"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span>
+</span><a name="line-50"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Functor</span><span>
+</span><a name="line-51"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
+</span><a name="line-52"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Semigroup</span><span>
+</span><a name="line-53"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
+</span><a name="line-54"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Tuple</span><span>
+</span><a name="line-55"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
+</span><a name="line-56"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Combinator.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-57"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Fin</span><span>
+</span><a name="line-58"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Vector.Sized.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-59"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Commodity.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Commodity</span></a><span>
+</span><a name="line-60"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Egg.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Egg</span></a><span>
+</span><a name="line-61"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.GameData.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">GameData</span></a><span>
+</span><a name="line-62"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Habitat.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Habitat</span></a><span>
+</span><a name="line-63"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Research.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Research</span></a><span>
+</span><a name="line-64"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Vehicle.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Vehicle</span></a><span>
+</span><a name="line-65"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span>
+</span><a name="line-66"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Natural</span><span>
+</span><a name="line-67"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Known</span><span>
+</span><a name="line-68"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
+</span><a name="line-69"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-70"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>          </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
+</span><a name="line-71"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TL</span><span>
+</span><a name="line-72"></a><span>
+</span><a name="line-73"></a><span class="hs-keyword">data</span><span> </span><a name="FarmStatus"><a href="Egg.Farm.html#FarmStatus"><span class="hs-identifier">FarmStatus</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="hs-identifier hs-type">Nat</span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Nat</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Nat</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-74"></a><span>    </span><a name="FarmStatus"><a href="Egg.Farm.html#FarmStatus"><span class="hs-identifier">FarmStatus</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">{</span><span> </span><a name="_fsEgg"><a href="Egg.Farm.html#_fsEgg"><span class="hs-identifier">_fsEgg</span></a></a><span>          </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Finite</span><span> </span><a href="#local-6989586621680062623"><span class="hs-identifier hs-type">eggs</span></a><span>
+</span><a name="line-75"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsResearch"><a href="Egg.Farm.html#_fsResearch"><span class="hs-identifier">_fsResearch</span></a></a><span>     </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Research.html#ResearchStatus"><span class="hs-identifier hs-type">ResearchStatus</span></a><span> </span><a href="#local-6989586621680062624"><span class="hs-identifier hs-type">tiers</span></a><span> </span><a href="#local-6989586621680062625"><span class="hs-identifier hs-type">epic</span></a><span>
+</span><a name="line-76"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsHabs"><a href="Egg.Farm.html#_fsHabs"><span class="hs-identifier">_fsHabs</span></a></a><span>         </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Habitat.html#HabStatus"><span class="hs-identifier hs-type">HabStatus</span></a><span> </span><a href="#local-6989586621680062626"><span class="hs-identifier hs-type">habs</span></a><span>
+</span><a name="line-77"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsDepot"><a href="Egg.Farm.html#_fsDepot"><span class="hs-identifier">_fsDepot</span></a></a><span>        </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Vehicle.html#SomeDepotStatus"><span class="hs-identifier hs-type">SomeDepotStatus</span></a><span> </span><a href="#local-6989586621680062627"><span class="hs-identifier hs-type">vehicles</span></a><span>
+</span><a name="line-78"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsBocks"><a href="Egg.Farm.html#_fsBocks"><span class="hs-identifier">_fsBocks</span></a></a><span>        </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Commodity.html#Bock"><span class="hs-identifier hs-type">Bock</span></a><span>
+</span><a name="line-79"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsGoldenEggs"><a href="Egg.Farm.html#_fsGoldenEggs"><span class="hs-identifier">_fsGoldenEggs</span></a></a><span>   </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Commodity.html#GoldenEgg"><span class="hs-identifier hs-type">GoldenEgg</span></a><span>
+</span><a name="line-80"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsSoulEggs"><a href="Egg.Farm.html#_fsSoulEggs"><span class="hs-identifier">_fsSoulEggs</span></a></a><span>     </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Commodity.html#SoulEgg"><span class="hs-identifier hs-type">SoulEgg</span></a><span>
+</span><a name="line-81"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsVideoBonus"><a href="Egg.Farm.html#_fsVideoBonus"><span class="hs-identifier">_fsVideoBonus</span></a></a><span>   </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Maybe</span><span> </span><span class="hs-identifier hs-type">Double</span><span>   </span><span class="hs-comment">-- ^ in seconds</span><span>
+</span><a name="line-82"></a><span>                  </span><span class="hs-special">,</span><span> </span><a name="_fsPrestEarnings"><a href="Egg.Farm.html#_fsPrestEarnings"><span class="hs-identifier">_fsPrestEarnings</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Double</span><span>
+</span><a name="line-83"></a><span>                  </span><span class="hs-special">}</span><span>
+</span><a name="line-84"></a><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><a href="Egg.Farm.html#FarmStatus"><span class="hs-identifier hs-type">FarmStatus</span></a><span> </span><a href="#local-6989586621680062623"><span class="hs-identifier hs-type">eggs</span></a><span> </span><span class="hs-char">'(tiers, epic) habs vehicles
 
 deriving instance ListC (Show &lt;$&gt; (Flip SV.Vector Natural &lt;$&gt; tiers))
     =&gt; Show (FarmStatus eggs '(tiers, epic) habs vehicles)
@@ -66,6 +89,20 @@ deriving instance ListC (Eq &lt;$&gt; (Flip SV.Vector Natural &lt;$&gt; tiers))
     =&gt; Eq (FarmStatus egg '(tiers, epic) habs vehicles)
 deriving instance (ListC (Eq &lt;$&gt; (Flip SV.Vector Natural &lt;$&gt; tiers)), ListC (Ord &lt;$&gt; (Flip SV.Vector Natural &lt;$&gt; tiers)))
     =&gt; Ord (FarmStatus egg '(tiers, epic) habs vehicles)
+
+data IncomeChange
+       = ICHabFill (Fin N4)
+       | ICDepotFill
+       | ICVideoDoublerExpire
+  deriving (Show, Eq, Ord)
+
+makePrisms ''IncomeChange
+
+data UpgradeError = UELocked
+                  | UERegression
+  deriving (Show, Eq, Ord)
+
+makePrisms ''UpgradeError
 
 fsEgg :: Lens (FarmStatus e1 '(t, g) h v) (FarmStatus e2 '(t, g) h v) (Finite e1) (Finite e2)
 fsEgg f fs = (\e -&gt; fs { _fsEgg = e }) &lt;$&gt; f (_fsEgg fs)
@@ -78,17 +115,33 @@ fsResearch f fs = f (_fsResearch fs) &lt;&amp;&gt; \r -&gt;
                 &lt;*&gt; _fsBocks
                 &lt;*&gt; _fsGoldenEggs
                 &lt;*&gt; _fsSoulEggs
+                &lt;*&gt; _fsVideoBonus
+                &lt;*&gt; _fsPrestEarnings
     ) fs
 fsHabs :: Lens (FarmStatus e '(t, g) h1 v) (FarmStatus e '(t, g) h2 v) (HabStatus h1) (HabStatus h2)
 fsHabs f fs = (\h -&gt; fs { _fsHabs = h }) &lt;$&gt; f (_fsHabs fs)
 fsDepot :: Lens (FarmStatus e '(t, g) h v1) (FarmStatus e '(t, g) h v2) (SomeDepotStatus v1) (SomeDepotStatus v2)
 fsDepot f fs = (\d -&gt; fs { _fsDepot = d }) &lt;$&gt; f (_fsDepot fs)
 fsBocks :: Lens' (FarmStatus e '(t, g) h v) Bock
-fsBocks f fs = (\b -&gt; fs { _fsBocks = b }) &lt;$&gt; f (_fsBocks fs)
+fsBocks f fs = (\b -&gt; fs { _fsBocks = max 0 b }) &lt;$&gt; f (_fsBocks fs)
 fsGoldenEggs :: Lens' (FarmStatus e '(t, g) h v) GoldenEgg
-fsGoldenEggs f fs = (\e -&gt; fs { _fsGoldenEggs = e }) &lt;$&gt; f (_fsGoldenEggs fs)
+fsGoldenEggs f fs = (\e -&gt; fs { _fsGoldenEggs = max 0 e }) &lt;$&gt; f (_fsGoldenEggs fs)
 fsSoulEggs :: Lens' (FarmStatus e '(t, g) h v) SoulEgg
-fsSoulEggs f fs = (\s -&gt; fs { _fsSoulEggs = s }) &lt;$&gt; f (_fsSoulEggs fs)
+fsSoulEggs f fs = (\s -&gt; fs { _fsSoulEggs = max 0 s }) &lt;$&gt; f (_fsSoulEggs fs)
+fsPrestEarnings :: Lens' (FarmStatus e '(t, g) h v) Double
+fsPrestEarnings f fs = (\pe -&gt; fs { _fsPrestEarnings = max 0 pe }) &lt;$&gt; f (_fsPrestEarnings fs)
+
+-- | Only for incrementing
+fsBocksAndPrest :: Traversal' (FarmStatus e '(t, g) h v) Double
+fsBocksAndPrest f fs = (\b p -&gt; fs { _fsBocks = max 0 b, _fsPrestEarnings = max 0 p })
+    &lt;$&gt; f (_fsBocks fs)
+    &lt;*&gt; f (_fsPrestEarnings fs)
+
+-- | Enforces only postive Just
+fsVideoBonus :: Lens' (FarmStatus e '(t, g) h v) (Maybe Double)
+fsVideoBonus f fs = (\vb -&gt; fs { _fsVideoBonus = mfilter (&gt; 0) vb }) &lt;$&gt; f (_fsVideoBonus fs)
+
+
 
 initFarmStatus
     :: (KnownNat eggs, KnownNat habs, KnownNat vehicles, 1 TL.&lt;= eggs, 1 TL.&lt;= habs, 1 TL.&lt;= vehicles)
@@ -98,9 +151,11 @@ initFarmStatus (GameData _ rd _ _ _) =
     FarmStatus 0
                (emptyResearchStatus rd)
                initHabStatus
-               (known :=&gt; initDepotStatus)
+               initSomeDepotStatus
                0
                0
+               0
+               Nothing
                0
 
 -- | Egg value
@@ -168,15 +223,14 @@ farmLayingRatePerChicken gd fs =
         . dividing 60
         . bonusingFor (farmBonuses gd fs) BTLayingRate
 
--- -- | Total income (bocks per second), per chicken.
--- farmIncomePerChicken
---     :: (KnownNat eggs, KnownNat vehicles)
---     =&gt; GameData   eggs '(tiers, epic) habs vehicles
---     -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
---     -&gt; Double
--- farmIncomePerChicken gd fs = fs ^. to (farmLayingRatePerChicken gd)
---                                  . to (* farmEggValue gd fs)
---                                  . to (* farmSoulEggBonus gd fs)
+-- | Apply video doubling bonus
+videoDoubling
+    :: GameData   eggs '(tiers, epic) habs vehicles
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+    -&gt; Iso' Double Double
+videoDoubling gd fs = case fs ^. fsVideoBonus of
+    Just _  -&gt; multiplying $ gd ^. gdConstants . gcVideoBonus
+    Nothing -&gt; id
 
 -- | Total income (bocks per second)
 farmIncome
@@ -186,7 +240,8 @@ farmIncome
     -&gt; Double
 farmIncome gd fs = fs ^. to (farmLayingRate gd)
                        . to (* farmEggValue gd fs)
-                       . to (* farmSoulEggBonus gd fs)
+                       . bonusingSoulEggs gd fs
+                       . videoDoubling gd fs
 
 -- | Total bock income over a given small-ish period of time, assuming
 -- no habs get filled up or depots get filled up in this time interval.
@@ -200,8 +255,8 @@ farmIncome gd fs = fs ^. to (farmLayingRate gd)
 --
 -- Assuming capped:
 --
--- incomerate(t) = (initHabSize + growthRate * t) * layingRate * eggValue
--- totalincome = [initHabSize * dt + 1/2 growthRate * dt^2] * layingRate * eggValue
+-- incomerate(t) = (initHabSize + growthRate * t) * layingRate * eggValue * bonuses
+-- totalincome = [initHabSize * dt + 1/2 growthRate * dt^2] * layingRate * eggValue * bonuses
 --
 -- Assuming uncapped:
 --
@@ -216,15 +271,74 @@ farmIncomeDT
     -&gt; Double     -- ^ small time step (dt^3 = 0)
     -&gt; Double
 farmIncomeDT gd ic fs dt
-    | initLaying &gt;= cap = dt * cap * eggVal
+    | initLaying &gt;= cap = (dt * cap * eggVal) ^. bonusingSoulEggs gd fs
+                                               . videoDoubling gd fs
     | otherwise         = (initHabSize * dt + growthRate * dt * dt / 2)
-                            * layingRate * eggVal
+                            ^. to (* (layingRate * eggVal))
+                             . bonusingSoulEggs gd fs
+                             . videoDoubling gd fs
+
   where
-    bs          = farmBonuses gd fs
     layingRate  = farmLayingRatePerChicken gd fs
-    eggVal      = farmEggValue   gd fs
+    eggVal      = farmEggValue gd fs
+    initHabSize = fs ^. fsHabs
+                      . to (totalChickens (gd ^. gdHabData))
+    growthRate  = fs ^. fsHabs
+                      . to (totalGrowthRate (gd ^. gdHabData) (farmBonuses gd fs) ic)
+    initLaying  = layingRate * initHabSize
+    cap         = case fs ^. fsDepot of
+      _ :=&gt; d -&gt; totalDepotCapacity (gd ^. gdVehicleData)
+                                    (farmBonuses gd fs)
+                                    d
+
+-- | Find the time to the given goal, assuming constant growth rate and no
+-- discontinuities.
+--
+-- Assuming uncapped:
+--
+-- totalincome = [initHabSize * dt + 1/2 growthRate * dt^2] * layingRate * eggValue * bonuses
+--
+-- so we hav:
+--
+-- 1/2 growthRate dt^2 + initHabSize dt - totalincome / (layingRate * eggValue * bonuses) = 0
+--
+-- Assuming capped:
+--
+-- totalincome = capped (initHabSize dt * layingRate) * evvGalue * bonuses
+--
+-- so:
+--
+-- dt = totalincome / capped rate
+--
+-- Assumes egg value is not zero.
+--
+farmIncomeDTInv
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    =&gt; GameData   eggs '(tiers, epic) habs vehicles
+    -&gt; IsCalm
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+    -&gt; Bock     -- ^ bock goal
+    -&gt; Maybe Double
+farmIncomeDTInv gd ic fs goal
+    | initLaying &lt;= 0   = Nothing
+    | initLaying &gt;= cap = Just $
+        dBock / (cap * eggVal ^. bonusingSoulEggs gd fs
+                               . videoDoubling gd fs
+                )
+    | otherwise         =
+        let c = dBock ^. dividing (layingRate * eggVal)
+                       . from (bonusingSoulEggs gd fs)
+                       . from (videoDoubling gd fs)
+                       . negated
+        in  quadratic (growthRate / 2) initHabSize c
+  where
+    curr        = fs ^. fsBocks
+    dBock       = goal - curr
+    layingRate  = farmLayingRatePerChicken gd fs
+    eggVal      = farmEggValue gd fs
     initHabSize = fs ^. fsHabs . to (totalChickens (gd ^. gdHabData))
-    growthRate  = fs ^. fsHabs . to (totalGrowthRate (gd ^. gdHabData) bs ic)
+    growthRate  = fs ^. fsHabs
+                      . to (totalGrowthRate (gd ^. gdHabData) (farmBonuses gd fs) ic)
     initLaying  = layingRate * initHabSize
     cap         = case fs ^. fsDepot of
       _ :=&gt; d -&gt; totalDepotCapacity (gd ^. gdVehicleData)
@@ -232,37 +346,16 @@ farmIncomeDT gd ic fs dt
                                     d
 
 -- | Soul egg bonus
-farmSoulEggBonus
+bonusingSoulEggs
     :: GameData   eggs '(tiers, epic) habs vehicles
     -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
-    -&gt; Double
-farmSoulEggBonus gd fs =
-    gd ^. gdConstants
-        . gcBaseSoulEggBonus
-        . to (* (fs ^. fsSoulEggs . to fromIntegral))
-        . bonusingFor (farmBonuses gd fs) BTSoulEggBonus
-
--- -- | Time until depots are full
--- --
--- -- TODO: increase bocks
--- waitTilDepotFull
---     :: (KnownNat habs, KnownNat vehicles)
---     =&gt; GameData   eggs '(tiers, epic) habs vehicles
---     -&gt; IsCalm
---     -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
---     -&gt; WaitTilRes (FarmStatus eggs '(tiers, epic) habs vehicles)
--- waitTilDepotFull gd ic fs =
---     fs &amp;  fsHabs %%~ waitTilPop (gd ^. gdHabData) bs ic (floor chickensAtCap)
---       &lt;&amp;&gt; fsBocks %~ _
---        -- &amp; bocks
---   where
---     bs :: Bonuses
---     bs = farmBonuses gd fs
---     depotCap :: Double
---     depotCap = case fs ^. fsDepot of
---       _ :=&gt; d -&gt; totalDepotCapacity (gd ^. gdVehicleData) bs d
---     chickensAtCap :: Double
---     chickensAtCap = depotCap / farmLayingRatePerChicken gd fs
+    -&gt; Iso' Double Double
+bonusingSoulEggs gd fs = multiplying $
+    1 + (bonus * fromIntegral (fs ^. fsSoulEggs)) / 100
+  where
+    bonus = gd ^. gdConstants
+                . gcBaseSoulEggBonus
+                . bonusingFor (farmBonuses gd fs) BTSoulEggBonus
 
 -- | Bonuses from a given 'GameData' and 'FarmStatus'
 farmBonuses
@@ -286,27 +379,17 @@ stepFarm
     -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
 stepFarm gd ic dt0 fs0 = go dt0 fs0
   where
-    traverseWait
-        :: HabStatus habs
-        -&gt; WriterT ((Fin N4, Double), Double) (Either HWaitError) (HabStatus habs)
-    traverseWait = WriterT
-                 . fmap swap
-                 . waitTilNextFilled (gd ^. gdHabData) bs ic
-    bs :: Bonuses
-    bs = farmBonuses gd fs0
     go  :: Double
         -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
         -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
-    go dt fs1 = case waitTilNextHabOrDepotFilled gd ic fs1 of
-      -- growth rate constant, and depots won't change status
-      NonStarter -&gt; fs1 &amp; fsBocks +~ (farmIncome gd fs1 * dt)
-      -- growth rate constant, and depots won't change status
-      NoWait     -&gt; fs1 &amp; fsBocks +~ (farmIncome gd fs1 * dt)
+    go dt fs1 = case waitTilNextIncomeChange gd ic fs1 of
       WaitTilSuccess tFill (_, fs2)
         -- habs are growing slowly enough that nothing something changes
         | dt &lt; tFill -&gt; stepFarmDT gd ic dt fs1
         -- habs are growing quickly enough that something changes
         | otherwise  -&gt; go (dt - tFill) fs2
+      -- growth rate constant, and depots won't change status
+      _ -&gt; stepFarmDT gd ic dt fs1
 
 -- | Step farm over a SMALL (infinitessimal) time step.  Assumes that
 -- nothing discontinuous changes during the time inveral, including things
@@ -324,8 +407,9 @@ stepFarmDT
     -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
     -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
 stepFarmDT gd ic dt fs = fs
-    &amp; fsBocks +~ farmIncomeDT gd ic fs dt
-    &amp; fsHabs  %~ stepHabs (gd ^. gdHabData) (farmBonuses gd fs) ic dt
+    &amp; fsBocksAndPrest       +~ farmIncomeDT gd ic fs dt
+    &amp; fsHabs                %~ stepHabs (gd ^. gdHabData) (farmBonuses gd fs) ic dt
+    &amp; fsVideoBonus . mapped -~ dt
 
 -- | Wait until bocks.
 waitUntilBocks
@@ -335,14 +419,22 @@ waitUntilBocks
     -&gt; Bock       -- ^ goal
     -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
     -&gt; WaitTilRes I (FarmStatus eggs '(tiers, epic) habs vehicles)
-waitUntilBocks gd ic goal0 fs0 = go goal0 fs0
+waitUntilBocks gd ic goal fs0
+    | fs0 ^. fsBocks &gt;= goal = NoWait
+    | otherwise              = go fs0
   where
-    bs :: Bonuses
-    bs = farmBonuses gd fs0
-    go  :: Bock
-        -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+    go  :: FarmStatus eggs '(tiers, epic) habs vehicles
         -&gt; WaitTilRes I (FarmStatus eggs '(tiers, epic) habs vehicles)
-    go goal fs1 = undefined
+    go fs1 = case waitTilNextIncomeChange gd ic fs1 of
+        WaitTilSuccess tFill (_, fs2)
+          -- change, and goal is still out of reach
+          | fs2 ^. fsBocks &gt; goal -&gt; go fs2 &amp; wtrTime +~ tFill
+        _ -- change or no change, and goal happens before then
+          | otherwise       -&gt;
+              let dt = farmIncomeDTInv gd ic fs1 goal
+              in  case dt of
+                    Nothing -&gt; NonStarter
+                    Just t  -&gt; WaitTilSuccess t (I (stepFarmDT gd ic t fs1))
 
 -- | Results:
 --
@@ -357,31 +449,40 @@ waitUntilBocks gd ic goal0 fs0 = go goal0 fs0
 --
 -- Tag is Nothing if depot fill event, or Just s if hab fill event with
 -- slot.
-waitTilNextHabOrDepotFilled
+waitTilNextIncomeChange
     :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs, KnownNat vehicles)
     =&gt; GameData   eggs '(tiers, epic) habs vehicles
     -&gt; IsCalm
     -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
-    -&gt; WaitTilRes ((,) (Maybe (Fin N4))) (FarmStatus eggs '(tiers, epic) habs vehicles)
-waitTilNextHabOrDepotFilled gd ic fs0 = case runWriterT $ fsHabs traverseWait fs0 of
+    -&gt; WaitTilRes ((,) IncomeChange) (FarmStatus eggs '(tiers, epic) habs vehicles)
+waitTilNextIncomeChange gd ic fs0 = case runWriterT $ fsHabs traverseWait fs0 of
     Left e -&gt; case e of
       HWENoInternalHatcheries
         | initAllFull    -&gt; NonStarter
         | initMaxedDepot -&gt; NonStarter
       _                  -&gt; NoWait
     Right (fs1, ((s, tFill), rt))
-      -&gt;  case (depotAvail0, snd (farmLayingRateAvailability gd fs1)) of
-            -- depot status changes
-            (Just avail0, Nothing) -&gt;
-              let timeToFill = avail0 / rt
-                  fs2 = fs0 &amp; fsBocks +~ farmIncomeDT gd ic fs0 timeToFill
-                            &amp; fsHabs  . availableSpace (gd ^. gdHabData) bs . mapped -~ rt * timeToFill
-              in  WaitTilSuccess timeToFill (Nothing, fs2)
-            -- depot status doesn't change
-            _                      -&gt; 
-              WaitTilSuccess tFill (Just s, fs1)
+      -&gt; let depotStatChangeIn = do
+               avail0 &lt;- depotAvail0
+               case snd (farmLayingRateAvailability gd fs1) of
+                 Nothing -&gt; return . Min $ Arg (avail0 / rt) ICDepotFill
+                 Just _  -&gt; Nothing
+             videoDoublerChangeIn =
+               fs0 ^. fsVideoBonus
+                    &amp; mapped %~ \x -&gt; Min (Arg x ICVideoDoublerExpire)
+         in  case depotStatChangeIn &lt;&gt; videoDoublerChangeIn of
+               Just (Min (Arg tChange ich)) -&gt;
+                 let fs2 = fs0 &amp; fsBocksAndPrest       +~ farmIncomeDT gd ic fs0 tChange
+                               &amp; fsHabs  . availableSpace (gd ^. gdHabData) bs . mapped -~ rt * tChange
+                               &amp; fsVideoBonus . mapped -~ tChange
+                 in  WaitTilSuccess tChange (ich, fs2)
+               Nothing                      -&gt;
+                 let fs2 = fs0 &amp; fsBocksAndPrest       +~ farmIncomeDT gd ic fs0 tFill
+                               &amp; fsHabs                .~ (fs1 ^. fsHabs)
+                               &amp; fsVideoBonus . mapped -~ tFill
+                 in  WaitTilSuccess tFill (ICHabFill s, fs2)
   where
-    initAllFull    = andOf (fsHabs . to (fullHabs (gd ^. gdHabData) bs) . traverse) fs0
+    initAllFull    = andOf (fsHabs . to (fullHabs (gd ^. gdHabData) bs) . folded) fs0
     initMaxedDepot = has _Nothing depotAvail0
     bs :: Bonuses
     bs = farmBonuses gd fs0
@@ -393,4 +494,150 @@ waitTilNextHabOrDepotFilled gd ic fs0 = case runWriterT $ fsHabs traverseWait fs
     traverseWait = WriterT
                  . fmap swap
                  . waitTilNextFilled (gd ^. gdHabData) bs ic
+
+-- | Wait until population reaches a given point.
+--
+-- If Left returned, means that hab maxed out.
+waitTilFarmPop
+    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    =&gt; GameData   eggs '(tiers, epic) habs vehicles
+    -&gt; IsCalm
+    -&gt; Natural    -- ^ goal
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+    -&gt; WaitTilRes (Either (FarmStatus eggs '(tiers, epic) habs vehicles))
+                  (FarmStatus eggs '(tiers, epic) habs vehicles)
+waitTilFarmPop gd ic goal fs0 =
+    case waitTilPop (gd ^. gdHabData) (farmBonuses gd fs0) ic goal (fs0 ^. fsHabs) of
+      NoWait             -&gt; NoWait
+      NonStarter         -&gt; NonStarter
+      WaitTilSuccess t h -&gt;
+        let fs1 = stepFarm gd ic t fs0
+        in  case h of
+              Nothing -&gt; WaitTilSuccess t (Left  fs1)
+              Just _  -&gt; WaitTilSuccess t (Right fs1)
+
+-- | Time until depots are full
+--
+-- If Left returned, means that hab maxed out.
+waitTilDepotFull
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    =&gt; GameData   eggs '(tiers, epic) habs vehicles
+    -&gt; IsCalm
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+    -&gt; WaitTilRes (Either (FarmStatus eggs '(tiers, epic) habs vehicles))
+                  (FarmStatus eggs '(tiers, epic) habs vehicles)
+waitTilDepotFull gd ic fs0 = waitTilFarmPop gd ic (ceiling chickensAtCap) fs0
+  where
+    depotCap :: Double
+    depotCap = case fs0 ^. fsDepot of
+      _ :=&gt; d -&gt; totalDepotCapacity (gd ^. gdVehicleData) (farmBonuses gd fs0) d
+    chickensAtCap :: Double
+    chickensAtCap = depotCap / farmLayingRatePerChicken gd fs0
+
+-- | Upgrade your egg!
+--
+upgradeEgg
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles, 1 TL.&lt;= habs, 1 TL.&lt;= vehicles)
+    =&gt; GameData  eggs '(tiers, epic) habs vehicles
+    -&gt; Finite eggs
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+    -&gt; Either UpgradeError (FarmStatus eggs '(tiers, epic) habs vehicles)
+upgradeEgg gd e fs
+    | e &lt;= fs ^. fsEgg         = Left UERegression
+    | farmValue gd fs &lt; unlock = Left UELocked
+    | otherwise                = Right $
+        fs &amp; fsEgg           .~ e
+           &amp; fsResearch . rsCommon . liftTraversal (_Flip . mapped) .~ 0
+           &amp; fsHabs          .~ initHabStatus
+           &amp; fsDepot         .~ initSomeDepotStatus
+           &amp; fsBocks         .~ 0
+           &amp; fsGoldenEggs    %~ id
+           &amp; fsSoulEggs      %~ id
+           &amp; fsVideoBonus    %~ id
+           &amp; fsPrestEarnings %~ id
+  where
+    unlock = gd ^. gdEggData . _EggData . ixSV e . eggUnlock
+
+-- | Vector of possible upgrades
+eggUpgrades
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    =&gt; GameData  eggs '(tiers, epic) habs vehicles
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+    -&gt; (SV.Vector eggs :.: Either UpgradeError) (Finite eggs)
+eggUpgrades gd fs = Comp . SV.generate $ \e -&gt;
+    let unlock = gd ^. gdEggData . _EggData . ixSV e . eggUnlock
+    in  if | e &lt; fs ^. fsEgg          -&gt; Left UERegression
+           | farmValue gd fs &lt; unlock -&gt; Left UELocked
+           | otherwise                -&gt; Right e
+
+-- | Vector of visible eggs
+eggsVisible
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    =&gt; GameData  eggs '(tiers, epic) habs vehicles
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+    -&gt; (SV.Vector eggs :.: Maybe) (Finite eggs)
+eggsVisible gd fs = Comp . SV.generate $ \e -&gt;
+    let unlock = gd ^. gdEggData . _EggData . ixSV e . eggUnlock
+    in  guard (farmValue gd fs &gt;= unlock) $&gt; e
+
+-- | Farm value
+--
+-- Formula is current hardcoded.
+--
+-- Credit /u/patashu:
+--
+-- &lt;https://www.reddit.com/r/EggsInc/comments/63pfye/patashus_egg_inc_guide_xpost_from_regginc/&gt;
+--
+-- TODO: figure out if income should be capped by depot or not
+farmValue
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    =&gt; GameData  eggs '(tiers, epic) habs vehicles
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+    -&gt; Bock
+farmValue gd fs = (x + y + z) ^. bonusingFor bs BTFarmValue
+                               . multiplying eggBonus
+  where
+    eggBonus = gd ^. gdEggData . _EggData . ixSV (fs ^. fsEgg) . eggMultiplier
+    bs       = farmBonuses gd fs
+    hd       = gd ^. gdHabData
+    income   = farmIncome gd fs
+    chickens = fs ^. fsHabs . to (totalChickens hd)
+    incomepc = income / chickens
+    capacity = fs ^. fsHabs . to (totalHabCapacity hd bs)
+    hatchery = internalHatcheryRate bs NotCalm * 60
+    x = income * 54000
+    y = incomepc * capacity * 6000
+    z = incomepc * hatchery * 7200000
+
+-- | Prestige!  Resets farm, increments soul eggs.
+prestige
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles, 1 TL.&lt;= habs, 1 TL.&lt;= vehicles)
+    =&gt; GameData  eggs '(tiers, epic) habs vehicles
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+prestige gd fs =
+    fs &amp; fsEgg           .~ 0
+       &amp; fsResearch . rsCommon . liftTraversal (_Flip . mapped) .~ 0
+       &amp; fsHabs          .~ initHabStatus
+       &amp; fsDepot         .~ initSomeDepotStatus
+       &amp; fsBocks         .~ 0
+       &amp; fsGoldenEggs    %~ id
+       &amp; fsSoulEggs      +~ round pBonus
+       &amp; fsVideoBonus    %~ id
+       &amp; fsPrestEarnings .~ 0
+  where
+    pBonus = fs ^. fsPrestEarnings
+                 . dividing (gd ^. gdConstants . gcPrestigeFactor)
+                 . exponentiating 0.15
+                 . bonusingFor (farmBonuses gd fs) BTPrestigeEggs
+
+-- | Largest root to a x^2 + b x + c, if any
+quadratic :: Double -&gt; Double -&gt; Double -&gt; Maybe Double
+quadratic 0 b c = Just (- c / b)
+quadratic a b c = case compare discr 0 of
+    LT -&gt; Nothing
+    EQ -&gt; Just (- b / (2 * a))
+    GT -&gt; Just ((- b + sqrt discr) / (2 * a))
+  where
+    discr = b * b - 4 * a * c
 </span></pre></body></html>
