@@ -11,6 +11,7 @@
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE TypeOperators          #-}
 {-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE ViewPatterns           #-}
 
 module Egg.Farm (
     FarmStatus(..)
@@ -26,10 +27,11 @@ module Egg.Farm (
   , bonusingSoulEggs
   , videoDoubling
   , farmBonuses
-  -- , waitTilDepotFull
   , stepFarm
   , stepFarmDT
   , waitUntilBocks
+  , waitTilFarmPop
+  , waitTilDepotFull
   ) where
 
 import           Control.Lens
@@ -255,11 +257,12 @@ farmIncomeDT gd ic fs dt
                              . videoDoubling gd fs
 
   where
-    bs          = farmBonuses gd fs
     layingRate  = farmLayingRatePerChicken gd fs
     eggVal      = farmEggValue gd fs
-    initHabSize = fs ^. fsHabs . to (totalChickens (gd ^. gdHabData))
-    growthRate  = fs ^. fsHabs . to (totalGrowthRate (gd ^. gdHabData) bs ic)
+    initHabSize = fs ^. fsHabs
+                      . to (totalChickens (gd ^. gdHabData))
+    growthRate  = fs ^. fsHabs
+                      . to (totalGrowthRate (gd ^. gdHabData) (farmBonuses gd fs) ic)
     initLaying  = layingRate * initHabSize
     cap         = case fs ^. fsDepot of
       _ :=> d -> totalDepotCapacity (gd ^. gdVehicleData)
@@ -309,11 +312,11 @@ farmIncomeDTInv gd ic fs goal
   where
     curr        = fs ^. fsBocks
     dBock       = goal - curr
-    bs          = farmBonuses gd fs
     layingRate  = farmLayingRatePerChicken gd fs
     eggVal      = farmEggValue gd fs
     initHabSize = fs ^. fsHabs . to (totalChickens (gd ^. gdHabData))
-    growthRate  = fs ^. fsHabs . to (totalGrowthRate (gd ^. gdHabData) bs ic)
+    growthRate  = fs ^. fsHabs
+                      . to (totalGrowthRate (gd ^. gdHabData) (farmBonuses gd fs) ic)
     initLaying  = layingRate * initHabSize
     cap         = case fs ^. fsDepot of
       _ :=> d -> totalDepotCapacity (gd ^. gdVehicleData)
@@ -331,28 +334,6 @@ bonusingSoulEggs gd fs = multiplying $
     bonus = gd ^. gdConstants
                 . gcBaseSoulEggBonus
                 . bonusingFor (farmBonuses gd fs) BTSoulEggBonus
-
--- -- | Time until depots are full
--- --
--- -- TODO: increase bocks
--- waitTilDepotFull
---     :: (KnownNat habs, KnownNat vehicles)
---     => GameData   eggs '(tiers, epic) habs vehicles
---     -> IsCalm
---     -> FarmStatus eggs '(tiers, epic) habs vehicles
---     -> WaitTilRes (FarmStatus eggs '(tiers, epic) habs vehicles)
--- waitTilDepotFull gd ic fs =
---     fs &  fsHabs %%~ waitTilPop (gd ^. gdHabData) bs ic (floor chickensAtCap)
---       <&> fsBocks %~ _
---        -- & bocks
---   where
---     bs :: Bonuses
---     bs = farmBonuses gd fs
---     depotCap :: Double
---     depotCap = case fs ^. fsDepot of
---       _ :=> d -> totalDepotCapacity (gd ^. gdVehicleData) bs d
---     chickensAtCap :: Double
---     chickensAtCap = depotCap / farmLayingRatePerChicken gd fs
 
 -- | Bonuses from a given 'GameData' and 'FarmStatus'
 farmBonuses
@@ -492,12 +473,45 @@ waitTilNextIncomeChange gd ic fs0 = case runWriterT $ fsHabs traverseWait fs0 of
                  . fmap swap
                  . waitTilNextFilled (gd ^. gdHabData) bs ic
 
--- waitTilFarmPop
---     :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs, KnownNat vehicles)
---     => GameData   eggs '(tiers, epic) habs vehicles
---     -> IsCalm
---     -> Natural    -- ^ goal
---     -> FarmStatus eggs '(tiers, epic) habs vehicles
+-- | Wait until population reaches a given point.
+--
+-- If Left returned, means that hab maxed out.
+waitTilFarmPop
+    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> IsCalm
+    -> Natural    -- ^ goal
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> WaitTilRes (Either (FarmStatus eggs '(tiers, epic) habs vehicles))
+                  (FarmStatus eggs '(tiers, epic) habs vehicles)
+waitTilFarmPop gd ic goal fs0 =
+    case waitTilPop (gd ^. gdHabData) (farmBonuses gd fs0) ic goal (fs0 ^. fsHabs) of
+      NoWait             -> NoWait
+      NonStarter         -> NonStarter
+      WaitTilSuccess t h ->
+        let fs1 = stepFarm gd ic t fs0
+        in  case h of
+              Nothing -> WaitTilSuccess t (Left  fs1)
+              Just _  -> WaitTilSuccess t (Right fs1)
+
+-- | Time until depots are full
+--
+-- If Left returned, means that hab maxed out.
+waitTilDepotFull
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> IsCalm
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> WaitTilRes (Either (FarmStatus eggs '(tiers, epic) habs vehicles))
+                  (FarmStatus eggs '(tiers, epic) habs vehicles)
+waitTilDepotFull gd ic fs0 = waitTilFarmPop gd ic (ceiling chickensAtCap) fs0
+  where
+    depotCap :: Double
+    depotCap = case fs0 ^. fsDepot of
+      _ :=> d -> totalDepotCapacity (gd ^. gdVehicleData) (farmBonuses gd fs0) d
+    chickensAtCap :: Double
+    chickensAtCap = depotCap / farmLayingRatePerChicken gd fs0
+
 
 -- | Largest root to a x^2 + b x + c, if any
 quadratic :: Double -> Double -> Double -> Maybe Double
@@ -507,3 +521,4 @@ quadratic a b c = case compare discr 0 of
     EQ -> Just (- b / (2 * a))
     GT -> Just ((- b + sqrt discr) / (2 * a))
   where discr = b * b - 4 * a * c
+
