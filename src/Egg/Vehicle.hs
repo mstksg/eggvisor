@@ -138,8 +138,8 @@ baseDepotCapacity
     -> Double
 baseDepotCapacity VehicleData{..} =
     sumOf $ _DepotStatus
-          . traverse
-          . traverse
+          . folded
+          . folded
           . to (SV.index _vdVehicles)
           . vBaseCapacity
           . to fromIntegral
@@ -165,7 +165,7 @@ vehicleHistory
     -> M.Map (Finite vs) (Fin ('S slots))
 vehicleHistory = M.mapMaybe (natFin . someNat)
                . M.fromListWith (+)
-               . toListOf (_DepotStatus . traverse . traverse . to (, 1))
+               . toListOf (_DepotStatus . folded . folded . to (, 1))
 
 -- | Get the BASE price of a given vehicle, if a purchase were to be made.
 -- Does not check if purchase is legal (see 'upgradeVehicle').

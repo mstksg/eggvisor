@@ -479,7 +479,7 @@ waitTilNextIncomeChange gd ic fs0 = case runWriterT $ fsHabs traverseWait fs0 of
                                & fsVideoBonus . mapped -~ tFill
                  in  WaitTilSuccess tFill (ICHabFill s, fs2)
   where
-    initAllFull    = andOf (fsHabs . to (fullHabs (gd ^. gdHabData) bs) . traverse) fs0
+    initAllFull    = andOf (fsHabs . to (fullHabs (gd ^. gdHabData) bs) . folded) fs0
     initMaxedDepot = has _Nothing depotAvail0
     bs :: Bonuses
     bs = farmBonuses gd fs0

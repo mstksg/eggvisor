@@ -431,7 +431,7 @@ foldResearch f ResearchData{..} ResearchStatus{..} = mconcat
 -- level".
 researchBonuses :: Research a -> Natural -> Bonuses
 researchBonuses _ 0 = Bonuses M.empty
-researchBonuses r l = _rBaseBonuses r & _Bonuses . traverse . traverse %~ scaleAmount l
+researchBonuses r l = _rBaseBonuses r & _Bonuses . mapped . mapped %~ scaleAmount l
 
 -- | Total bonuses from a given 'ResearchStatus'.
 totalBonuses :: ResearchData tiers epic -> ResearchStatus tiers epic -> Bonuses
@@ -441,7 +441,7 @@ totalBonuses = foldResearch (either researchBonuses researchBonuses)
 --
 -- Used for opening tiers.
 researchCount :: ResearchStatus tiers epic -> Natural
-researchCount = sumOf $ rsCommon . liftTraversal (_Flip . traverse)
+researchCount = sumOf $ rsCommon . liftTraversal (_Flip . folded)
 
 legalTiers
     :: forall tiers epic. ()

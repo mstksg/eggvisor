@@ -32,7 +32,9 @@ module Egg.Habitat (
   , fullHabs
   , slotAvailability
   , availableSpace
+  , availableSpaces
   , maxOutHabs
+  , addChickens
   , habCapacities
   , habHistory
   , habPrice
@@ -181,8 +183,8 @@ baseHabCapacity
     -> Natural
 baseHabCapacity HabData{..} =
     sumOf $ hsSlots
-          . traverse
-          . traverse
+          . folded
+          . folded
           . to (SV.index _hdHabs)
           . habBaseCapacity
 
@@ -212,21 +214,21 @@ habCapacities hd bs = fmap ( bonusEffectFor bs BTHabCapacity
 
 -- | Hab at the given slot
 habAt :: KnownNat habs => HabData habs -> HabStatus habs -> Fin N4 -> Maybe Hab
-habAt HabData{..} hs i = hs ^? hsSlots . ixV i . traverse . to (SV.index _hdHabs)
+habAt HabData{..} hs i = hs ^? hsSlots . ixV i . folded . to (SV.index _hdHabs)
 
 -- | Total number of chickens
 totalChickens
     :: HabData habs
     -> HabStatus habs
     -> Double
-totalChickens HabData{..} = sumOf $ hsPop . traverse
+totalChickens HabData{..} = sumOf $ hsPop . folded
 
 -- | How many of each hab is currently owned.  If key is not found, zero
 -- purchases is implied.
 habHistory :: HabStatus habs -> M.Map (Finite habs) (Fin N5)
 habHistory = M.mapMaybe (natFin . someNat)
            . M.fromListWith (+)
-           . toListOf (hsSlots . traverse . traverse . to (, 1))
+           . toListOf (hsSlots . folded . folded . to (, 1))
 
 -- | Get the BASE price of a given hab, if a purchase were to be made.
 -- Does not check if purchase is legal (see 'upgradeHab').
@@ -393,46 +395,46 @@ availableSpace hd bs f0 hs = (_HabStatus . traverse) (uncurry (go f0)) hs
                               . to  fromIntegral
                               . bonusingFor bs BTHabCapacity
 
--- -- | Traverse over the available space of each hab slot.
--- --
--- -- 'Nothing' means slot is full, @'Just' a@ means there is @a@ room left.
--- --
--- -- Will truncate the set @a@ if it's too big, making it an improper
--- -- traversal if @a@ is set to be too large.
--- --
--- -- Will truncate the set @a@ if it's negative (to zero), making it an
--- -- imporper traversal if @a@ is set to be negative.
--- availableSpaces
---     :: forall habs. KnownNat habs
---     => HabData habs
---     -> Bonuses
---     -> Traversal' (HabStatus habs) (Vec N4 (Maybe Double))
--- availableSpaces hd bs f0 hs = (_HabStatus) (go f0) hs
---   where
---     go  :: Applicative f
---         => (Vec N4 (Maybe Double) -> f (Vec N4 (Maybe Double)))
---         -> Vec N4 (Maybe (Finite habs), Double)
---         -> f (Vec N4 (Maybe (Finite habs), Double))
---     go f hv = liftA3 restore (fst <$> hv) caps <$> f avails
---       where
---         restore h cap = \case
---           Nothing -> (h, fromMaybe 0 cap)
---           Just a' -> (h, case cap of
---                            Nothing -> 0
---                            Just c
---                              | a' <= 0 -> c
---                              | otherwise -> max 0 (c - a')
---                      )
---         (avails, caps) = unzipV $ uncurry availCap <$> hv
---     availCap :: Maybe (Finite habs) -> Double -> (Maybe Double, Maybe Double)
---     availCap h p = (subtract p <$> mfilter (> p) cap, cap)
---       where
---         cap = h <&> \i -> hd ^. _HabData
---                               . ixSV i
---                               . habBaseCapacity
---                               . to  fromIntegral
---                               . bonusingFor bs BTHabCapacity
+-- | Traverse over the available space of each hab slot.
 --
+-- 'Nothing' means slot is full, @'Just' a@ means there is @a@ room left.
+--
+-- Will truncate the set @a@ if it's too big, making it an improper
+-- lens if @a@ is set to be too large.
+--
+-- Will truncate the set @a@ if it's negative (to zero), making it an
+-- improper lens if @a@ is set to be negative.
+availableSpaces
+    :: forall habs. KnownNat habs
+    => HabData habs
+    -> Bonuses
+    -> Lens' (HabStatus habs) (Vec N4 (Maybe Double))
+availableSpaces hd bs f0 hs = (_HabStatus) (go f0) hs
+  where
+    go  :: Functor f
+        => (Vec N4 (Maybe Double) -> f (Vec N4 (Maybe Double)))
+        -> Vec N4 (Maybe (Finite habs), Double)
+        -> f (Vec N4 (Maybe (Finite habs), Double))
+    go f hv = liftA3 restore (fst <$> hv) caps <$> f avails
+      where
+        restore h cap = \case
+          Nothing -> (h, fromMaybe 0 cap)
+          Just a' -> (h, case cap of
+                           Nothing -> 0
+                           Just c
+                             | a' <= 0 -> c
+                             | otherwise -> max 0 (c - a')
+                     )
+        (avails, caps) = unzipV $ uncurry availCap <$> hv
+    availCap :: Maybe (Finite habs) -> Double -> (Maybe Double, Maybe Double)
+    availCap h p = (subtract p <$> mfilter (> p) cap, cap)
+      where
+        cap = h <&> \i -> hd ^. _HabData
+                              . ixSV i
+                              . habBaseCapacity
+                              . to  fromIntegral
+                              . bonusingFor bs BTHabCapacity
+
 
 -- | Fill up with max chickens
 maxOutHabs
@@ -472,7 +474,7 @@ waitTilNextFilled hd bs cm hs
     internalRate :: Double
     internalRate = internalHatcheryRate bs cm
     numFull      :: Natural
-    numFull      = sumOf (traverse . to (maybe 1 (const 0) . fst)) avails
+    numFull      = sumOf (folded . to (maybe 1 (const 0) . fst)) avails
     sharingRate  :: Double
     sharingRate  = 0 ^. bonusingFor bs BTInternalHatcherySharing
     totalRate    :: Double
@@ -579,15 +581,30 @@ waitTilPop hd bs cm goal hs0
   where
     goal' = fromIntegral goal
     pop0 :: Double
-    pop0 = sumOf (hsPop . traverse) hs0
+    pop0 = sumOf (hsPop . folded) hs0
     go :: Double -> HabStatus habs -> WaitTilRes Maybe (HabStatus habs)
     go currPop hs1 = case waitTilNextFilled hd bs cm hs1 of
       Left HWENoInternalHatcheries -> NonStarter
       Left HWEMaxHabCapacity       -> WaitTilSuccess 0 Nothing
       Right (((_, dt), rt), hs2)  ->
-        let newPop = sumOf (hsPop . traversed) hs2
+        let newPop = sumOf (hsPop . folded) hs2
         in  if newPop >= goal'
               then let dt'    = (goal' - currPop) / rt
-                       filled = hs2 & availableSpace hd bs . traverse -~ rt * dt'
+                       filled = hs2 & availableSpace hd bs . mapped -~ rt * dt'
                    in  WaitTilSuccess dt' (Just filled)
               else go newPop hs2 & wtrTime +~ dt
+
+-- | Add chickens to habs, distributing properly.  Returns any leftovers.
+addChickens
+    :: KnownNat habs
+    => HabData habs
+    -> Bonuses
+    -> Double
+    -> HabStatus habs
+    -> (Maybe Double, HabStatus habs)
+addChickens hd bs c = availableSpaces hd bs $ \avails ->
+    let totAvail     = sumOf (folded . folded) avails
+        newAvailPerc = 1 - c / totAvail
+    in  if c >= totAvail
+          then (Just (c - totAvail), pure Nothing                            )
+          else (Nothing            , avails & mapped . mapped *~ newAvailPerc)
