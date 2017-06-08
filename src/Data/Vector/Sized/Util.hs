@@ -13,6 +13,7 @@ module Data.Vector.Sized.Util (
 import           Control.Lens
 import           Data.Aeson
 import           Data.Finite
+import           Data.Foldable
 import           GHC.TypeLits
 import qualified Data.Vector               as V
 import qualified Data.Vector.Generic       as UVG
@@ -42,8 +43,8 @@ instance (KnownNat n, UVG.Vector v a) => Ixed (VG.Vector v n a) where
 
 instance FunctorWithIndex (Finite n) (VG.Vector V.Vector n) where
     imap = VG.imap
--- instance FoldableWithIndex (Finite n) (VG.Vector V.Vector n) where
---     ifoldMap = VG.ifoldMap
+instance FoldableWithIndex (Finite n) (VG.Vector V.Vector n) where
+    ifoldMap f = fold . VG.imap f
 -- instance TraversableWithIndex (Finite n) (VG.Vector V.Vector n) where
 --     itraverse = VG.imapM
 

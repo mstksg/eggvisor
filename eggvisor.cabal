@@ -22,6 +22,7 @@ library
                        Egg.Egg
                        Egg.GameData
                        Egg.Farm
+                       Egg.Action
   other-modules:       Data.Type.Combinator.Util
                        Data.Vector.Sized.Util
                        Data.Singletons.Util

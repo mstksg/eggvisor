@@ -195,8 +195,8 @@ makeWrapped ''Flip
 makePrisms ''C
 makeWrapped ''C
 
--- _Flip :: Iso (Flip f a b) (Flip f c d) (f b a) (f d c)
--- _Flip = iso
+makePrisms ''(:.:)
+makeWrapped ''(:.:)
 
 sumProd
     :: Functor h

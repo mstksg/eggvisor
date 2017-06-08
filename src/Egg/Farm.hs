@@ -27,6 +27,7 @@ module Egg.Farm (
   , farmIncome
   , farmIncomeDT
   , farmIncomeDTInv
+  , farmDepotCapacity
   , farmValue
   , bonusingSoulEggs
   , videoDoubling
@@ -204,13 +205,12 @@ farmLayingRateAvailability gd fs =
                       else (r  , Just (cap - r))
              )
   where
+    bs = farmBonuses gd fs
     chickens :: Double
     chickens = fs ^. fsHabs . to (totalChickens (gd ^. gdHabData))
     cap :: Double
-    cap = case fs ^. fsDepot of
-      _ :=> d -> totalDepotCapacity (gd ^. gdVehicleData)
-                                    (farmBonuses gd fs)
-                                    d
+    cap = withSomeDepotStatus bs (fs ^. fsDepot) $ \_ ->
+            totalDepotCapacity (gd ^. gdVehicleData) bs
 
 -- | How many eggs are laid per second, per chicken.
 farmLayingRatePerChicken
@@ -286,10 +286,19 @@ farmIncomeDT gd ic fs dt
     growthRate  = fs ^. fsHabs
                       . to (totalGrowthRate (gd ^. gdHabData) (farmBonuses gd fs) ic)
     initLaying  = layingRate * initHabSize
-    cap         = case fs ^. fsDepot of
-      _ :=> d -> totalDepotCapacity (gd ^. gdVehicleData)
-                                    (farmBonuses gd fs)
-                                    d
+    cap         = fs ^. to (farmDepotCapacity gd)
+
+-- | Total depot capacity of farm, in eggs per second
+farmDepotCapacity
+    :: KnownNat vehicles
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Double
+farmDepotCapacity gd fs = withSomeDepotStatus bs (fs ^. fsDepot) $ \_ ->
+    totalDepotCapacity (gd ^. gdVehicleData) bs
+  where
+    bs = farmBonuses gd fs
+
 
 -- | Find the time to the given goal, assuming constant growth rate and no
 -- discontinuities.
@@ -340,10 +349,7 @@ farmIncomeDTInv gd ic fs goal
     growthRate  = fs ^. fsHabs
                       . to (totalGrowthRate (gd ^. gdHabData) (farmBonuses gd fs) ic)
     initLaying  = layingRate * initHabSize
-    cap         = case fs ^. fsDepot of
-      _ :=> d -> totalDepotCapacity (gd ^. gdVehicleData)
-                                    (farmBonuses gd fs)
-                                    d
+    cap         = fs ^. to (farmDepotCapacity gd)
 
 -- | Soul egg bonus
 bonusingSoulEggs
@@ -529,8 +535,7 @@ waitTilDepotFull
 waitTilDepotFull gd ic fs0 = waitTilFarmPop gd ic (ceiling chickensAtCap) fs0
   where
     depotCap :: Double
-    depotCap = case fs0 ^. fsDepot of
-      _ :=> d -> totalDepotCapacity (gd ^. gdVehicleData) (farmBonuses gd fs0) d
+    depotCap = fs0 ^. to (farmDepotCapacity gd)
     chickensAtCap :: Double
     chickensAtCap = depotCap / farmLayingRatePerChicken gd fs0
 

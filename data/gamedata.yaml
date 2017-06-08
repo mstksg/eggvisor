@@ -815,3 +815,4 @@ constants:
   base-video-doubler-time: 30
   video-bonus: 2
   prestige-factor: 1000000
+  base-fleet-size: 4
