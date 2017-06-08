@@ -1,24 +1,30 @@
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE GADTs                #-}
-{-# LANGUAGE KindSignatures       #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE StandaloneDeriving   #-}
-{-# LANGUAGE TemplateHaskell      #-}
-{-# LANGUAGE TypeOperators        #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE DeriveGeneric          #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE GADTs                  #-}
+{-# LANGUAGE KindSignatures         #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE RankNTypes             #-}
+{-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE StandaloneDeriving     #-}
+{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeOperators          #-}
+{-# LANGUAGE UndecidableInstances   #-}
 
 module Egg.Farm (
     FarmStatus(..)
   , fsEgg, fsResearch, fsHabs, fsDepot, fsBocks, fsGoldenEggs, fsSoulEggs
+  , fsVideoBonus, fsPastEarnings
   , initFarmStatus
   , farmEggValue
   , farmLayingRate
   , farmLayingRateAvailability
   , farmIncome
   , farmIncomeDT
-  , farmSoulEggBonus
+  , farmIncomeDTInv
+  , bonusingSoulEggs
+  , videoDoubling
   , farmBonuses
   -- , waitTilDepotFull
   , stepFarm
@@ -27,10 +33,12 @@ module Egg.Farm (
   ) where
 
 import           Control.Lens
+import           Control.Monad
 import           Control.Monad.Trans.Writer
 import           Data.Dependent.Sum
 import           Data.Finite
 import           Data.Kind
+import           Data.Semigroup
 import           Data.Singletons.TypeLits
 import           Data.Tuple
 import           Data.Type.Combinator
@@ -47,17 +55,19 @@ import           Numeric.Natural
 import           Type.Class.Known
 import           Type.Family.List
 import           Type.Family.Nat
-import qualified Data.Vector.Sized            as SV
-import qualified GHC.TypeLits                 as TL
+import qualified Data.Vector.Sized          as SV
+import qualified GHC.TypeLits               as TL
 
 data FarmStatus :: Nat -> ([Nat], Nat) -> Nat -> Nat -> Type where
-    FarmStatus :: { _fsEgg        :: Finite eggs
-                  , _fsResearch   :: ResearchStatus tiers epic
-                  , _fsHabs       :: HabStatus habs
-                  , _fsDepot      :: SomeDepotStatus vehicles
-                  , _fsBocks      :: Bock
-                  , _fsGoldenEggs :: GoldenEgg
-                  , _fsSoulEggs   :: SoulEgg
+    FarmStatus :: { _fsEgg          :: Finite eggs
+                  , _fsResearch     :: ResearchStatus tiers epic
+                  , _fsHabs         :: HabStatus habs
+                  , _fsDepot        :: SomeDepotStatus vehicles
+                  , _fsBocks        :: Bock
+                  , _fsGoldenEggs   :: GoldenEgg
+                  , _fsSoulEggs     :: SoulEgg
+                  , _fsVideoBonus   :: Maybe Double   -- ^ in seconds
+                  , _fsPastEarnings :: Double
                   }
                -> FarmStatus eggs '(tiers, epic) habs vehicles
 
@@ -67,6 +77,14 @@ deriving instance ListC (Eq <$> (Flip SV.Vector Natural <$> tiers))
     => Eq (FarmStatus egg '(tiers, epic) habs vehicles)
 deriving instance (ListC (Eq <$> (Flip SV.Vector Natural <$> tiers)), ListC (Ord <$> (Flip SV.Vector Natural <$> tiers)))
     => Ord (FarmStatus egg '(tiers, epic) habs vehicles)
+
+data IncomeChange
+       = ICHabFill (Fin N4)
+       | ICDepotFull
+       | ICVideoDoublerExpire
+  deriving (Show, Eq, Ord)
+
+makePrisms ''IncomeChange
 
 fsEgg :: Lens (FarmStatus e1 '(t, g) h v) (FarmStatus e2 '(t, g) h v) (Finite e1) (Finite e2)
 fsEgg f fs = (\e -> fs { _fsEgg = e }) <$> f (_fsEgg fs)
@@ -79,17 +97,27 @@ fsResearch f fs = f (_fsResearch fs) <&> \r ->
                 <*> _fsBocks
                 <*> _fsGoldenEggs
                 <*> _fsSoulEggs
+                <*> _fsVideoBonus
+                <*> _fsPastEarnings
     ) fs
 fsHabs :: Lens (FarmStatus e '(t, g) h1 v) (FarmStatus e '(t, g) h2 v) (HabStatus h1) (HabStatus h2)
 fsHabs f fs = (\h -> fs { _fsHabs = h }) <$> f (_fsHabs fs)
 fsDepot :: Lens (FarmStatus e '(t, g) h v1) (FarmStatus e '(t, g) h v2) (SomeDepotStatus v1) (SomeDepotStatus v2)
 fsDepot f fs = (\d -> fs { _fsDepot = d }) <$> f (_fsDepot fs)
 fsBocks :: Lens' (FarmStatus e '(t, g) h v) Bock
-fsBocks f fs = (\b -> fs { _fsBocks = b }) <$> f (_fsBocks fs)
+fsBocks f fs = (\b -> fs { _fsBocks = max 0 b }) <$> f (_fsBocks fs)
 fsGoldenEggs :: Lens' (FarmStatus e '(t, g) h v) GoldenEgg
-fsGoldenEggs f fs = (\e -> fs { _fsGoldenEggs = e }) <$> f (_fsGoldenEggs fs)
+fsGoldenEggs f fs = (\e -> fs { _fsGoldenEggs = max 0 e }) <$> f (_fsGoldenEggs fs)
 fsSoulEggs :: Lens' (FarmStatus e '(t, g) h v) SoulEgg
-fsSoulEggs f fs = (\s -> fs { _fsSoulEggs = s }) <$> f (_fsSoulEggs fs)
+fsSoulEggs f fs = (\s -> fs { _fsSoulEggs = max 0 s }) <$> f (_fsSoulEggs fs)
+fsPastEarnings :: Lens' (FarmStatus e '(t, g) h v) Double
+fsPastEarnings f fs = (\pe -> fs { _fsPastEarnings = max 0 pe }) <$> f (_fsPastEarnings fs)
+
+-- | Enforces only postive Just
+fsVideoBonus :: Lens' (FarmStatus e '(t, g) h v) (Maybe Double)
+fsVideoBonus f fs = (\vb -> fs { _fsVideoBonus = mfilter (> 0) vb }) <$> f (_fsVideoBonus fs)
+
+
 
 initFarmStatus
     :: (KnownNat eggs, KnownNat habs, KnownNat vehicles, 1 TL.<= eggs, 1 TL.<= habs, 1 TL.<= vehicles)
@@ -102,6 +130,8 @@ initFarmStatus (GameData _ rd _ _ _) =
                (known :=> initDepotStatus)
                0
                0
+               0
+               Nothing
                0
 
 -- | Egg value
@@ -169,15 +199,14 @@ farmLayingRatePerChicken gd fs =
         . dividing 60
         . bonusingFor (farmBonuses gd fs) BTLayingRate
 
--- -- | Total income (bocks per second), per chicken.
--- farmIncomePerChicken
---     :: (KnownNat eggs, KnownNat vehicles)
---     => GameData   eggs '(tiers, epic) habs vehicles
---     -> FarmStatus eggs '(tiers, epic) habs vehicles
---     -> Double
--- farmIncomePerChicken gd fs = fs ^. to (farmLayingRatePerChicken gd)
---                                  . to (* farmEggValue gd fs)
---                                  . to (* farmSoulEggBonus gd fs)
+-- | Apply video doubling bonus
+videoDoubling
+    :: GameData   eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Iso' Double Double
+videoDoubling gd fs = case fs ^. fsVideoBonus of
+    Just _  -> multiplying $ gd ^. gdConstants . gcVideoBonus
+    Nothing -> id
 
 -- | Total income (bocks per second)
 farmIncome
@@ -187,7 +216,8 @@ farmIncome
     -> Double
 farmIncome gd fs = fs ^. to (farmLayingRate gd)
                        . to (* farmEggValue gd fs)
-                       . to (* farmSoulEggBonus gd fs)
+                       . bonusingSoulEggs gd fs
+                       . videoDoubling gd fs
 
 -- | Total bock income over a given small-ish period of time, assuming
 -- no habs get filled up or depots get filled up in this time interval.
@@ -201,8 +231,8 @@ farmIncome gd fs = fs ^. to (farmLayingRate gd)
 --
 -- Assuming capped:
 --
--- incomerate(t) = (initHabSize + growthRate * t) * layingRate * eggValue
--- totalincome = [initHabSize * dt + 1/2 growthRate * dt^2] * layingRate * eggValue
+-- incomerate(t) = (initHabSize + growthRate * t) * layingRate * eggValue * bonuses
+-- totalincome = [initHabSize * dt + 1/2 growthRate * dt^2] * layingRate * eggValue * bonuses
 --
 -- Assuming uncapped:
 --
@@ -217,13 +247,71 @@ farmIncomeDT
     -> Double     -- ^ small time step (dt^3 = 0)
     -> Double
 farmIncomeDT gd ic fs dt
-    | initLaying >= cap = dt * cap * eggVal
+    | initLaying >= cap = (dt * cap * eggVal) ^. bonusingSoulEggs gd fs
+                                               . videoDoubling gd fs
     | otherwise         = (initHabSize * dt + growthRate * dt * dt / 2)
-                            * layingRate * eggVal
+                            ^. to (* (layingRate * eggVal))
+                             . bonusingSoulEggs gd fs
+                             . videoDoubling gd fs
+
   where
     bs          = farmBonuses gd fs
     layingRate  = farmLayingRatePerChicken gd fs
-    eggVal      = farmEggValue   gd fs
+    eggVal      = farmEggValue gd fs
+    initHabSize = fs ^. fsHabs . to (totalChickens (gd ^. gdHabData))
+    growthRate  = fs ^. fsHabs . to (totalGrowthRate (gd ^. gdHabData) bs ic)
+    initLaying  = layingRate * initHabSize
+    cap         = case fs ^. fsDepot of
+      _ :=> d -> totalDepotCapacity (gd ^. gdVehicleData)
+                                    (farmBonuses gd fs)
+                                    d
+
+-- | Find the time to the given goal, assuming constant growth rate and no
+-- discontinuities.
+--
+-- Assuming uncapped:
+--
+-- totalincome = [initHabSize * dt + 1/2 growthRate * dt^2] * layingRate * eggValue * bonuses
+--
+-- so we hav:
+--
+-- 1/2 growthRate dt^2 + initHabSize dt - totalincome / (layingRate * eggValue * bonuses) = 0
+--
+-- Assuming capped:
+--
+-- totalincome = capped (initHabSize dt * layingRate) * evvGalue * bonuses
+--
+-- so:
+--
+-- dt = totalincome / capped rate
+--
+-- Assumes egg value is not zero.
+--
+farmIncomeDTInv
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> IsCalm
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Bock     -- ^ bock goal
+    -> Maybe Double
+farmIncomeDTInv gd ic fs goal
+    | initLaying <= 0   = Nothing
+    | initLaying >= cap = Just $
+        dBock / (cap * eggVal ^. bonusingSoulEggs gd fs
+                               . videoDoubling gd fs
+                )
+    | otherwise         =
+        let c = dBock ^. dividing (layingRate * eggVal)
+                       . from (bonusingSoulEggs gd fs)
+                       . from (videoDoubling gd fs)
+                       . negated
+        in  quadratic (growthRate / 2) initHabSize c
+  where
+    curr        = fs ^. fsBocks
+    dBock       = goal - curr
+    bs          = farmBonuses gd fs
+    layingRate  = farmLayingRatePerChicken gd fs
+    eggVal      = farmEggValue gd fs
     initHabSize = fs ^. fsHabs . to (totalChickens (gd ^. gdHabData))
     growthRate  = fs ^. fsHabs . to (totalGrowthRate (gd ^. gdHabData) bs ic)
     initLaying  = layingRate * initHabSize
@@ -233,15 +321,16 @@ farmIncomeDT gd ic fs dt
                                     d
 
 -- | Soul egg bonus
-farmSoulEggBonus
+bonusingSoulEggs
     :: GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> Double
-farmSoulEggBonus gd fs =
-    gd ^. gdConstants
-        . gcBaseSoulEggBonus
-        . to (* (fs ^. fsSoulEggs . to fromIntegral))
-        . bonusingFor (farmBonuses gd fs) BTSoulEggBonus
+    -> Iso' Double Double
+bonusingSoulEggs gd fs = multiplying $
+    1 + (bonus * fromIntegral (fs ^. fsSoulEggs)) / 100
+  where
+    bonus = gd ^. gdConstants
+                . gcBaseSoulEggBonus
+                . bonusingFor (farmBonuses gd fs) BTSoulEggBonus
 
 -- -- | Time until depots are full
 -- --
@@ -290,14 +379,14 @@ stepFarm gd ic dt0 fs0 = go dt0 fs0
     go  :: Double
         -> FarmStatus eggs '(tiers, epic) habs vehicles
         -> FarmStatus eggs '(tiers, epic) habs vehicles
-    go dt fs1 = case waitTilNextHabOrDepotFilled gd ic fs1 of
+    go dt fs1 = case waitTilNextIncomeChange gd ic fs1 of
       WaitTilSuccess tFill (_, fs2)
         -- habs are growing slowly enough that nothing something changes
         | dt < tFill -> stepFarmDT gd ic dt fs1
         -- habs are growing quickly enough that something changes
         | otherwise  -> go (dt - tFill) fs2
       -- growth rate constant, and depots won't change status
-      _ -> fs1 & fsBocks +~ (farmIncome gd fs1 * dt)
+      _ -> stepFarmDT gd ic dt fs1
 
 -- | Step farm over a SMALL (infinitessimal) time step.  Assumes that
 -- nothing discontinuous changes during the time inveral, including things
@@ -315,8 +404,9 @@ stepFarmDT
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
 stepFarmDT gd ic dt fs = fs
-    & fsBocks +~ farmIncomeDT gd ic fs dt
-    & fsHabs  %~ stepHabs (gd ^. gdHabData) (farmBonuses gd fs) ic dt
+    & fsBocks               +~ farmIncomeDT gd ic fs dt
+    & fsHabs                %~ stepHabs (gd ^. gdHabData) (farmBonuses gd fs) ic dt
+    & fsVideoBonus . mapped -~ dt
 
 -- | Wait until bocks.
 waitUntilBocks
@@ -332,14 +422,16 @@ waitUntilBocks gd ic goal fs0
   where
     go  :: FarmStatus eggs '(tiers, epic) habs vehicles
         -> WaitTilRes I (FarmStatus eggs '(tiers, epic) habs vehicles)
-    go fs1 = case waitTilNextHabOrDepotFilled gd ic fs1 of
+    go fs1 = case waitTilNextIncomeChange gd ic fs1 of
         WaitTilSuccess tFill (_, fs2)
+          -- change, and goal is still out of reach
           | fs2 ^. fsBocks > goal -> go fs2 & wtrTime +~ tFill
-        _ | initIncome <= 0 -> NonStarter
-          | otherwise       -> let dt = (goal - fs1 ^. fsBocks) / initIncome
-                               in  WaitTilSuccess dt (I (stepFarmDT gd ic dt fs1))
-      where
-        initIncome = farmIncome gd fs1
+        _ -- change or no change, and goal happens before then
+          | otherwise       ->
+              let dt = farmIncomeDTInv gd ic fs1 goal
+              in  case dt of
+                    Nothing -> NonStarter
+                    Just t  -> WaitTilSuccess t (I (stepFarmDT gd ic t fs1))
 
 -- | Results:
 --
@@ -354,29 +446,38 @@ waitUntilBocks gd ic goal fs0
 --
 -- Tag is Nothing if depot fill event, or Just s if hab fill event with
 -- slot.
-waitTilNextHabOrDepotFilled
+waitTilNextIncomeChange
     :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs, KnownNat vehicles)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> IsCalm
     -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> WaitTilRes ((,) (Maybe (Fin N4))) (FarmStatus eggs '(tiers, epic) habs vehicles)
-waitTilNextHabOrDepotFilled gd ic fs0 = case runWriterT $ fsHabs traverseWait fs0 of
+    -> WaitTilRes ((,) IncomeChange) (FarmStatus eggs '(tiers, epic) habs vehicles)
+waitTilNextIncomeChange gd ic fs0 = case runWriterT $ fsHabs traverseWait fs0 of
     Left e -> case e of
       HWENoInternalHatcheries
         | initAllFull    -> NonStarter
         | initMaxedDepot -> NonStarter
       _                  -> NoWait
     Right (fs1, ((s, tFill), rt))
-      ->  case (depotAvail0, snd (farmLayingRateAvailability gd fs1)) of
-            -- depot status changes
-            (Just avail0, Nothing) ->
-              let timeToFill = avail0 / rt
-                  fs2 = fs0 & fsBocks +~ farmIncomeDT gd ic fs0 timeToFill
-                            & fsHabs  . availableSpace (gd ^. gdHabData) bs . mapped -~ rt * timeToFill
-              in  WaitTilSuccess timeToFill (Nothing, fs2)
-            -- depot status doesn't change
-            _                      -> 
-              WaitTilSuccess tFill (Just s, fs1)
+      -> let depotStatChangeIn = do
+               avail0 <- depotAvail0
+               case snd (farmLayingRateAvailability gd fs1) of
+                 Nothing -> return . Min $ Arg (avail0 / rt) ICDepotFull
+                 Just _  -> Nothing
+             videoDoublerChangeIn =
+               fs0 ^. fsVideoBonus
+                    & mapped %~ \x -> Min (Arg x ICVideoDoublerExpire)
+         in  case depotStatChangeIn <> videoDoublerChangeIn of
+               Just (Min (Arg tChange ich)) ->
+                 let fs2 = fs0 & fsBocks               +~ farmIncomeDT gd ic fs0 tChange
+                               & fsHabs  . availableSpace (gd ^. gdHabData) bs . mapped -~ rt * tChange
+                               & fsVideoBonus . mapped -~ tChange
+                 in  WaitTilSuccess tChange (ich, fs2)
+               Nothing                      ->
+                 let fs2 = fs0 & fsBocks               +~ farmIncomeDT gd ic fs0 tFill
+                               & fsHabs                .~ (fs1 ^. fsHabs)
+                               & fsVideoBonus . mapped -~ tFill
+                 in  WaitTilSuccess tFill (ICHabFill s, fs2)
   where
     initAllFull    = andOf (fsHabs . to (fullHabs (gd ^. gdHabData) bs) . traverse) fs0
     initMaxedDepot = has _Nothing depotAvail0
@@ -390,3 +491,19 @@ waitTilNextHabOrDepotFilled gd ic fs0 = case runWriterT $ fsHabs traverseWait fs
     traverseWait = WriterT
                  . fmap swap
                  . waitTilNextFilled (gd ^. gdHabData) bs ic
+
+-- waitTilFarmPop
+--     :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+--     => GameData   eggs '(tiers, epic) habs vehicles
+--     -> IsCalm
+--     -> Natural    -- ^ goal
+--     -> FarmStatus eggs '(tiers, epic) habs vehicles
+
+-- | Largest root to a x^2 + b x + c, if any
+quadratic :: Double -> Double -> Double -> Maybe Double
+quadratic 0 b c = Just (- c / b)
+quadratic a b c = case compare discr 0 of
+    LT -> Nothing
+    EQ -> Just (- b / (2 * a))
+    GT -> Just ((- b + sqrt discr) / (2 * a))
+  where discr = b * b - 4 * a * c

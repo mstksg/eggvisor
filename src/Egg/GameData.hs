@@ -13,7 +13,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Egg.GameData (
-    GameConstants(..), gcBaseLayingRate, gcBaseSoulEggBonus
+    GameConstants(..), gcBaseLayingRate, gcBaseSoulEggBonus, gcBaseVideoDoublerTime, gcVideoBonus
   , GameData(..), gdEggData, gdResearchData, gdHabData, gdVehicleData, gdConstants
   , SomeGameData(..)
   ) where
@@ -34,8 +34,10 @@ import           GHC.Generics             (Generic)
 import           Type.Family.List
 
 data GameConstants =
-    GameConstants { _gcBaseLayingRate   :: Double     -- ^ eggs per minute
-                  , _gcBaseSoulEggBonus :: Double
+    GameConstants { _gcBaseLayingRate       :: Double     -- ^ eggs per minute
+                  , _gcBaseSoulEggBonus     :: Double
+                  , _gcBaseVideoDoublerTime :: Double     -- ^ minutes
+                  , _gcVideoBonus           :: Double
                   }
   deriving (Show, Eq, Ord, Generic)
 

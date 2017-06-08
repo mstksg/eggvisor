@@ -594,7 +594,7 @@ research:
             type: percent
       costs: [25, 73, 122, 171, 220, 268, 317, 366, 415, 463, 512, 561, 610, 658, 707, 756, 805, 853, 902, 951]
     - name: Video Doubler Time
-      description: Increase internal hatchery rate by 5%
+      description: Increase video doubler time by 30 min.
       bonuses:
         video-doubler-time:
           base-amount:
@@ -679,7 +679,7 @@ research:
         soul-egg-bonus:
           base-amount:
             value: 1
-            type: percent
+            type: increment
       costs: [100, 127, 155, 183, 211, 239, 267, 295, 322, 350, 378, 406, 434, 462, 490, 517, 545, 573, 601, 629, 657, 685, 712, 740, 768, 796, 824, 852, 880, 907, 935, 963, 991, 1019, 1047, 1075, 1102, 1130, 1158, 1186, 1214, 1242, 1270, 1297, 1325, 1353, 1381, 1409, 1437, 1465, 1492, 1520, 1548, 1576, 1604, 1632, 1660, 1687, 1715, 1743, 1771, 1799, 1827, 1855, 1882, 1910, 1938, 1966, 1994, 2022, 2050, 2077, 2105, 2133, 2161, 2189, 2217, 2245, 2272, 2300, 2328, 2356, 2384, 2412, 2440, 2467, 2495, 2523, 2551, 2579, 2607, 2635, 2662, 2690, 2718, 2746, 2774, 2802, 2830, 2857, 2885, 2913, 2941, 2969, 2997, 3025, 3052, 3080, 3108, 3136, 3164, 3192, 3220, 3247, 3275, 3303, 3331, 3359, 3387, 3415, 3442, 3470, 3498, 3526, 3554, 3582, 3610, 3637, 3665, 3693, 3721, 3749, 3777, 3805, 3832, 3860, 3888, 3916, 3944, 3972]
     - name: Prestive Bonus
       description: Earn +10% soul eggs when you prestige
@@ -807,5 +807,10 @@ eggs:
     unlock: 290.0e+45
     multiplier: 8
 constants:
+  # eggs per minute
   base-laying-rate: 2
-  base-soul-egg-bonus: 0.1
+  # percentage point boost per soul egg
+  base-soul-egg-bonus: 10
+  # minutes
+  base-video-doubler-time: 30
+  video-bonus: 2
