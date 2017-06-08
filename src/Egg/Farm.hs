@@ -41,12 +41,12 @@ module Egg.Farm (
   , eggUpgrades
   , eggsVisible
   , prestige
+  , watchVideo
   ) where
 
 import           Control.Lens
 import           Control.Monad
 import           Control.Monad.Trans.Writer
-import           Data.Dependent.Sum
 import           Data.Finite
 import           Data.Functor
 import           Data.Kind
@@ -65,7 +65,6 @@ import           Egg.Research
 import           Egg.Vehicle
 import           Numeric.Lens
 import           Numeric.Natural
-import           Type.Class.Known
 import           Type.Family.List
 import           Type.Family.Nat
 import qualified Data.Vector.Sized          as SV
@@ -635,6 +634,18 @@ prestige gd fs =
                  . dividing (gd ^. gdConstants . gcPrestigeFactor)
                  . exponentiating 0.15
                  . bonusingFor (farmBonuses gd fs) BTPrestigeEggs
+
+-- | Watch Video Doubler video.
+watchVideo
+    :: GameData  eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+watchVideo gd fs = fs & fsVideoBonus %~ maybe (Just time) (Just . (+ time))
+  where
+    time = gd ^. gdConstants
+               . gcBaseVideoDoublerTime
+               . bonusingFor (farmBonuses gd fs) BTVideoDoublerTime
+               . multiplying 60
 
 -- | Largest root to a x^2 + b x + c, if any
 quadratic :: Double -> Double -> Double -> Maybe Double

@@ -33,7 +33,7 @@ module Egg.Vehicle (
   , someVehicleUpgrades
   ) where
 
-import           Control.Lens hiding               ((.=))
+import           Control.Lens hiding                  ((.=))
 import           Control.Monad
 import           Control.Monad.Trans.Writer
 import           Data.Aeson
@@ -47,26 +47,18 @@ import           Data.Singletons.Prelude.Num
 import           Data.Singletons.TypeLits
 import           Data.Tuple
 import           Data.Type.Combinator
-import           Data.Type.Combinator.Util  hiding (strengthen)
-import           Data.Type.Fin
-import           Data.Type.Nat                     as TCN
-import           Data.Type.Vector                  as TCV
 import           Data.Vector.Sized.Util
 import           Egg.Commodity
 import           Egg.Research
-import           GHC.Generics                      (Generic)
+import           GHC.Generics                         (Generic)
 import           Numeric.Lens
 import           Numeric.Natural
 import           Text.Printf
-import           Type.Class.Higher
-import           Type.Class.Known
-import           Type.Class.Witness
-import           Type.Family.Nat                   as TCN
-import qualified Data.Map                          as M
-import qualified Data.Text                         as T
-import qualified Data.Vector                       as V
-import qualified Data.Vector.Sized                 as SV
-import qualified GHC.TypeLits                      as TL
+import qualified Data.Map                             as M
+import qualified Data.Text                            as T
+import qualified Data.Vector                          as V
+import qualified Data.Vector.Sized                    as SV
+import qualified GHC.TypeLits                         as TL
 
 data Vehicle = Vehicle
         { _vName         :: T.Text
