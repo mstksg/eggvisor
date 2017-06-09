@@ -230,6 +230,8 @@ habHistory = M.mapMaybe (natFin . someNat)
 
 -- | Get the BASE price of a given hab, if a purchase were to be made.
 -- Does not check if purchase is legal (see 'upgradeHab').
+--
+-- Returns Nothing if four copies of this hab are already currently owned.
 habPrice :: KnownNat habs => HabData habs -> HabStatus habs -> Finite habs -> Maybe Bock
 habPrice hd hs hab = fmap priceOf
                    . maybe (Just FZ) TC.strengthen
@@ -289,14 +291,14 @@ upgradeHab
     -> Fin N4
     -> Finite habs
     -> HabStatus habs
-    -> Maybe (Bock, HabStatus habs)
+    -> Either (Finite habs) (Bock, HabStatus habs)
 upgradeHab hd bs slot hab hs0 =
     getComp . flip (hsSlots . ixV slot) hs0 $ \s0 -> Comp $ do
-      guard $ case s0 of
-                Nothing -> True
-                Just h  -> h < hab
+      case s0 of
+        Just h  | h >= hab -> Left h
+        _                  -> Right ()
       -- should always be valid of the previous condition is true
-      price <- habPrice hd hs0 hab
+      let price = fromJust $ habPrice hd hs0 hab
       return (price ^. bonusingFor bs BTBuildCosts, Just hab)
 
 -- | Get all possible Hab upgrades
@@ -305,18 +307,20 @@ habUpgrades
     => HabData habs
     -> Bonuses
     -> HabStatus habs
-    -> VecT N4 (SV.Vector habs) (Maybe Bock)
+    -> VecT N4 (SV.Vector habs) (Either (Finite habs) Bock)
 habUpgrades hd bs hs = hs ^. hsSlots
                            & vmap (go . getI)
   where
     hist :: M.Map (Finite habs) (Fin N5)
     hist = habHistory hs
-    go :: Maybe (Finite habs) -> SV.Vector habs (Maybe Bock)
+    go :: Maybe (Finite habs) -> SV.Vector habs (Either (Finite habs) Bock)
     go i = hd ^. _HabData
                & SV.imap
                    (\j h -> do
-                       guard (Just j > i)
-                       n <- maybe (Just FZ) TC.strengthen $ M.lookup j hist
+                       case i of
+                         Just i' | i' >= j -> Left i'
+                         _                 -> Right ()
+                       let n = fromJust . maybe (Just FZ) TC.strengthen $ M.lookup j hist
                        return $ h ^. habCosts . ixV n . bonusingFor bs BTBuildCosts
                    )
 
