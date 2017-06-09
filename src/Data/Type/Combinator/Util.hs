@@ -1,6 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes                  #-}
 {-# LANGUAGE ConstraintKinds                      #-}
 {-# LANGUAGE DataKinds                            #-}
+{-# LANGUAGE DeriveFunctor                        #-}
 {-# LANGUAGE DeriveGeneric                        #-}
 {-# LANGUAGE EmptyCase                            #-}
 {-# LANGUAGE FlexibleContexts                     #-}
@@ -62,6 +63,7 @@ module Data.Type.Combinator.Util (
   , addCommute
   ) where
 
+import           Control.Applicative      (liftA2)
 import           Control.Lens as L hiding ((:<), Index, Traversable1(..))
 import           Data.Aeson
 import           Data.Aeson.Types
@@ -439,3 +441,9 @@ ixListNat= \case
     S_ n -> \f -> \case
       []   -> pure []
       x:xs -> (x :) <$> ixListNat n f xs
+
+deriving instance (Functor f, Functor g) => Functor (f :.: g)
+
+instance (Applicative f, Applicative g) => Applicative (f :.: g) where
+    pure    = Comp . pure . pure
+    f <*> x = Comp $ liftA2 (<*>) (getComp f) (getComp x)

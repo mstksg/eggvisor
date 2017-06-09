@@ -68,7 +68,6 @@ module Egg.Research (
 import           Control.Applicative hiding      (some)
 import           Control.Lens hiding             ((.=), (:<), Index)
 import           Control.Monad
-import           Control.Monad.Trans.Writer
 import           Data.Aeson.Encoding
 import           Data.Aeson.Types
 import           Data.Bifunctor
@@ -469,21 +468,21 @@ purchaseResearch
     -> ResearchIx tiers epic a
     -> ResearchStatus tiers epic
     -> Either ResearchError (a, ResearchStatus tiers epic)
-purchaseResearch rd i rs0 = pp . runWriterT . researchIxStatusLegal rd i (WriterT . go) $ rs0
+purchaseResearch rd i rs0 = pp . getComp . researchIxStatusLegal rd i (Comp . go) $ rs0
   where
     bs = totalBonuses rd rs0
-    pp :: Maybe (ResearchStatus tiers epic, First a)
+    pp :: Maybe (First a, ResearchStatus tiers epic)
         -> Either ResearchError (a, ResearchStatus tiers epic)
     pp Nothing                     = Left REMaxedOut
-    pp (Just (_ , First Nothing )) = Left RELocked
-    pp (Just (rs, First (Just c))) = case i of
+    pp (Just (First Nothing , _ )) = Left RELocked
+    pp (Just (First (Just c), rs)) = case i of
         RICommon _ -> Right (c ^. bonusingFor bs BTResearchCosts, rs)
         RIEpic   _ -> Right (c, rs)
-    go :: Natural -> Maybe (Natural, First a)
-    go currLevel = second (First . Just) <$> case rd ^. researchIxData i . rCosts of
-        Left m   -> (currLevel + 1, 0) <$ guard (currLevel < m)
+    go :: Natural -> Maybe (First a, Natural)
+    go currLevel = first (First . Just) <$> case rd ^. researchIxData i . rCosts of
+        Left m   -> (0, currLevel + 1) <$ guard (currLevel < m)
                         \\ researchIxNum i
-        Right cs -> (currLevel + 1,) <$> (cs V.!? fromIntegral (currLevel + 1))
+        Right cs -> (, currLevel + 1) <$> (cs V.!? fromIntegral (currLevel + 1))
 
 -- | Get a 'Num' instance from a 'ResearchIx'.
 researchIxNum :: ResearchIx tiers epic a -> Wit (Num a)

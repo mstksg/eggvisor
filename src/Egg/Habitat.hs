@@ -56,14 +56,12 @@ module Egg.Habitat (
 import           Control.Applicative
 import           Control.Lens hiding        ((.=))
 import           Control.Monad
-import           Control.Monad.Trans.Writer
 import           Data.Aeson.Types
 import           Data.Dependent.Sum
 import           Data.Finite
 import           Data.Maybe
 import           Data.Singletons
 import           Data.Singletons.TypeLits
-import           Data.Tuple
 import           Data.Type.Combinator
 import           Data.Type.Combinator.Util  as TC
 import           Data.Type.Fin
@@ -293,13 +291,13 @@ upgradeHab
     -> HabStatus habs
     -> Maybe (Bock, HabStatus habs)
 upgradeHab hd bs slot hab hs0 =
-    fmap swap . runWriterT . flip (hsSlots . ixV slot) hs0 $ \s0 -> WriterT $ do
+    getComp . flip (hsSlots . ixV slot) hs0 $ \s0 -> Comp $ do
       guard $ case s0 of
                 Nothing -> True
                 Just h  -> h < hab
       -- should always be valid of the previous condition is true
       price <- habPrice hd hs0 hab
-      return (Just hab, price ^. bonusingFor bs BTBuildCosts)
+      return (price ^. bonusingFor bs BTBuildCosts, Just hab)
 
 -- | Get all possible Hab upgrades
 habUpgrades

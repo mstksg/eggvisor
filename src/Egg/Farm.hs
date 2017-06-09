@@ -23,6 +23,7 @@ module Egg.Farm (
   , initFarmStatus
   , farmEggValue
   , farmLayingRate
+  , farmLayingRatePerChicken
   , farmLayingRateAvailability
   , farmIncome
   , farmIncomeDT
@@ -46,13 +47,11 @@ module Egg.Farm (
 
 import           Control.Lens
 import           Control.Monad
-import           Control.Monad.Trans.Writer
 import           Data.Finite
 import           Data.Functor
 import           Data.Kind
 import           Data.Semigroup
 import           Data.Singletons.TypeLits
-import           Data.Tuple
 import           Data.Type.Combinator
 import           Data.Type.Combinator.Util
 import           Data.Type.Fin
@@ -460,13 +459,13 @@ waitTilNextIncomeChange
     -> IsCalm
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> WaitTilRes ((,) IncomeChange) (FarmStatus eggs '(tiers, epic) habs vehicles)
-waitTilNextIncomeChange gd ic fs0 = case runWriterT $ fsHabs traverseWait fs0 of
+waitTilNextIncomeChange gd ic fs0 = case getComp $ fsHabs traverseWait fs0 of
     Left e -> case e of
       HWENoInternalHatcheries
         | initAllFull    -> NonStarter
         | initMaxedDepot -> NonStarter
       _                  -> NoWait
-    Right (fs1, ((s, tFill), rt))
+    Right (((s, tFill), rt), fs1)
       -> let depotStatChangeIn = do
                avail0 <- depotAvail0
                case snd (farmLayingRateAvailability gd fs1) of
@@ -495,10 +494,8 @@ waitTilNextIncomeChange gd ic fs0 = case runWriterT $ fsHabs traverseWait fs0 of
     depotAvail0 = snd (farmLayingRateAvailability gd fs0)
     traverseWait
         :: HabStatus habs
-        -> WriterT ((Fin N4, Double), Double) (Either HWaitError) (HabStatus habs)
-    traverseWait = WriterT
-                 . fmap swap
-                 . waitTilNextFilled (gd ^. gdHabData) bs ic
+        -> (Either HWaitError :.: (,) ((Fin N4, Double), Double)) (HabStatus habs)
+    traverseWait = Comp . waitTilNextFilled (gd ^. gdHabData) bs ic
 
 -- | Wait until population reaches a given point.
 --
@@ -636,8 +633,10 @@ prestige gd fs =
                  . bonusingFor (farmBonuses gd fs) BTPrestigeEggs
 
 -- | Watch Video Doubler video.
+--
+-- Currently no limit to how often you can do this.
 watchVideo
-    :: GameData  eggs '(tiers, epic) habs vehicles
+    :: GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
 watchVideo gd fs = fs & fsVideoBonus %~ maybe (Just time) (Just . (+ time))

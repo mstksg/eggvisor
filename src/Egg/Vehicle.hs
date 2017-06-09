@@ -35,33 +35,30 @@ module Egg.Vehicle (
   , someVehicleUpgrades
   ) where
 
-import           Control.Lens hiding         ((.=))
+import           Control.Lens hiding           ((.=))
 import           Control.Monad
-import           Control.Monad.Trans.Writer
 import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.Dependent.Sum
 import           Data.Finite
 import           Data.Finite.Internal
-import           Data.Map.Lens
 import           Data.Maybe
 import           Data.Singletons
 import           Data.Singletons.Prelude.Num
 import           Data.Singletons.TypeLits
-import           Data.Tuple
 import           Data.Type.Combinator
 import           Data.Vector.Sized.Util
 import           Egg.Commodity
 import           Egg.Research
-import           GHC.Generics                (Generic)
+import           GHC.Generics                  (Generic)
 import           Numeric.Lens
 import           Numeric.Natural
 import           Text.Printf
-import qualified Data.Map                    as M
-import qualified Data.Text                   as T
-import qualified Data.Vector                 as V
-import qualified Data.Vector.Sized           as SV
-import qualified GHC.TypeLits                as TL
+import qualified Data.Map                      as M
+import qualified Data.Text                     as T
+import qualified Data.Vector                   as V
+import qualified Data.Vector.Sized             as SV
+import qualified GHC.TypeLits                  as TL
 
 data Vehicle = Vehicle
         { _vName         :: T.Text
@@ -237,13 +234,13 @@ upgradeVehicle
     -> DepotStatus vs slots
     -> Maybe (Bock, DepotStatus vs slots)
 upgradeVehicle vd bs slot v ds0 =
-    fmap swap . runWriterT . flip (_DepotStatus . at slot) ds0 $ \s0 -> WriterT $ do
+    getComp . flip (_DepotStatus . at slot) ds0 $ \s0 -> Comp $ do
       guard $ case s0 of
                 Nothing -> True
                 Just h  -> h < v
       -- should always be valid of the previous condition is true
       price <- vehiclePrice vd ds0 v
-      return (Just v, price ^. bonusingFor bs BTVehicleCosts)
+      return (price ^. bonusingFor bs BTVehicleCosts, Just v)
 
 -- | Purchase a vehicle upgrade.  Returns cost and new depot status,
 -- if purchase is valid.
@@ -259,14 +256,14 @@ upgradeSomeVehicle
     -> SomeDepotStatus vs
     -> Either SomeVehicleUpgradeError (Bock, SomeDepotStatus vs)
 upgradeSomeVehicle vd bs slot v sds0 =
-    fmap swap . runWriterT . traverseSomeDepotStatus bs (WriterT . go) $ sds0
+    getComp . traverseSomeDepotStatus bs (Comp . go) $ sds0
   where
     go  :: KnownNat slots
         => DepotStatus vs slots
-        -> Either SomeVehicleUpgradeError (DepotStatus vs slots, Bock)
+        -> Either SomeVehicleUpgradeError (Bock, DepotStatus vs slots)
     go ds0 = case packFinite slot of
       Nothing    -> Left SVUENoSlot
-      Just slot' -> maybe (Left SVUERegression) (Right . swap) $
+      Just slot' -> maybe (Left SVUERegression) Right $
                       upgradeVehicle vd bs slot' v ds0
 
 -- | List all possible vehicle upgrades.
