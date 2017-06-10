@@ -301,17 +301,15 @@ someVehicleUpgrades
     => VehicleData vs
     -> Bonuses
     -> SomeDepotStatus vs
-    -> (M.Map Integer :.: SV.Vector vs :.: Either (Finite vs)) Bock
+    -> (V.Vector :.: SV.Vector vs :.: Either (Finite vs)) Bock
 someVehicleUpgrades vd bs = view $ _SomeDepotStatus bs go
                                  . _Unwrapped
                                  . _Unwrapped
   where
     go  :: KnownNat slots
         => Getter (DepotStatus vs slots)
-                  (M.Map Integer (SV.Vector vs (Either (Finite vs) Bock)))
+                  (V.Vector (SV.Vector vs (Either (Finite vs) Bock)))
     go = to (vehicleUpgrades vd bs)
        . _Wrapped
        . _Wrapped
-       . to (itoListOf ifolded)
-       . to (over (mapped . _1) fromIntegral)
-       . to M.fromAscList
+       . to SV.fromSized
