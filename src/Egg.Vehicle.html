@@ -36,38 +36,37 @@
 </span><a name="line-36"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
 </span><a name="line-37"></a><span>
 </span><a name="line-38"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span> </span><span class="hs-keyword">hiding</span><span>           </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-var">.=</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-39"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Monad</span><span>
-</span><a name="line-40"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span>
-</span><a name="line-41"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span><span>
-</span><a name="line-42"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Dependent</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
-</span><a name="line-43"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span>
-</span><a name="line-44"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span class="hs-operator">.</span><span class="hs-identifier">Internal</span><span>
-</span><a name="line-45"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Maybe</span><span>
-</span><a name="line-46"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
-</span><a name="line-47"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">Prelude</span><span class="hs-operator">.</span><span class="hs-identifier">Num</span><span>
-</span><a name="line-48"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
-</span><a name="line-49"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
-</span><a name="line-50"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Vector.Sized.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
-</span><a name="line-51"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Commodity.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Commodity</span></a><span>
-</span><a name="line-52"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Research.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Research</span></a><span>
-</span><a name="line-53"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">Generics</span><span>                  </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-54"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span>
-</span><a name="line-55"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Natural</span><span>
-</span><a name="line-56"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Text</span><span class="hs-operator">.</span><span class="hs-identifier">Printf</span><span>
-</span><a name="line-57"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Map</span><span>                      </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">M</span><span>
-</span><a name="line-58"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Text</span><span>                     </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">T</span><span>
-</span><a name="line-59"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>                   </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">V</span><span>
-</span><a name="line-60"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>             </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
-</span><a name="line-61"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>                  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TL</span><span>
-</span><a name="line-62"></a><span>
-</span><a name="line-63"></a><span class="hs-keyword">data</span><span> </span><a name="Vehicle"><a href="Egg.Vehicle.html#Vehicle"><span class="hs-identifier">Vehicle</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Vehicle"><a href="Egg.Vehicle.html#Vehicle"><span class="hs-identifier">Vehicle</span></a></a><span>
-</span><a name="line-64"></a><span>        </span><span class="hs-special">{</span><span> </span><a name="_vName"><a href="Egg.Vehicle.html#_vName"><span class="hs-identifier">_vName</span></a></a><span>         </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">T</span><span class="hs-operator hs-type">.</span><span class="hs-identifier hs-type">Text</span><span>
-</span><a name="line-65"></a><span>        </span><span class="hs-special">,</span><span> </span><a name="_vBaseCapacity"><a href="Egg.Vehicle.html#_vBaseCapacity"><span class="hs-identifier">_vBaseCapacity</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Natural</span><span>         </span><span class="hs-comment">-- ^ eggs per minute</span><span>
-</span><a name="line-66"></a><span>        </span><span class="hs-special">,</span><span> </span><a name="_vCosts"><a href="Egg.Vehicle.html#_vCosts"><span class="hs-identifier">_vCosts</span></a></a><span>        </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">V</span><span class="hs-operator hs-type">.</span><span class="hs-identifier hs-type">Vector</span><span> </span><a href="Egg.Commodity.html#Bock"><span class="hs-identifier hs-type">Bock</span></a><span>
-</span><a name="line-67"></a><span>        </span><span class="hs-special">}</span><span>
-</span><a name="line-68"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-69"></a><span>
-</span><a name="line-70"></a><span class="hs-identifier hs-var">makeLenses</span><span> </span><span class="hs-char">''Vehicle
+</span><a name="line-39"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span>
+</span><a name="line-40"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span><span>
+</span><a name="line-41"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Dependent</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
+</span><a name="line-42"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span>
+</span><a name="line-43"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span class="hs-operator">.</span><span class="hs-identifier">Internal</span><span>
+</span><a name="line-44"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Maybe</span><span>
+</span><a name="line-45"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span>
+</span><a name="line-46"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">Prelude</span><span class="hs-operator">.</span><span class="hs-identifier">Num</span><span>
+</span><a name="line-47"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
+</span><a name="line-48"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
+</span><a name="line-49"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Vector.Sized.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-50"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Commodity.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Commodity</span></a><span>
+</span><a name="line-51"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Research.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Research</span></a><span>
+</span><a name="line-52"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">Generics</span><span>                  </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-53"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span>
+</span><a name="line-54"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Natural</span><span>
+</span><a name="line-55"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Text</span><span class="hs-operator">.</span><span class="hs-identifier">Printf</span><span>
+</span><a name="line-56"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Map</span><span>                      </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">M</span><span>
+</span><a name="line-57"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Text</span><span>                     </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">T</span><span>
+</span><a name="line-58"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>                   </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">V</span><span>
+</span><a name="line-59"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>             </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
+</span><a name="line-60"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>                  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TL</span><span>
+</span><a name="line-61"></a><span>
+</span><a name="line-62"></a><span class="hs-keyword">data</span><span> </span><a name="Vehicle"><a href="Egg.Vehicle.html#Vehicle"><span class="hs-identifier">Vehicle</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Vehicle"><a href="Egg.Vehicle.html#Vehicle"><span class="hs-identifier">Vehicle</span></a></a><span>
+</span><a name="line-63"></a><span>        </span><span class="hs-special">{</span><span> </span><a name="_vName"><a href="Egg.Vehicle.html#_vName"><span class="hs-identifier">_vName</span></a></a><span>         </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">T</span><span class="hs-operator hs-type">.</span><span class="hs-identifier hs-type">Text</span><span>
+</span><a name="line-64"></a><span>        </span><span class="hs-special">,</span><span> </span><a name="_vBaseCapacity"><a href="Egg.Vehicle.html#_vBaseCapacity"><span class="hs-identifier">_vBaseCapacity</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Natural</span><span>         </span><span class="hs-comment">-- ^ eggs per minute</span><span>
+</span><a name="line-65"></a><span>        </span><span class="hs-special">,</span><span> </span><a name="_vCosts"><a href="Egg.Vehicle.html#_vCosts"><span class="hs-identifier">_vCosts</span></a></a><span>        </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">V</span><span class="hs-operator hs-type">.</span><span class="hs-identifier hs-type">Vector</span><span> </span><a href="Egg.Commodity.html#Bock"><span class="hs-identifier hs-type">Bock</span></a><span>
+</span><a name="line-66"></a><span>        </span><span class="hs-special">}</span><span>
+</span><a name="line-67"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Show</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-68"></a><span>
+</span><a name="line-69"></a><span class="hs-identifier hs-var">makeLenses</span><span> </span><span class="hs-char">''Vehicle
 
 newtype VehicleData vs = VehicleData { _vdVehicles :: SV.Vector vs Vehicle }
   deriving (Show, Eq, Ord, Generic)
@@ -84,8 +83,9 @@ data DepotStatus vs slots
 makePrisms ''DepotStatus
 makeWrapped ''DepotStatus
 
-data SomeVehicleUpgradeError = SVUERegression
-                             | SVUENoSlot
+data SomeVehicleUpgradeError vs
+        = SVUERegression { _svuePrevious :: Finite vs }
+        | SVUENoSlot
   deriving (Show, Eq, Ord)
 
 makePrisms ''SomeVehicleUpgradeError
@@ -232,14 +232,14 @@ upgradeVehicle
     -&gt; Finite slots
     -&gt; Finite vs
     -&gt; DepotStatus vs slots
-    -&gt; Maybe (Bock, DepotStatus vs slots)
+    -&gt; Either (Finite vs) (Bock, DepotStatus vs slots)
 upgradeVehicle vd bs slot v ds0 =
     getComp . flip (_DepotStatus . at slot) ds0 $ \s0 -&gt; Comp $ do
-      guard $ case s0 of
-                Nothing -&gt; True
-                Just h  -&gt; h &lt; v
+      case s0 of
+        Just h | h &gt;= v -&gt; Left h
+        _               -&gt; Right ()
       -- should always be valid of the previous condition is true
-      price &lt;- vehiclePrice vd ds0 v
+      let price = fromJust $ vehiclePrice vd ds0 v
       return (price ^. bonusingFor bs BTVehicleCosts, Just v)
 
 -- | Purchase a vehicle upgrade.  Returns cost and new depot status,
@@ -254,16 +254,16 @@ upgradeSomeVehicle
     -&gt; Integer
     -&gt; Finite vs
     -&gt; SomeDepotStatus vs
-    -&gt; Either SomeVehicleUpgradeError (Bock, SomeDepotStatus vs)
+    -&gt; Either (SomeVehicleUpgradeError vs) (Bock, SomeDepotStatus vs)
 upgradeSomeVehicle vd bs slot v sds0 =
     getComp . traverseSomeDepotStatus bs (Comp . go) $ sds0
   where
     go  :: KnownNat slots
         =&gt; DepotStatus vs slots
-        -&gt; Either SomeVehicleUpgradeError (Bock, DepotStatus vs slots)
+        -&gt; Either (SomeVehicleUpgradeError vs) (Bock, DepotStatus vs slots)
     go ds0 = case packFinite slot of
       Nothing    -&gt; Left SVUENoSlot
-      Just slot' -&gt; maybe (Left SVUERegression) Right $
+      Just slot' -&gt; either (Left . SVUERegression) Right $
                       upgradeVehicle vd bs slot' v ds0
 
 -- | List all possible vehicle upgrades.
@@ -272,20 +272,25 @@ vehicleUpgrades
     =&gt; VehicleData vs
     -&gt; Bonuses
     -&gt; DepotStatus vs slots
-    -&gt; (SV.Vector slots :.: SV.Vector vs :.: Maybe) Bock
+    -&gt; (SV.Vector slots :.: SV.Vector vs :.: Either (Finite vs)) Bock
 vehicleUpgrades vd bs ds = Comp . Comp $ SV.generate go
   where
     slots1 = SNat @slots %:+ SNat @1
     hist :: M.Map (Finite vs) (Finite (slots TL.+ 1))
     hist = withKnownNat slots1 $
              vehicleHistory ds
-    go :: Finite slots -&gt; SV.Vector vs (Maybe Bock)
+    go :: Finite slots -&gt; SV.Vector vs (Either (Finite vs) Bock)
     go s = vd ^. _VehicleData
               &amp; SV.imap
                   (\j h -&gt; withKnownNat slots1 $ do
-                      guard (Just j &gt; currVeh)
+                      case currVeh of
+                        Just v | v &gt;= j -&gt; Left v
+                        _               -&gt; Right ()
                       let n = M.findWithDefault 0 j hist
-                      h ^? vCosts . ix (fromIntegral n) . bonusingFor bs BTVehicleCosts
+                      return . fromMaybe 0 $
+                            h ^? vCosts
+                               . ix (fromIntegral n)
+                               . bonusingFor bs BTVehicleCosts
                   )
       where
         currVeh = ds ^? _DepotStatus . ix s
@@ -296,12 +301,14 @@ someVehicleUpgrades
     =&gt; VehicleData vs
     -&gt; Bonuses
     -&gt; SomeDepotStatus vs
-    -&gt; (M.Map Integer :.: SV.Vector vs) (Maybe Bock)
+    -&gt; (M.Map Integer :.: SV.Vector vs :.: Either (Finite vs)) Bock
 someVehicleUpgrades vd bs = view $ _SomeDepotStatus bs go
+                                 . _Unwrapped
                                  . _Unwrapped
   where
     go  :: KnownNat slots
-        =&gt; Getter (DepotStatus vs slots) (M.Map Integer (SV.Vector vs (Maybe Bock)))
+        =&gt; Getter (DepotStatus vs slots)
+                  (M.Map Integer (SV.Vector vs (Either (Finite vs) Bock)))
     go = to (vehicleUpgrades vd bs)
        . _Wrapped
        . _Wrapped
