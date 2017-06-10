@@ -1,3 +1,4 @@
+{-# LANGUAGE ApplicativeDo                        #-}
 {-# LANGUAGE DataKinds                            #-}
 {-# LANGUAGE DeriveGeneric                        #-}
 {-# LANGUAGE FlexibleContexts                     #-}
@@ -59,6 +60,8 @@ module Egg.Research (
   , researchIxesEpic
   , legalResearchIxesCommon
   , legalResearchIxesEpic
+  , legalResearchesCommon
+  , legalResearchesEpic
   -- * Why?
   , rdrsCommon
   , rdrsEpic
@@ -482,7 +485,7 @@ purchaseResearch rd i rs0 = pp . getComp . researchIxStatusLegal rd i (Comp . go
     go currLevel = first (First . Just) <$> case rd ^. researchIxData i . rCosts of
         Left m   -> (0, currLevel + 1) <$ guard (currLevel < m)
                         \\ researchIxNum i
-        Right cs -> (, currLevel + 1) <$> (cs V.!? fromIntegral (currLevel + 1))
+        Right cs -> (, currLevel + 1) <$> (cs V.!? fromIntegral currLevel)
 
 -- | Get a 'Num' instance from a 'ResearchIx'.
 researchIxNum :: ResearchIx tiers epic a -> Wit (Num a)
@@ -646,3 +649,46 @@ legalResearchIxesEpic rd rs = Comp $ SV.izipWith go (_rdEpic rd) (_rsEpic rs)
     go i r n
       | n < maxLevel r = Just . RIEpic $ i
       | otherwise      = Nothing
+
+-- | All legal common researches.
+legalResearchesCommon
+    :: forall tiers epic. SingI tiers
+    => ResearchData tiers epic
+    -> ResearchStatus tiers epic
+    -> Prod (Flip SV.Vector (Either ResearchError Bock)) tiers
+legalResearchesCommon rd rs =
+    map1 (Flip . go) (zipP (zipP (_rdCommon rd :&: _rsCommon rs) :&: singProd sing))
+  where
+    bs       = totalBonuses rd rs
+    totCount = researchCount rs
+    go  :: forall t. ()
+        => ((ResearchTier :&: Flip SV.Vector Natural) :&: Sing) t
+        -> SV.Vector t (Either ResearchError Bock)
+    go ((rt :&: Flip c) :&: SNat)
+      | rt ^. rtUnlock > totCount = pure (Left RELocked)
+      | otherwise                 = do
+          r         <- rt ^. rtTechs
+          currLevel <- c
+          pure (case r ^. rCosts of
+                  Left m | currLevel < m -> Right 0
+                         | otherwise     -> Left REMaxedOut
+                  Right cs -> Right . maybe 0 (view (bonusingFor bs BTResearchCosts)) $
+                    cs V.!? fromIntegral currLevel
+               )
+
+-- | All legal epic researches.
+--
+-- 'Nothing' implies research is maxed-out.
+legalResearchesEpic
+    :: forall tiers epic. KnownNat epic
+    => ResearchData tiers epic
+    -> ResearchStatus tiers epic
+    -> (SV.Vector epic :.: Maybe) GoldenEgg
+legalResearchesEpic rd rs = Comp $ do
+    r         <- _rdEpic rd
+    currLevel <- _rsEpic rs
+    pure (case r ^. rCosts of
+            Left m | currLevel < m -> Just 0
+                   | otherwise     -> Nothing
+            Right cs -> (cs V.!? fromIntegral currLevel) <|> Just 0
+         )

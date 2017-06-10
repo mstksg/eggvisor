@@ -1,8 +1,10 @@
 {-# LANGUAGE AllowAmbiguousTypes                  #-}
 {-# LANGUAGE ConstraintKinds                      #-}
 {-# LANGUAGE DataKinds                            #-}
+{-# LANGUAGE DeriveFoldable                       #-}
 {-# LANGUAGE DeriveFunctor                        #-}
 {-# LANGUAGE DeriveGeneric                        #-}
+{-# LANGUAGE DeriveTraversable                    #-}
 {-# LANGUAGE EmptyCase                            #-}
 {-# LANGUAGE FlexibleContexts                     #-}
 {-# LANGUAGE FlexibleInstances                    #-}
@@ -41,6 +43,7 @@ module Data.Type.Combinator.Util (
   , ixV
   , _Flip
   , _C
+  , _Comp
   , sumProd
   , for1
   , Replicate
@@ -366,12 +369,12 @@ zipFins = \case
     ØV      -> ØV
     x :* xs -> ((FZ,) <$> x) :* (first FS <$> zipFins xs)
 
-instance (FunctorWithIndex i f, Functor f) => FunctorWithIndex (Fin n, i) (VecT n f) where
-    imap f = TCV.imap $ \i -> L.imap (\j x -> f (i, j) x)
+instance (FunctorWithIndex i f) => FunctorWithIndex (Fin n, i) (VecT n f) where
+    imap f = TCV.imap $ \i -> L.imap (\j -> f (i, j))
 instance FoldableWithIndex i f => FoldableWithIndex (Fin n, i) (VecT n f) where
-    ifoldMap f = TCV.ifoldMap $ \i -> L.ifoldMap (\j x -> f (i, j) x)
+    ifoldMap f = TCV.ifoldMap $ \i -> L.ifoldMap (\j -> f (i, j))
 instance TraversableWithIndex i f => TraversableWithIndex (Fin n, i) (VecT n f) where
-    itraverse f = TCV.itraverse $ \i -> L.itraverse (\j x -> f (i, j) x)
+    itraverse f = TCV.itraverse $ \i -> L.itraverse (\j -> f (i, j))
 
 instance FunctorWithIndex () I where
     imap f = fmap (f ())
@@ -379,6 +382,13 @@ instance FoldableWithIndex () I where
     ifoldMap f = foldMap (f ())
 instance TraversableWithIndex () I where
     itraverse f = traverse (f ())
+
+instance (FunctorWithIndex i f, FunctorWithIndex j g) => FunctorWithIndex (i, j) (f :.: g) where
+    imap f = iover (_Comp . imapped) $ \i -> L.imap (\j -> f (i, j))
+instance (FoldableWithIndex i f, FoldableWithIndex j g) => FoldableWithIndex (i, j) (f :.: g) where
+    ifoldMap f (Comp x) = flip L.ifoldMap x $ \i -> L.ifoldMap (\j -> f (i, j))
+instance (TraversableWithIndex i f, TraversableWithIndex j g) => TraversableWithIndex (i, j) (f :.: g) where
+    itraverse f = (_Comp . L.itraverse) $ \i -> L.itraverse (\j -> f (i, j))
 
 dsumSome :: DSum f g -> Some (f :&: g)
 dsumSome (t :=> x) = Some (t :&: x)
@@ -447,3 +457,6 @@ deriving instance (Functor f, Functor g) => Functor (f :.: g)
 instance (Applicative f, Applicative g) => Applicative (f :.: g) where
     pure    = Comp . pure . pure
     f <*> x = Comp $ liftA2 (<*>) (getComp f) (getComp x)
+
+deriving instance (Foldable f, Foldable g) => Foldable (f :.: g)
+deriving instance (Traversable f, Traversable g) => Traversable (f :.: g)
