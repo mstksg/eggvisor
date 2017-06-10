@@ -1,56 +1,75 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds       #-}</span><span>
-</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE GADTs           #-}</span><span>
-</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE KindSignatures  #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase      #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE TemplateHaskell #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators   #-}</span><span>
-</span><a name="line-7"></a><span>
-</span><a name="line-8"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Action</span><span> </span><span class="hs-special">(</span><span>
-</span><a name="line-9"></a><span>    </span><a href="Egg.Action.html#Action"><span class="hs-identifier hs-type">Action</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-10"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Action.html#PurchaseError"><span class="hs-identifier hs-type">PurchaseError</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-11"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Action.html#_PEInsufficientBocks"><span class="hs-identifier hs-var">_PEInsufficientBocks</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Action.html#_PEInsufficientGoldenEggs"><span class="hs-identifier hs-var">_PEInsufficientGoldenEggs</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Action.html#peBocks"><span class="hs-identifier hs-var">peBocks</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Action.html#peGoldenEggs"><span class="hs-identifier hs-var">peGoldenEggs</span></a><span>
-</span><a name="line-12"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Action.html#runAction"><span class="hs-identifier hs-var">runAction</span></a><span>
-</span><a name="line-13"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-14"></a><span>
-</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span>
-</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Bifunctor</span><span>
-</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span>
-</span><a name="line-18"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
-</span><a name="line-19"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TH</span><span>
-</span><a name="line-20"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
-</span><a name="line-21"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
-</span><a name="line-22"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Fin</span><span>
-</span><a name="line-23"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
-</span><a name="line-24"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Commodity.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Commodity</span></a><span>
-</span><a name="line-25"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Farm.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Farm</span></a><span>
-</span><a name="line-26"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.GameData.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">GameData</span></a><span>
-</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Habitat.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Habitat</span></a><span>
-</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Research.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Research</span></a><span>
-</span><a name="line-29"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Vehicle.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Vehicle</span></a><span>
-</span><a name="line-30"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
-</span><a name="line-31"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>             </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TL</span><span>
-</span><a name="line-32"></a><span>
-</span><a name="line-33"></a><span class="hs-keyword">data</span><span> </span><a name="PurchaseError"><a href="Egg.Action.html#PurchaseError"><span class="hs-identifier">PurchaseError</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="PEInsufficientBocks"><a href="Egg.Action.html#PEInsufficientBocks"><span class="hs-identifier">PEInsufficientBocks</span></a></a><span>      </span><span class="hs-special">{</span><span> </span><a name="_peBocks"><a href="Egg.Action.html#_peBocks"><span class="hs-identifier">_peBocks</span></a></a><span>      </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Commodity.html#Bock"><span class="hs-identifier hs-type">Bock</span></a><span>      </span><span class="hs-special">}</span><span>
-</span><a name="line-34"></a><span>                   </span><span class="hs-glyph">|</span><span> </span><a name="PEInsufficientGoldenEggs"><a href="Egg.Action.html#PEInsufficientGoldenEggs"><span class="hs-identifier">PEInsufficientGoldenEggs</span></a></a><span> </span><span class="hs-special">{</span><span> </span><a name="_peGoldenEggs"><a href="Egg.Action.html#_peGoldenEggs"><span class="hs-identifier">_peGoldenEggs</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Egg.Commodity.html#GoldenEgg"><span class="hs-identifier hs-type">GoldenEgg</span></a><span> </span><span class="hs-special">}</span><span>
-</span><a name="line-35"></a><span>
-</span><a name="line-36"></a><span class="hs-identifier hs-var">makePrisms</span><span> </span><span class="hs-char">''PurchaseError
-makeLenses ''PurchaseError
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds             #-}</span><span>
+</span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances     #-}</span><span>
+</span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE GADTs                 #-}</span><span>
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE KindSignatures        #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase            #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE PolyKinds             #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables   #-}</span><span>
+</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE TemplateHaskell       #-}</span><span>
+</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE TupleSections         #-}</span><span>
+</span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies          #-}</span><span>
+</span><a name="line-12"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators         #-}</span><span>
+</span><a name="line-13"></a><span>
+</span><a name="line-14"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Action</span><span> </span><span class="hs-special">(</span><span>
+</span><a name="line-15"></a><span>    </span><a href="Egg.Action.html#Action"><span class="hs-identifier hs-type">Action</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-16"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Action.html#PurchaseError"><span class="hs-identifier hs-type">PurchaseError</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-17"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Action.html#_PEInsufficientFunds"><span class="hs-identifier hs-var">_PEInsufficientFunds</span></a><span>
+</span><a name="line-18"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Action.html#runAction"><span class="hs-identifier hs-var">runAction</span></a><span>
+</span><a name="line-19"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Action.html#commonResearchActions"><span class="hs-identifier hs-var">commonResearchActions</span></a><span>
+</span><a name="line-20"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Action.html#epicResearchActions"><span class="hs-identifier hs-var">epicResearchActions</span></a><span>
+</span><a name="line-21"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Action.html#habActions"><span class="hs-identifier hs-var">habActions</span></a><span>
+</span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Action.html#vehicleActions"><span class="hs-identifier hs-var">vehicleActions</span></a><span>
+</span><a name="line-23"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Action.html#eggActions"><span class="hs-identifier hs-var">eggActions</span></a><span>
+</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Action.html#actions"><span class="hs-identifier hs-var">actions</span></a><span>
+</span><a name="line-25"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-26"></a><span>
+</span><a name="line-27"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span> </span><span class="hs-keyword">hiding</span><span>       </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-type">:&lt;</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Index</span><span class="hs-special">)</span><span>
+</span><a name="line-28"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Bifunctor</span><span>
+</span><a name="line-29"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Finite</span><span>
+</span><a name="line-30"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
+</span><a name="line-31"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TH</span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-var">%~</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-32"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Singletons</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>
+</span><a name="line-33"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
+</span><a name="line-34"></a><span class="hs-keyword">import</span><span>           </span><a href="Data.Type.Combinator.Util.html"><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span></a><span>
+</span><a name="line-35"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Conjunction</span><span>
+</span><a name="line-36"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Fin</span><span>
+</span><a name="line-37"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Index</span><span>
+</span><a name="line-38"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span>
+</span><a name="line-39"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
+</span><a name="line-40"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>          </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
+</span><a name="line-41"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Commodity.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Commodity</span></a><span>
+</span><a name="line-42"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Farm.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Farm</span></a><span>
+</span><a name="line-43"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.GameData.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">GameData</span></a><span>
+</span><a name="line-44"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Habitat.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Habitat</span></a><span>
+</span><a name="line-45"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Research.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Research</span></a><span>
+</span><a name="line-46"></a><span class="hs-keyword">import</span><span>           </span><a href="Egg.Vehicle.html"><span class="hs-identifier">Egg</span><span class="hs-operator">.</span><span class="hs-identifier">Vehicle</span></a><span>
+</span><a name="line-47"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span>
+</span><a name="line-48"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-49"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>               </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">V</span><span>
+</span><a name="line-50"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span class="hs-operator">.</span><span class="hs-identifier">Sized</span><span>         </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">SV</span><span>
+</span><a name="line-51"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">TypeLits</span><span>              </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TL</span><span>
+</span><a name="line-52"></a><span>
+</span><a name="line-53"></a><span class="hs-keyword">newtype</span><span> </span><a name="PurchaseError"><a href="Egg.Action.html#PurchaseError"><span class="hs-identifier">PurchaseError</span></a></a><span> </span><a name="local-6989586621680176967"><a href="#local-6989586621680176967"><span class="hs-identifier">a</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="PEInsufficientFunds"><a href="Egg.Action.html#PEInsufficientFunds"><span class="hs-identifier">PEInsufficientFunds</span></a></a><span> </span><span class="hs-special">{</span><span> </span><a name="_peCost"><a href="Egg.Action.html#_peCost"><span class="hs-identifier">_peCost</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="#local-6989586621680176967"><span class="hs-identifier hs-type">a</span></a><span> </span><span class="hs-special">}</span><span>
+</span><a name="line-54"></a><span>
+</span><a name="line-55"></a><span class="hs-identifier hs-var">makePrisms</span><span> </span><span class="hs-char">''PurchaseError
+makeWrapped ''PurchaseError
 
 data Action :: Nat -&gt; ([Nat], Nat) -&gt; Nat -&gt; Nat -&gt; [Type] -&gt; Type where
     AResearch
         :: ResearchIx tiers epic a
         -&gt; Action eggs '(tiers, epic) habs vehicles
-             '[PurchaseError, ResearchError]
+             '[PurchaseError a, ResearchError]
     AHab
         :: Fin N4
         -&gt; Finite habs
         -&gt; Action eggs '(tiers, epic) habs vehicles
-             '[PurchaseError, Finite habs]
+             '[PurchaseError Bock, Finite habs]
     AVehicle
         :: Integer
         -&gt; Finite vehicles
         -&gt; Action eggs '(tiers, epic) habs vehicles
-             '[PurchaseError, SomeVehicleUpgradeError vehicles]
+             '[PurchaseError Bock, SomeVehicleUpgradeError vehicles]
     AWatchVideo
         :: Action eggs '(tiers, epic) habs vehicles
              '[]
@@ -77,12 +96,12 @@ runAction gd = \case
           fs1 &amp; fsBocks %%~ \b -&gt;
             if b &gt;= cost
               then return (b - cost)
-              else Left (inj . I $ PEInsufficientBocks cost)
+              else Left (inj . I $ PEInsufficientFunds cost)
         RIEpic _ -&gt;
           fs1 &amp; fsGoldenEggs %%~ \g -&gt;
             if g &gt;= cost
               then return (g - cost)
-              else Left (inj . I $ PEInsufficientGoldenEggs cost)
+              else Left (inj . I $ PEInsufficientFunds cost)
     AHab s h    -&gt; \fs0 -&gt; do
       (cost, fs1) &lt;- first (inj . I) . getComp $
         fsHabs (Comp . upgradeHab (gd ^. gdHabData) (farmBonuses gd fs0) s h)
@@ -90,7 +109,7 @@ runAction gd = \case
       fs1 &amp; fsBocks %%~ \b -&gt;
         if b &gt;= cost
           then return (b - cost)
-          else Left (inj . I $ PEInsufficientBocks cost)
+          else Left (inj . I $ PEInsufficientFunds cost)
     AVehicle s v -&gt; \fs0 -&gt; do
       (cost, fs1) &lt;- first (inj . I) . getComp $
         fsDepot (Comp . upgradeSomeVehicle (gd ^. gdVehicleData) (farmBonuses gd fs0) s v)
@@ -98,8 +117,114 @@ runAction gd = \case
       fs1 &amp; fsBocks %%~ \b -&gt;
         if b &gt;= cost
           then return (b - cost)
-          else Left (inj . I $ PEInsufficientBocks cost)
+          else Left (inj . I $ PEInsufficientFunds cost)
     AWatchVideo   -&gt; Right . watchVideo gd
     AEggUpgrade e -&gt; first (inj . I) . upgradeEgg gd e
     APrestige     -&gt; Right . prestigeFarm gd
+
+commonResearchActions
+    :: forall eggs tiers epic habs vehicles. SingI tiers
+    =&gt; GameData   eggs '(tiers, epic) habs vehicles
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+    -&gt; Prod (Flip SV.Vector (Either (Sum I '[PurchaseError Bock, ResearchError]) (Action eggs '(tiers, epic) habs vehicles '[PurchaseError Bock, ResearchError], Bock))) tiers
+commonResearchActions gd fs =
+    imap1 (\t -&gt; iover (_Flip . imapped) (go t)) (legalResearchesCommon (gd ^. gdResearchData) (fs ^. fsResearch))
+  where
+    go  :: Index tiers a
+        -&gt; Finite a
+        -&gt; Either ResearchError Bock
+        -&gt; Either (Sum I '[PurchaseError Bock, ResearchError]) (Action eggs '(tiers, epic) habs vehicles '[PurchaseError Bock, ResearchError], Bock)
+    go t s e = do
+      cost &lt;- first (inj . I) e
+      if fs ^. fsBocks &gt;= cost
+        then return (AResearch . RICommon . someSum $ Some (t :&amp;: s), cost)
+        else Left . inj . I $ PEInsufficientFunds cost
+
+epicResearchActions
+    :: forall eggs tiers epic habs vehicles. (KnownNat epic)
+    =&gt; GameData   eggs '(tiers, epic) habs vehicles
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+    -&gt; (SV.Vector epic :.: Either (Sum I '[PurchaseError GoldenEgg, ResearchError])) (Action eggs '(tiers, epic) habs vehicles '[PurchaseError GoldenEgg, ResearchError], GoldenEgg)
+epicResearchActions gd fs =
+    legalResearchesEpic (gd ^. gdResearchData) (fs ^. fsResearch)
+      &amp; (_Comp . imapped) %@~ \i c -&gt; do
+        cost &lt;- maybe (Left . inj . I $ REMaxedOut) Right c
+        if fs ^. fsGoldenEggs &gt;= cost
+          then return (AResearch (RIEpic i), cost)
+          else Left . inj . I $ PEInsufficientFunds cost
+
+habActions
+    :: KnownNat habs
+    =&gt; GameData   eggs '(tiers, epic) habs vehicles
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+    -&gt; VecT N4 (SV.Vector habs :.: Either (Sum I '[PurchaseError Bock, Finite habs])) (Action eggs '(tiers, epic) habs vehicles '[PurchaseError Bock, Finite habs], Bock)
+habActions gd fs =
+    habUpgrades (gd ^. gdHabData) (farmBonuses gd fs) (fs ^. fsHabs)
+      &amp; (isets TCV.imap &lt;. _Comp) &lt;.&gt; imapped %@~ \(s, h) c -&gt; do
+        cost &lt;- first (inj . I) c
+        if fs ^. fsBocks &gt;= cost
+          then return (AHab s h, cost)
+          else Left . inj . I $ PEInsufficientFunds cost
+
+vehicleActions
+    :: KnownNat vehicles
+    =&gt; GameData   eggs '(tiers, epic) habs vehicles
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+    -&gt; (V.Vector :.: SV.Vector vehicles :.: Either (Sum I '[PurchaseError Bock, SomeVehicleUpgradeError vehicles])) (Action eggs '(tiers, epic) habs vehicles '[PurchaseError Bock, SomeVehicleUpgradeError vehicles], Bock)
+vehicleActions gd fs =
+    someVehicleUpgrades (gd ^. gdVehicleData) (farmBonuses gd fs) (fs ^. fsDepot)
+      &amp; _Comp . _Comp . imapped &lt;.&gt; imapped %@~ \(s, v) c -&gt; do
+        cost &lt;- first (inj . I . SVUERegression) c
+        if fs ^. fsBocks &gt;= cost
+          then return (AVehicle (fromIntegral s) v, cost)
+          else Left . inj . I $ PEInsufficientFunds cost
+
+eggActions
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    =&gt; GameData   eggs '(tiers, epic) habs vehicles
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+    -&gt; (SV.Vector eggs :.: Either (Sum I '[UpgradeError])) (Action eggs '(tiers, epic) habs vehicles '[UpgradeError])
+eggActions gd fs = eggUpgrades gd fs &amp; _Comp . mapped %~ bimap (InL . I) AEggUpgrade
+
+actions
+    :: forall eggs tiers epic habs vehicles.
+       (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
+    =&gt; GameData   eggs '(tiers, epic) habs vehicles
+    -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+    -&gt; [(Some (Action eggs '(tiers, epic) habs vehicles), Maybe (Either Bock GoldenEgg))]
+actions gd fs = mconcat [ commonResearchActions gd fs ^.. liftTraversal (_Flip . folded) . folded . to (wrap Left)
+                        , epicResearchActions   gd fs ^.. folded . to (wrap Right)
+                        , habActions            gd fs ^.. folded . to (wrap Left)
+                        , vehicleActions        gd fs ^.. folded . to (wrap Left)
+                        , [(Some AWatchVideo, Nothing)]
+                        , eggActions            gd fs ^.. folded . to ((, Nothing) . Some)
+                        , [(Some APrestige  , Nothing)]
+                        ]
+  where
+    wrap
+        :: (a -&gt; Either Bock GoldenEgg)
+        -&gt; (Action eggs '(tiers, epic) habs vehicles errs, a)
+        -&gt; (Some (Action eggs '(tiers, epic) habs vehicles), Maybe (Either Bock GoldenEgg))
+    wrap f = bimap Some (Just . f)
+
+-- data Ap f g a = Ap { getAp :: f a (g a) }
+
+-- | It makes no sense to return a list with Either's and no indices
+-- actions
+--     :: forall eggs tiers epic habs vehicles. (SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
+--     =&gt; GameData   eggs '(tiers, epic) habs vehicles
+--     -&gt; FarmStatus eggs '(tiers, epic) habs vehicles
+--     -&gt; [Some (Ap (Comp1 Either (Sum I)) ((,) (Either Bock GoldenEgg) :.: Action eggs '(tiers, epic) habs vehicles))]
+-- actions gd fs = mconcat [ commonResearchActions gd fs ^.. liftTraversal (_Flip . folded) . to (wrap Left)
+--                         , epicResearchActions   gd fs ^.. _Comp . folded . to (wrap Right)
+--                         , habActions            gd fs ^.. folding (vfoldMap (:[])) . _Comp . folded . to (wrap Left)
+--                         , vehicleActions        gd fs ^.. _Comp . _Comp . folded . folded . to (wrap Left)
+--                         ]
+--   where
+--     wrap
+--         :: (a -&gt; Either Bock GoldenEgg)
+--         -&gt; Either (Sum I errs) (Action eggs '(tiers, epic) habs vehicles errs, a)
+--         -&gt; Some (Ap (Comp1 Either (Sum I)) ((,) (Either Bock GoldenEgg) :.: Action eggs '(tiers, epic) habs vehicles))
+--     wrap f = Some . Ap . Comp1 . second (Comp . first f . swap)
+
 </span></pre></body></html>

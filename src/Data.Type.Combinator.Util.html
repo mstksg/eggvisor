@@ -1,102 +1,105 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE AllowAmbiguousTypes                  #-}</span><span>
 </span><a name="line-2"></a><span class="hs-pragma">{-# LANGUAGE ConstraintKinds                      #-}</span><span>
 </span><a name="line-3"></a><span class="hs-pragma">{-# LANGUAGE DataKinds                            #-}</span><span>
-</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE DeriveFunctor                        #-}</span><span>
-</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric                        #-}</span><span>
-</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE EmptyCase                            #-}</span><span>
-</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE FlexibleContexts                     #-}</span><span>
-</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances                    #-}</span><span>
-</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE GADTs                                #-}</span><span>
-</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase                           #-}</span><span>
-</span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses                #-}</span><span>
-</span><a name="line-12"></a><span class="hs-pragma">{-# LANGUAGE PartialTypeSignatures                #-}</span><span>
-</span><a name="line-13"></a><span class="hs-pragma">{-# LANGUAGE PolyKinds                            #-}</span><span>
-</span><a name="line-14"></a><span class="hs-pragma">{-# LANGUAGE RankNTypes                           #-}</span><span>
-</span><a name="line-15"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables                  #-}</span><span>
-</span><a name="line-16"></a><span class="hs-pragma">{-# LANGUAGE StandaloneDeriving                   #-}</span><span>
-</span><a name="line-17"></a><span class="hs-pragma">{-# LANGUAGE TemplateHaskell                      #-}</span><span>
-</span><a name="line-18"></a><span class="hs-pragma">{-# LANGUAGE TupleSections                        #-}</span><span>
-</span><a name="line-19"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications                     #-}</span><span>
-</span><a name="line-20"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies                         #-}</span><span>
-</span><a name="line-21"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilyDependencies               #-}</span><span>
-</span><a name="line-22"></a><span class="hs-pragma">{-# LANGUAGE TypeInType                           #-}</span><span>
-</span><a name="line-23"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators                        #-}</span><span>
-</span><a name="line-24"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances                 #-}</span><span>
-</span><a name="line-25"></a><span class="hs-pragma">{-# OPTIONS_GHC -fno-warn-orphans                 #-}</span><span>
-</span><a name="line-26"></a><span class="hs-pragma">{-# OPTIONS_GHC -fno-warn-partial-type-signatures #-}</span><span>
-</span><a name="line-27"></a><span>
-</span><a name="line-28"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span><span> </span><span class="hs-special">(</span><span>
-</span><a name="line-29"></a><span>    </span><a href="Data.Type.Combinator.Util.html#HasLen"><span class="hs-identifier hs-type">HasLen</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
-</span><a name="line-30"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#withProd"><span class="hs-identifier hs-var">withProd</span></a><span>
-</span><a name="line-31"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#unzipP"><span class="hs-identifier hs-var">unzipP</span></a><span>
-</span><a name="line-32"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#zipP"><span class="hs-identifier hs-var">zipP</span></a><span>
-</span><a name="line-33"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#allWit"><span class="hs-identifier hs-var">allWit</span></a><span>
-</span><a name="line-34"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#allWit%27"><span class="hs-identifier hs-var">allWit'</span></a><span>
-</span><a name="line-35"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#tagSum"><span class="hs-identifier hs-var">tagSum</span></a><span>
-</span><a name="line-36"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#sumIso"><span class="hs-identifier hs-var">sumIso</span></a><span>
-</span><a name="line-37"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#sumSome"><span class="hs-identifier hs-var">sumSome</span></a><span>
-</span><a name="line-38"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#someSum"><span class="hs-identifier hs-var">someSum</span></a><span>
-</span><a name="line-39"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#ixProd"><span class="hs-identifier hs-var">ixProd</span></a><span>
-</span><a name="line-40"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#ixVecT"><span class="hs-identifier hs-var">ixVecT</span></a><span>
-</span><a name="line-41"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#ixV"><span class="hs-identifier hs-var">ixV</span></a><span>
-</span><a name="line-42"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#_Flip"><span class="hs-identifier hs-var">_Flip</span></a><span>
-</span><a name="line-43"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#_C"><span class="hs-identifier hs-var">_C</span></a><span>
-</span><a name="line-44"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#sumProd"><span class="hs-identifier hs-var">sumProd</span></a><span>
-</span><a name="line-45"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#for1"><span class="hs-identifier hs-var">for1</span></a><span>
-</span><a name="line-46"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#Replicate"><span class="hs-identifier hs-type">Replicate</span></a><span>
-</span><a name="line-47"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#vecToProd"><span class="hs-identifier hs-var">vecToProd</span></a><span>
-</span><a name="line-48"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#vecToAnyProd"><span class="hs-identifier hs-var">vecToAnyProd</span></a><span>
-</span><a name="line-49"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#addFinCap"><span class="hs-identifier hs-var">addFinCap</span></a><span>
-</span><a name="line-50"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#strengthen"><span class="hs-identifier hs-var">strengthen</span></a><span>
-</span><a name="line-51"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#strengthenN"><span class="hs-identifier hs-var">strengthenN</span></a><span>
-</span><a name="line-52"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#natFin"><span class="hs-identifier hs-var">natFin</span></a><span>
-</span><a name="line-53"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#natFinCap"><span class="hs-identifier hs-var">natFinCap</span></a><span>
-</span><a name="line-54"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#ixListFin"><span class="hs-identifier hs-var">ixListFin</span></a><span>
-</span><a name="line-55"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#ixListNat"><span class="hs-identifier hs-var">ixListNat</span></a><span>
-</span><a name="line-56"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#zipFins"><span class="hs-identifier hs-var">zipFins</span></a><span>
-</span><a name="line-57"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#someNat"><span class="hs-identifier hs-var">someNat</span></a><span>
-</span><a name="line-58"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#unzipV"><span class="hs-identifier hs-var">unzipV</span></a><span>
-</span><a name="line-59"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#fins%27"><span class="hs-identifier hs-var">fins'</span></a><span>
-</span><a name="line-60"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#dsumSome"><span class="hs-identifier hs-var">dsumSome</span></a><span>
-</span><a name="line-61"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#someDSum"><span class="hs-identifier hs-var">someDSum</span></a><span>
-</span><a name="line-62"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#liftTraversal"><span class="hs-identifier hs-var">liftTraversal</span></a><span>
-</span><a name="line-63"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#addCommute"><span class="hs-identifier hs-var">addCommute</span></a><span>
-</span><a name="line-64"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-65"></a><span>
-</span><a name="line-66"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Applicative</span><span>      </span><span class="hs-special">(</span><span class="hs-identifier hs-var">liftA2</span><span class="hs-special">)</span><span>
-</span><a name="line-67"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">L</span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-type">:&lt;</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Index</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Traversable1</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><a name="line-68"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span>
-</span><a name="line-69"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span><span>
-</span><a name="line-70"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Bifunctor</span><span>
-</span><a name="line-71"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Constraint</span><span class="hs-operator">.</span><span class="hs-identifier">Forall</span><span>
-</span><a name="line-72"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Dependent</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
-</span><a name="line-73"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Foldable</span><span>            </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">F</span><span>
-</span><a name="line-74"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">GADT</span><span class="hs-operator">.</span><span class="hs-identifier">Compare</span><span>
-</span><a name="line-75"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">GADT</span><span class="hs-operator">.</span><span class="hs-identifier">Show</span><span>
-</span><a name="line-76"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
-</span><a name="line-77"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
-</span><a name="line-78"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Conjunction</span><span>
-</span><a name="line-79"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Fin</span><span>
-</span><a name="line-80"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Index</span><span>
-</span><a name="line-81"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>
-</span><a name="line-82"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
-</span><a name="line-83"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span class="hs-operator">.</span><span class="hs-identifier">Inequality</span><span>
-</span><a name="line-84"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span>        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCP</span><span>
-</span><a name="line-85"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
-</span><a name="line-86"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>         </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
-</span><a name="line-87"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">Generics</span><span>             </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
-</span><a name="line-88"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Natural</span><span>
-</span><a name="line-89"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Text</span><span class="hs-operator">.</span><span class="hs-identifier">Printf</span><span>
-</span><a name="line-90"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span>
-</span><a name="line-91"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Known</span><span>
-</span><a name="line-92"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
-</span><a name="line-93"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Constraint</span><span>
-</span><a name="line-94"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
-</span><a name="line-95"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
-</span><a name="line-96"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Constraint</span><span>          </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">C</span><span>
-</span><a name="line-97"></a><span>
-</span><a name="line-98"></a><span class="hs-keyword">data</span><span> </span><a name="HasLen"><a href="Data.Type.Combinator.Util.html#HasLen"><span class="hs-identifier">HasLen</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">N</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><a href="#local-6989586621679251956"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
-</span><a name="line-99"></a><span>    </span><a name="HLZ"><a href="Data.Type.Combinator.Util.html#HLZ"><span class="hs-identifier">HLZ</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Data.Type.Combinator.Util.html#HasLen"><span class="hs-identifier hs-type">HasLen</span></a><span> </span><span class="hs-char">'Z '[]
+</span><a name="line-4"></a><span class="hs-pragma">{-# LANGUAGE DeriveFoldable                       #-}</span><span>
+</span><a name="line-5"></a><span class="hs-pragma">{-# LANGUAGE DeriveFunctor                        #-}</span><span>
+</span><a name="line-6"></a><span class="hs-pragma">{-# LANGUAGE DeriveGeneric                        #-}</span><span>
+</span><a name="line-7"></a><span class="hs-pragma">{-# LANGUAGE DeriveTraversable                    #-}</span><span>
+</span><a name="line-8"></a><span class="hs-pragma">{-# LANGUAGE EmptyCase                            #-}</span><span>
+</span><a name="line-9"></a><span class="hs-pragma">{-# LANGUAGE FlexibleContexts                     #-}</span><span>
+</span><a name="line-10"></a><span class="hs-pragma">{-# LANGUAGE FlexibleInstances                    #-}</span><span>
+</span><a name="line-11"></a><span class="hs-pragma">{-# LANGUAGE GADTs                                #-}</span><span>
+</span><a name="line-12"></a><span class="hs-pragma">{-# LANGUAGE LambdaCase                           #-}</span><span>
+</span><a name="line-13"></a><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses                #-}</span><span>
+</span><a name="line-14"></a><span class="hs-pragma">{-# LANGUAGE PartialTypeSignatures                #-}</span><span>
+</span><a name="line-15"></a><span class="hs-pragma">{-# LANGUAGE PolyKinds                            #-}</span><span>
+</span><a name="line-16"></a><span class="hs-pragma">{-# LANGUAGE RankNTypes                           #-}</span><span>
+</span><a name="line-17"></a><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables                  #-}</span><span>
+</span><a name="line-18"></a><span class="hs-pragma">{-# LANGUAGE StandaloneDeriving                   #-}</span><span>
+</span><a name="line-19"></a><span class="hs-pragma">{-# LANGUAGE TemplateHaskell                      #-}</span><span>
+</span><a name="line-20"></a><span class="hs-pragma">{-# LANGUAGE TupleSections                        #-}</span><span>
+</span><a name="line-21"></a><span class="hs-pragma">{-# LANGUAGE TypeApplications                     #-}</span><span>
+</span><a name="line-22"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilies                         #-}</span><span>
+</span><a name="line-23"></a><span class="hs-pragma">{-# LANGUAGE TypeFamilyDependencies               #-}</span><span>
+</span><a name="line-24"></a><span class="hs-pragma">{-# LANGUAGE TypeInType                           #-}</span><span>
+</span><a name="line-25"></a><span class="hs-pragma">{-# LANGUAGE TypeOperators                        #-}</span><span>
+</span><a name="line-26"></a><span class="hs-pragma">{-# LANGUAGE UndecidableInstances                 #-}</span><span>
+</span><a name="line-27"></a><span class="hs-pragma">{-# OPTIONS_GHC -fno-warn-orphans                 #-}</span><span>
+</span><a name="line-28"></a><span class="hs-pragma">{-# OPTIONS_GHC -fno-warn-partial-type-signatures #-}</span><span>
+</span><a name="line-29"></a><span>
+</span><a name="line-30"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span class="hs-operator">.</span><span class="hs-identifier">Util</span><span> </span><span class="hs-special">(</span><span>
+</span><a name="line-31"></a><span>    </span><a href="Data.Type.Combinator.Util.html#HasLen"><span class="hs-identifier hs-type">HasLen</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><a name="line-32"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#withProd"><span class="hs-identifier hs-var">withProd</span></a><span>
+</span><a name="line-33"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#unzipP"><span class="hs-identifier hs-var">unzipP</span></a><span>
+</span><a name="line-34"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#zipP"><span class="hs-identifier hs-var">zipP</span></a><span>
+</span><a name="line-35"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#allWit"><span class="hs-identifier hs-var">allWit</span></a><span>
+</span><a name="line-36"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#allWit%27"><span class="hs-identifier hs-var">allWit'</span></a><span>
+</span><a name="line-37"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#tagSum"><span class="hs-identifier hs-var">tagSum</span></a><span>
+</span><a name="line-38"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#sumIso"><span class="hs-identifier hs-var">sumIso</span></a><span>
+</span><a name="line-39"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#sumSome"><span class="hs-identifier hs-var">sumSome</span></a><span>
+</span><a name="line-40"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#someSum"><span class="hs-identifier hs-var">someSum</span></a><span>
+</span><a name="line-41"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#ixProd"><span class="hs-identifier hs-var">ixProd</span></a><span>
+</span><a name="line-42"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#ixVecT"><span class="hs-identifier hs-var">ixVecT</span></a><span>
+</span><a name="line-43"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#ixV"><span class="hs-identifier hs-var">ixV</span></a><span>
+</span><a name="line-44"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#_Flip"><span class="hs-identifier hs-var">_Flip</span></a><span>
+</span><a name="line-45"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#_C"><span class="hs-identifier hs-var">_C</span></a><span>
+</span><a name="line-46"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#_Comp"><span class="hs-identifier hs-var">_Comp</span></a><span>
+</span><a name="line-47"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#sumProd"><span class="hs-identifier hs-var">sumProd</span></a><span>
+</span><a name="line-48"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#for1"><span class="hs-identifier hs-var">for1</span></a><span>
+</span><a name="line-49"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#Replicate"><span class="hs-identifier hs-type">Replicate</span></a><span>
+</span><a name="line-50"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#vecToProd"><span class="hs-identifier hs-var">vecToProd</span></a><span>
+</span><a name="line-51"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#vecToAnyProd"><span class="hs-identifier hs-var">vecToAnyProd</span></a><span>
+</span><a name="line-52"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#addFinCap"><span class="hs-identifier hs-var">addFinCap</span></a><span>
+</span><a name="line-53"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#strengthen"><span class="hs-identifier hs-var">strengthen</span></a><span>
+</span><a name="line-54"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#strengthenN"><span class="hs-identifier hs-var">strengthenN</span></a><span>
+</span><a name="line-55"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#natFin"><span class="hs-identifier hs-var">natFin</span></a><span>
+</span><a name="line-56"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#natFinCap"><span class="hs-identifier hs-var">natFinCap</span></a><span>
+</span><a name="line-57"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#ixListFin"><span class="hs-identifier hs-var">ixListFin</span></a><span>
+</span><a name="line-58"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#ixListNat"><span class="hs-identifier hs-var">ixListNat</span></a><span>
+</span><a name="line-59"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#zipFins"><span class="hs-identifier hs-var">zipFins</span></a><span>
+</span><a name="line-60"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#someNat"><span class="hs-identifier hs-var">someNat</span></a><span>
+</span><a name="line-61"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#unzipV"><span class="hs-identifier hs-var">unzipV</span></a><span>
+</span><a name="line-62"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#fins%27"><span class="hs-identifier hs-var">fins'</span></a><span>
+</span><a name="line-63"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#dsumSome"><span class="hs-identifier hs-var">dsumSome</span></a><span>
+</span><a name="line-64"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#someDSum"><span class="hs-identifier hs-var">someDSum</span></a><span>
+</span><a name="line-65"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#liftTraversal"><span class="hs-identifier hs-var">liftTraversal</span></a><span>
+</span><a name="line-66"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Data.Type.Combinator.Util.html#addCommute"><span class="hs-identifier hs-var">addCommute</span></a><span>
+</span><a name="line-67"></a><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-68"></a><span>
+</span><a name="line-69"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Applicative</span><span>      </span><span class="hs-special">(</span><span class="hs-identifier hs-var">liftA2</span><span class="hs-special">)</span><span>
+</span><a name="line-70"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">L</span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator hs-type">:&lt;</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Index</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Traversable1</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a name="line-71"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span>
+</span><a name="line-72"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span class="hs-operator">.</span><span class="hs-identifier">Types</span><span>
+</span><a name="line-73"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Bifunctor</span><span>
+</span><a name="line-74"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Constraint</span><span class="hs-operator">.</span><span class="hs-identifier">Forall</span><span>
+</span><a name="line-75"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Dependent</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
+</span><a name="line-76"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Foldable</span><span>            </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">F</span><span>
+</span><a name="line-77"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">GADT</span><span class="hs-operator">.</span><span class="hs-identifier">Compare</span><span>
+</span><a name="line-78"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">GADT</span><span class="hs-operator">.</span><span class="hs-identifier">Show</span><span>
+</span><a name="line-79"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Kind</span><span>
+</span><a name="line-80"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Combinator</span><span>
+</span><a name="line-81"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Conjunction</span><span>
+</span><a name="line-82"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Fin</span><span>
+</span><a name="line-83"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Index</span><span>
+</span><a name="line-84"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Length</span><span>
+</span><a name="line-85"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-86"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span class="hs-operator">.</span><span class="hs-identifier">Inequality</span><span>
+</span><a name="line-87"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Product</span><span>        </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCP</span><span>
+</span><a name="line-88"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Sum</span><span>
+</span><a name="line-89"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>         </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">TCV</span><span>
+</span><a name="line-90"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">GHC</span><span class="hs-operator">.</span><span class="hs-identifier">Generics</span><span>             </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Generic</span><span class="hs-special">)</span><span>
+</span><a name="line-91"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Natural</span><span>
+</span><a name="line-92"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Text</span><span class="hs-operator">.</span><span class="hs-identifier">Printf</span><span>
+</span><a name="line-93"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Higher</span><span>
+</span><a name="line-94"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Known</span><span>
+</span><a name="line-95"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Class</span><span class="hs-operator">.</span><span class="hs-identifier">Witness</span><span>
+</span><a name="line-96"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Constraint</span><span>
+</span><a name="line-97"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">List</span><span>
+</span><a name="line-98"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Type</span><span class="hs-operator">.</span><span class="hs-identifier">Family</span><span class="hs-operator">.</span><span class="hs-identifier">Nat</span><span>
+</span><a name="line-99"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Constraint</span><span>          </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">C</span><span>
+</span><a name="line-100"></a><span>
+</span><a name="line-101"></a><span class="hs-keyword">data</span><span> </span><a name="HasLen"><a href="Data.Type.Combinator.Util.html#HasLen"><span class="hs-identifier">HasLen</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">N</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><a href="#local-6989586621679258215"><span class="hs-identifier hs-type">k</span></a><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-identifier hs-type">Type</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-102"></a><span>    </span><a name="HLZ"><a href="Data.Type.Combinator.Util.html#HLZ"><span class="hs-identifier">HLZ</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><a href="Data.Type.Combinator.Util.html#HasLen"><span class="hs-identifier hs-type">HasLen</span></a><span> </span><span class="hs-char">'Z '[]
     HLS :: HasLen n as -&gt; HasLen ('S n) (a ': as)
 
 withProd
@@ -366,12 +369,12 @@ zipFins = \case
     &#216;V      -&gt; &#216;V
     x :* xs -&gt; ((FZ,) &lt;$&gt; x) :* (first FS &lt;$&gt; zipFins xs)
 
-instance (FunctorWithIndex i f, Functor f) =&gt; FunctorWithIndex (Fin n, i) (VecT n f) where
-    imap f = TCV.imap $ \i -&gt; L.imap (\j x -&gt; f (i, j) x)
+instance (FunctorWithIndex i f) =&gt; FunctorWithIndex (Fin n, i) (VecT n f) where
+    imap f = TCV.imap $ \i -&gt; L.imap (\j -&gt; f (i, j))
 instance FoldableWithIndex i f =&gt; FoldableWithIndex (Fin n, i) (VecT n f) where
-    ifoldMap f = TCV.ifoldMap $ \i -&gt; L.ifoldMap (\j x -&gt; f (i, j) x)
+    ifoldMap f = TCV.ifoldMap $ \i -&gt; L.ifoldMap (\j -&gt; f (i, j))
 instance TraversableWithIndex i f =&gt; TraversableWithIndex (Fin n, i) (VecT n f) where
-    itraverse f = TCV.itraverse $ \i -&gt; L.itraverse (\j x -&gt; f (i, j) x)
+    itraverse f = TCV.itraverse $ \i -&gt; L.itraverse (\j -&gt; f (i, j))
 
 instance FunctorWithIndex () I where
     imap f = fmap (f ())
@@ -379,6 +382,13 @@ instance FoldableWithIndex () I where
     ifoldMap f = foldMap (f ())
 instance TraversableWithIndex () I where
     itraverse f = traverse (f ())
+
+instance (FunctorWithIndex i f, FunctorWithIndex j g) =&gt; FunctorWithIndex (i, j) (f :.: g) where
+    imap f = iover (_Comp . imapped) $ \i -&gt; L.imap (\j -&gt; f (i, j))
+instance (FoldableWithIndex i f, FoldableWithIndex j g) =&gt; FoldableWithIndex (i, j) (f :.: g) where
+    ifoldMap f (Comp x) = flip L.ifoldMap x $ \i -&gt; L.ifoldMap (\j -&gt; f (i, j))
+instance (TraversableWithIndex i f, TraversableWithIndex j g) =&gt; TraversableWithIndex (i, j) (f :.: g) where
+    itraverse f = (_Comp . L.itraverse) $ \i -&gt; L.itraverse (\j -&gt; f (i, j))
 
 dsumSome :: DSum f g -&gt; Some (f :&amp;: g)
 dsumSome (t :=&gt; x) = Some (t :&amp;: x)
@@ -447,4 +457,7 @@ deriving instance (Functor f, Functor g) =&gt; Functor (f :.: g)
 instance (Applicative f, Applicative g) =&gt; Applicative (f :.: g) where
     pure    = Comp . pure . pure
     f &lt;*&gt; x = Comp $ liftA2 (&lt;*&gt;) (getComp f) (getComp x)
+
+deriving instance (Foldable f, Foldable g) =&gt; Foldable (f :.: g)
+deriving instance (Traversable f, Traversable g) =&gt; Traversable (f :.: g)
 </span></pre></body></html>
