@@ -36,7 +36,6 @@ module Egg.Vehicle (
   ) where
 
 import           Control.Lens hiding           ((.=))
-import           Control.Monad
 import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.Dependent.Sum
@@ -84,8 +83,9 @@ data DepotStatus vs slots
 makePrisms ''DepotStatus
 makeWrapped ''DepotStatus
 
-data SomeVehicleUpgradeError = SVUERegression
-                             | SVUENoSlot
+data SomeVehicleUpgradeError vs
+        = SVUERegression { _svuePrevious :: Finite vs }
+        | SVUENoSlot
   deriving (Show, Eq, Ord)
 
 makePrisms ''SomeVehicleUpgradeError
@@ -232,14 +232,14 @@ upgradeVehicle
     -> Finite slots
     -> Finite vs
     -> DepotStatus vs slots
-    -> Maybe (Bock, DepotStatus vs slots)
+    -> Either (Finite vs) (Bock, DepotStatus vs slots)
 upgradeVehicle vd bs slot v ds0 =
     getComp . flip (_DepotStatus . at slot) ds0 $ \s0 -> Comp $ do
-      guard $ case s0 of
-                Nothing -> True
-                Just h  -> h < v
+      case s0 of
+        Just h | h >= v -> Left h
+        _               -> Right ()
       -- should always be valid of the previous condition is true
-      price <- vehiclePrice vd ds0 v
+      let price = fromJust $ vehiclePrice vd ds0 v
       return (price ^. bonusingFor bs BTVehicleCosts, Just v)
 
 -- | Purchase a vehicle upgrade.  Returns cost and new depot status,
@@ -254,16 +254,16 @@ upgradeSomeVehicle
     -> Integer
     -> Finite vs
     -> SomeDepotStatus vs
-    -> Either SomeVehicleUpgradeError (Bock, SomeDepotStatus vs)
+    -> Either (SomeVehicleUpgradeError vs) (Bock, SomeDepotStatus vs)
 upgradeSomeVehicle vd bs slot v sds0 =
     getComp . traverseSomeDepotStatus bs (Comp . go) $ sds0
   where
     go  :: KnownNat slots
         => DepotStatus vs slots
-        -> Either SomeVehicleUpgradeError (Bock, DepotStatus vs slots)
+        -> Either (SomeVehicleUpgradeError vs) (Bock, DepotStatus vs slots)
     go ds0 = case packFinite slot of
       Nothing    -> Left SVUENoSlot
-      Just slot' -> maybe (Left SVUERegression) Right $
+      Just slot' -> either (Left . SVUERegression) Right $
                       upgradeVehicle vd bs slot' v ds0
 
 -- | List all possible vehicle upgrades.
@@ -272,20 +272,25 @@ vehicleUpgrades
     => VehicleData vs
     -> Bonuses
     -> DepotStatus vs slots
-    -> (SV.Vector slots :.: SV.Vector vs :.: Maybe) Bock
+    -> (SV.Vector slots :.: SV.Vector vs :.: Either (Finite vs)) Bock
 vehicleUpgrades vd bs ds = Comp . Comp $ SV.generate go
   where
     slots1 = SNat @slots %:+ SNat @1
     hist :: M.Map (Finite vs) (Finite (slots TL.+ 1))
     hist = withKnownNat slots1 $
              vehicleHistory ds
-    go :: Finite slots -> SV.Vector vs (Maybe Bock)
+    go :: Finite slots -> SV.Vector vs (Either (Finite vs) Bock)
     go s = vd ^. _VehicleData
               & SV.imap
                   (\j h -> withKnownNat slots1 $ do
-                      guard (Just j > currVeh)
+                      case currVeh of
+                        Just v | v >= j -> Left v
+                        _               -> Right ()
                       let n = M.findWithDefault 0 j hist
-                      h ^? vCosts . ix (fromIntegral n) . bonusingFor bs BTVehicleCosts
+                      return . fromMaybe 0 $
+                            h ^? vCosts
+                               . ix (fromIntegral n)
+                               . bonusingFor bs BTVehicleCosts
                   )
       where
         currVeh = ds ^? _DepotStatus . ix s
@@ -296,12 +301,14 @@ someVehicleUpgrades
     => VehicleData vs
     -> Bonuses
     -> SomeDepotStatus vs
-    -> (M.Map Integer :.: SV.Vector vs) (Maybe Bock)
+    -> (M.Map Integer :.: SV.Vector vs :.: Either (Finite vs)) Bock
 someVehicleUpgrades vd bs = view $ _SomeDepotStatus bs go
+                                 . _Unwrapped
                                  . _Unwrapped
   where
     go  :: KnownNat slots
-        => Getter (DepotStatus vs slots) (M.Map Integer (SV.Vector vs (Maybe Bock)))
+        => Getter (DepotStatus vs slots)
+                  (M.Map Integer (SV.Vector vs (Either (Finite vs) Bock)))
     go = to (vehicleUpgrades vd bs)
        . _Wrapped
        . _Wrapped

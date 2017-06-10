@@ -307,9 +307,9 @@ habUpgrades
     => HabData habs
     -> Bonuses
     -> HabStatus habs
-    -> VecT N4 (SV.Vector habs) (Either (Finite habs) Bock)
+    -> VecT N4 (SV.Vector habs :.: Either (Finite habs)) Bock
 habUpgrades hd bs hs = hs ^. hsSlots
-                           & vmap (go . getI)
+                           & vmap (Comp . go . getI)
   where
     hist :: M.Map (Finite habs) (Fin N5)
     hist = habHistory hs

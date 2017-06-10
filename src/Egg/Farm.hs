@@ -41,7 +41,7 @@ module Egg.Farm (
   , upgradeEgg
   , eggUpgrades
   , eggsVisible
-  , prestige
+  , prestigeFarm
   , watchVideo
   ) where
 
@@ -611,12 +611,12 @@ farmValue gd fs = (x + y + z) ^. bonusingFor bs BTFarmValue
     z = incomepc * hatchery * 7200000
 
 -- | Prestige!  Resets farm, increments soul eggs.
-prestige
+prestigeFarm
     :: (KnownNat eggs, KnownNat habs, KnownNat vehicles, 1 TL.<= habs, 1 TL.<= vehicles)
     => GameData  eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
-prestige gd fs =
+prestigeFarm gd fs =
     fs & fsEgg           .~ 0
        & fsResearch . rsCommon . liftTraversal (_Flip . mapped) .~ 0
        & fsHabs          .~ initHabStatus

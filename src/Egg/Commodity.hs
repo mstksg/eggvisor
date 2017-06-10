@@ -7,3 +7,4 @@ module Egg.Commodity (
 type Bock      = Double
 type GoldenEgg = Integer
 type SoulEgg   = Integer
+
