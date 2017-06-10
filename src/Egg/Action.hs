@@ -81,6 +81,7 @@ data Action :: Nat -> ([Nat], Nat) -> Nat -> Nat -> [Type] -> Type where
         :: Action eggs '(tiers, epic) habs vehicles
              '[]
 
+-- | Execute an action as a change in a 'FarmStatus'.
 runAction
     :: (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles, 1 TL.<= habs, 1 TL.<= vehicles)
     => GameData   eggs '(tiers, epic) habs vehicles
@@ -122,6 +123,7 @@ runAction gd = \case
     AEggUpgrade e -> first (inj . I) . upgradeEgg gd e
     APrestige     -> Right . prestigeFarm gd
 
+-- | All possible common research actions and their costs.
 commonResearchActions
     :: forall eggs tiers epic habs vehicles. SingI tiers
     => GameData   eggs '(tiers, epic) habs vehicles
@@ -140,6 +142,7 @@ commonResearchActions gd fs =
         then return (AResearch . RICommon . someSum $ Some (t :&: s), cost)
         else Left . inj . I $ PEInsufficientFunds cost
 
+-- | All possible epic research actions and their costs.
 epicResearchActions
     :: forall eggs tiers epic habs vehicles. (KnownNat epic)
     => GameData   eggs '(tiers, epic) habs vehicles
@@ -153,6 +156,7 @@ epicResearchActions gd fs =
           then return (AResearch (RIEpic i), cost)
           else Left . inj . I $ PEInsufficientFunds cost
 
+-- | All possible hab upgrade actions and their costs.
 habActions
     :: KnownNat habs
     => GameData   eggs '(tiers, epic) habs vehicles
@@ -166,6 +170,7 @@ habActions gd fs =
           then return (AHab s h, cost)
           else Left . inj . I $ PEInsufficientFunds cost
 
+-- | All possible vehicle upgrade actions and their costs.
 vehicleActions
     :: KnownNat vehicles
     => GameData   eggs '(tiers, epic) habs vehicles
@@ -179,6 +184,7 @@ vehicleActions gd fs =
           then return (AVehicle (fromIntegral s) v, cost)
           else Left . inj . I $ PEInsufficientFunds cost
 
+-- | All possible Egg upgrade actions
 eggActions
     :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
     => GameData   eggs '(tiers, epic) habs vehicles
@@ -186,6 +192,7 @@ eggActions
     -> (SV.Vector eggs :.: Either (Sum I '[UpgradeError])) (Action eggs '(tiers, epic) habs vehicles '[UpgradeError])
 eggActions gd fs = eggUpgrades gd fs & _Comp . mapped %~ bimap (InL . I) AEggUpgrade
 
+-- | All possible actions, with their costs
 actions
     :: forall eggs tiers epic habs vehicles.
        (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
@@ -206,24 +213,4 @@ actions gd fs = mconcat [ commonResearchActions gd fs ^.. liftTraversal (_Flip .
         -> (Action eggs '(tiers, epic) habs vehicles errs, a)
         -> (Some (Action eggs '(tiers, epic) habs vehicles), Maybe (Either Bock GoldenEgg))
     wrap f = bimap Some (Just . f)
-
--- data Ap f g a = Ap { getAp :: f a (g a) }
-
--- | It makes no sense to return a list with Either's and no indices
--- actions
---     :: forall eggs tiers epic habs vehicles. (SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
---     => GameData   eggs '(tiers, epic) habs vehicles
---     -> FarmStatus eggs '(tiers, epic) habs vehicles
---     -> [Some (Ap (Comp1 Either (Sum I)) ((,) (Either Bock GoldenEgg) :.: Action eggs '(tiers, epic) habs vehicles))]
--- actions gd fs = mconcat [ commonResearchActions gd fs ^.. liftTraversal (_Flip . folded) . to (wrap Left)
---                         , epicResearchActions   gd fs ^.. _Comp . folded . to (wrap Right)
---                         , habActions            gd fs ^.. folding (vfoldMap (:[])) . _Comp . folded . to (wrap Left)
---                         , vehicleActions        gd fs ^.. _Comp . _Comp . folded . folded . to (wrap Left)
---                         ]
---   where
---     wrap
---         :: (a -> Either Bock GoldenEgg)
---         -> Either (Sum I errs) (Action eggs '(tiers, epic) habs vehicles errs, a)
---         -> Some (Ap (Comp1 Either (Sum I)) ((,) (Either Bock GoldenEgg) :.: Action eggs '(tiers, epic) habs vehicles))
---     wrap f = Some . Ap . Comp1 . second (Comp . first f . swap)
 
