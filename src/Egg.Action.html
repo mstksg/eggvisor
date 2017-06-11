@@ -74,7 +74,7 @@ data Action :: Nat -&gt; ([Nat], Nat) -&gt; Nat -&gt; Nat -&gt; [Type] -&gt; Typ
     AHatch
         :: Natural
         -&gt; Action eggs '(tiers, epic) habs vehicles
-             '[Double]
+             '[HatchError]
     AWatchVideo
         :: Action eggs '(tiers, epic) habs vehicles
              '[]
@@ -124,6 +124,7 @@ runAction gd = \case
         if b &gt;= cost
           then return (b - cost)
           else Left (inj . I $ PEInsufficientFunds cost)
+    AHatch c      -&gt; first (inj . I) . hatchChickens gd c
     AWatchVideo   -&gt; Right . watchVideo gd
     AEggUpgrade e -&gt; first (inj . I) . upgradeEgg gd e
     APrestige     -&gt; Right . prestigeFarm gd
@@ -208,7 +209,7 @@ actions gd fs = mconcat [ commonResearchActions gd fs ^.. liftTraversal (_Flip .
                         , epicResearchActions   gd fs ^.. folded . to (wrap Right)
                         , habActions            gd fs ^.. folded . to (wrap Left)
                         , vehicleActions        gd fs ^.. folded . to (wrap Left)
-                        , [(Some AWatchVideo, Nothing)]
+                        , [(Some (AHatch 1), Nothing), (Some AWatchVideo, Nothing)]
                         , eggActions            gd fs ^.. folded . to ((, Nothing) . Some)
                         , [(Some APrestige  , Nothing)]
                         ]
