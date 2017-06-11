@@ -818,4 +818,5 @@ constants:
   base-fleet-size: 4
   base-hatchery-capacity: 250
   # chickens per minute
-  base-hatchery-refil-rate: 500
+  # this is a complete guess
+  base-hatchery-refill-rate: 500
