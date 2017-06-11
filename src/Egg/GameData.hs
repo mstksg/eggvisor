@@ -5,6 +5,7 @@
 {-# LANGUAGE KindSignatures       #-}
 {-# LANGUAGE LambdaCase           #-}
 {-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE RecordWildCards      #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE StandaloneDeriving   #-}
@@ -16,21 +17,23 @@ module Egg.GameData (
     GameConstants(..), HasGameConstants(..)
   , GameData(..), gdEggData, gdResearchData, gdHabData, gdVehicleData, gdConstants
   , SomeGameData(..)
+  , withSomeGameData
   ) where
 
-import           Control.Lens hiding      ((.=))
+import           Control.Lens hiding           ((.=))
 import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.Dependent.Sum
 import           Data.Kind
 import           Data.Singletons
+import           Data.Singletons.Prelude.Tuple
 import           Data.Singletons.TypeLits
 import           Data.Type.Combinator
 import           Egg.Egg
 import           Egg.Habitat
 import           Egg.Research
 import           Egg.Vehicle
-import           GHC.Generics             (Generic)
+import           GHC.Generics                  (Generic)
 import           Type.Family.List
 
 data GameConstants =
@@ -78,6 +81,20 @@ data SomeGameData :: Type where
         -> Sing vehicles
         -> GameData eggs '(tiers, epic) habs vehicles
         -> SomeGameData
+
+withSomeGameData
+    :: SomeGameData
+    -> (forall eggs tiers epic habs vehicles.
+            (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
+         => GameData eggs '(tiers, epic) habs vehicles
+         -> r
+       )
+    -> r
+withSomeGameData = \case
+    SomeGameData SNat (STuple2 tiers SNat) SNat SNat gd -> \f ->
+      withSingI tiers $
+        f gd
+
 
 gdParseOptions :: Options
 gdParseOptions = defaultOptions
