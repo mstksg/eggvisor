@@ -44,6 +44,7 @@ import           Egg.GameData
 import           Egg.Habitat
 import           Egg.Research
 import           Egg.Vehicle
+import           Numeric.Natural
 import           Type.Class.Higher
 import           Type.Family.Nat
 import qualified Data.Vector               as V
@@ -70,6 +71,10 @@ data Action :: Nat -> ([Nat], Nat) -> Nat -> Nat -> [Type] -> Type where
         -> Finite vehicles
         -> Action eggs '(tiers, epic) habs vehicles
              '[PurchaseError Bock, SomeVehicleUpgradeError vehicles]
+    AHatch
+        :: Natural
+        -> Action eggs '(tiers, epic) habs vehicles
+             '[Double]
     AWatchVideo
         :: Action eggs '(tiers, epic) habs vehicles
              '[]

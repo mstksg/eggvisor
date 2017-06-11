@@ -16,15 +16,19 @@
 
 module Egg.Farm (
     FarmStatus(..)
-  , fsEgg, fsResearch, fsHabs, fsDepot, fsBocks, fsGoldenEggs, fsSoulEggs
+  , fsEgg, fsResearch, fsHabs, fsHatchery, fsDepot, fsBocks, fsGoldenEggs, fsSoulEggs
   , fsVideoBonus, fsPrestEarnings
   , IncomeChange(..), _ICHabFill, _ICDepotFill, _ICVideoDoublerExpire
   , UpgradeError(..), _UELocked, _UERegression
+  , HatchError(..), heHabitats, heHatchery
   , initFarmStatus
   , farmEggValue
   , farmLayingRate
   , farmLayingRatePerChicken
   , farmLayingRateAvailability
+  , hatcheryRefillRate
+  , hatcheryCapacity
+  , refillHatcheries
   , farmIncome
   , farmIncomeDT
   , farmIncomeDTInv
@@ -38,6 +42,7 @@ module Egg.Farm (
   , waitUntilBocks
   , waitTilFarmPop
   , waitTilDepotFull
+  , hatchChickens
   , upgradeEgg
   , eggUpgrades
   , eggsVisible
@@ -70,14 +75,15 @@ import qualified Data.Vector.Sized          as SV
 import qualified GHC.TypeLits               as TL
 
 data FarmStatus :: Nat -> ([Nat], Nat) -> Nat -> Nat -> Type where
-    FarmStatus :: { _fsEgg          :: Finite eggs
-                  , _fsResearch     :: ResearchStatus tiers epic
-                  , _fsHabs         :: HabStatus habs
-                  , _fsDepot        :: SomeDepotStatus vehicles
-                  , _fsBocks        :: Bock
-                  , _fsGoldenEggs   :: GoldenEgg
-                  , _fsSoulEggs     :: SoulEgg
-                  , _fsVideoBonus   :: Maybe Double   -- ^ in seconds
+    FarmStatus :: { _fsEgg           :: Finite eggs
+                  , _fsResearch      :: ResearchStatus tiers epic
+                  , _fsHabs          :: HabStatus habs
+                  , _fsDepot         :: SomeDepotStatus vehicles
+                  , _fsHatchery      :: Double
+                  , _fsBocks         :: Bock
+                  , _fsGoldenEggs    :: GoldenEgg
+                  , _fsSoulEggs      :: SoulEgg
+                  , _fsVideoBonus    :: Maybe Double   -- ^ in seconds
                   , _fsPrestEarnings :: Double
                   }
                -> FarmStatus eggs '(tiers, epic) habs vehicles
@@ -103,24 +109,25 @@ data UpgradeError = UELocked
 
 makePrisms ''UpgradeError
 
+data HatchError = HEHatcheryLow { _heHatchery :: Double }
+                | HEHabsFull    { _heHabitats :: Double }
+
+makePrisms ''HatchError
+makeLenses ''HatchError
+
 fsEgg :: Lens (FarmStatus e1 '(t, g) h v) (FarmStatus e2 '(t, g) h v) (Finite e1) (Finite e2)
 fsEgg f fs = (\e -> fs { _fsEgg = e }) <$> f (_fsEgg fs)
 fsResearch :: Lens (FarmStatus e '(t1, g1) h v) (FarmStatus e '(t2, g2) h v) (ResearchStatus t1 g1) (ResearchStatus t2 g2)
 fsResearch f fs = f (_fsResearch fs) <&> \r ->
-    (FarmStatus <$> _fsEgg
-                <*> pure r
-                <*> _fsHabs
-                <*> _fsDepot
-                <*> _fsBocks
-                <*> _fsGoldenEggs
-                <*> _fsSoulEggs
-                <*> _fsVideoBonus
-                <*> _fsPrestEarnings
+    (FarmStatus <$> _fsEgg <*> pure r <*> _fsHabs <*> _fsDepot <*> _fsHatchery <*> _fsBocks
+                <*> _fsGoldenEggs <*> _fsSoulEggs <*> _fsVideoBonus <*> _fsPrestEarnings
     ) fs
 fsHabs :: Lens (FarmStatus e '(t, g) h1 v) (FarmStatus e '(t, g) h2 v) (HabStatus h1) (HabStatus h2)
 fsHabs f fs = (\h -> fs { _fsHabs = h }) <$> f (_fsHabs fs)
 fsDepot :: Lens (FarmStatus e '(t, g) h v1) (FarmStatus e '(t, g) h v2) (SomeDepotStatus v1) (SomeDepotStatus v2)
 fsDepot f fs = (\d -> fs { _fsDepot = d }) <$> f (_fsDepot fs)
+fsHatchery :: Lens' (FarmStatus e '(t, g) h v) Double
+fsHatchery f fs = (\h -> fs { _fsHatchery = h }) <$> f (_fsHatchery fs)
 fsBocks :: Lens' (FarmStatus e '(t, g) h v) Bock
 fsBocks f fs = (\b -> fs { _fsBocks = max 0 b }) <$> f (_fsBocks fs)
 fsGoldenEggs :: Lens' (FarmStatus e '(t, g) h v) GoldenEgg
@@ -146,11 +153,12 @@ initFarmStatus
     :: (KnownNat eggs, KnownNat habs, KnownNat vehicles, 1 TL.<= eggs, 1 TL.<= habs, 1 TL.<= vehicles)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
-initFarmStatus (GameData _ rd _ _ _) =
+initFarmStatus gd@(GameData _ rd _ _ _) =
     FarmStatus 0
                (emptyResearchStatus rd)
                initHabStatus
                initSomeDepotStatus
+               (gd ^. gdConstants . gcBaseHatcheryCapacity)
                0
                0
                0
@@ -297,6 +305,33 @@ farmDepotCapacity gd fs = withSomeDepotStatus bs (fs ^. fsDepot) $
   where
     bs = farmBonuses gd fs
 
+-- | Chickens per second
+hatcheryRefillRate
+    :: GameData   eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Double
+hatcheryRefillRate gd fs =
+        gd ^. gdConstants
+            . gcBaseHatcheryRefillRate
+            . dividing 60
+            . bonusingFor (farmBonuses gd fs) BTHatcheryRate
+
+hatcheryCapacity
+    :: GameData   eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Double
+hatcheryCapacity gd fs = gd ^. gdConstants
+                             . gcBaseHatcheryCapacity
+                             . bonusingFor (farmBonuses gd fs) BTHatcheryCapacity
+
+refillHatcheries
+    :: GameData   eggs '(tiers, epic) habs vehicles
+    -> Double               -- ^ dt
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+refillHatcheries gd dt fs0 =
+        fs0 & fsHatchery +~ hatcheryRefillRate gd fs0 * dt
+            & fsHatchery %~ min (hatcheryCapacity gd fs0)
 
 -- | Find the time to the given goal, assuming constant growth rate and no
 -- discontinuities.
@@ -414,6 +449,7 @@ stepFarmDT gd ic dt fs = fs
     & fsBocksAndPrest       +~ farmIncomeDT gd ic fs dt
     & fsHabs                %~ stepHabs (gd ^. gdHabData) (farmBonuses gd fs) ic dt
     & fsVideoBonus . mapped -~ dt
+    & refillHatcheries gd dt
 
 -- | Wait until bocks.
 waitUntilBocks
@@ -479,11 +515,13 @@ waitTilNextIncomeChange gd ic fs0 = case getComp $ fsHabs traverseWait fs0 of
                  let fs2 = fs0 & fsBocksAndPrest       +~ farmIncomeDT gd ic fs0 tChange
                                & fsHabs  . availableSpace (gd ^. gdHabData) bs . mapped -~ rt * tChange
                                & fsVideoBonus . mapped -~ tChange
+                               & refillHatcheries gd tChange
                  in  WaitTilSuccess tChange (ich, fs2)
                Nothing                      ->
                  let fs2 = fs0 & fsBocksAndPrest       +~ farmIncomeDT gd ic fs0 tFill
                                & fsHabs                .~ (fs1 ^. fsHabs)
                                & fsVideoBonus . mapped -~ tFill
+                               & refillHatcheries gd tFill
                  in  WaitTilSuccess tFill (ICHabFill s, fs2)
   where
     initAllFull    = andOf (fsHabs . to (fullHabs (gd ^. gdHabData) bs) . folded) fs0
@@ -535,6 +573,24 @@ waitTilDepotFull gd ic fs0 = waitTilFarmPop gd ic (ceiling chickensAtCap) fs0
     chickensAtCap :: Double
     chickensAtCap = depotCap / farmLayingRatePerChicken gd fs0
 
+hatchChickens
+    :: KnownNat habs
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> Natural           -- ^ number of chickens
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Either HatchError (FarmStatus eggs '(tiers, epic) habs vehicles)
+hatchChickens gd (fromIntegral->n) fs = do
+    if fs ^. fsHatchery >= n
+      then Right ()
+      else Left $ HEHatcheryLow (fs ^. fsHatchery)
+    fs & fsHatchery -~ n & fsHabs %%~ \h ->
+      case addChickens hd bs n h of
+        (Just _ , _ ) -> Left $ HEHabsFull (totalHabCapacity hd bs h)
+        (Nothing, h') -> Right h'
+  where
+    hd = gd ^. gdHabData
+    bs = farmBonuses gd fs
+
 -- | Upgrade your egg!
 --
 upgradeEgg
@@ -552,6 +608,7 @@ upgradeEgg gd e fs
            & fsHabs          .~ initHabStatus
            & fsDepot         .~ initSomeDepotStatus
            & fsBocks         .~ 0
+           & (\f -> f & fsHatchery .~ hatcheryCapacity gd f)
            & fsGoldenEggs    %~ id
            & fsSoulEggs      %~ id
            & fsVideoBonus    %~ id
@@ -621,6 +678,7 @@ prestigeFarm gd fs =
        & fsResearch . rsCommon . liftTraversal (_Flip . mapped) .~ 0
        & fsHabs          .~ initHabStatus
        & fsDepot         .~ initSomeDepotStatus
+       & (\f -> f & fsHatchery .~ hatcheryCapacity gd f)
        & fsBocks         .~ 0
        & fsGoldenEggs    %~ id
        & fsSoulEggs      +~ round pBonus

@@ -816,3 +816,6 @@ constants:
   video-bonus: 2
   prestige-factor: 1000000
   base-fleet-size: 4
+  base-hatchery-capacity: 250
+  # chickens per minute
+  base-hatchery-refil-rate: 500

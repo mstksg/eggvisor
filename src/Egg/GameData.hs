@@ -34,11 +34,13 @@ import           GHC.Generics             (Generic)
 import           Type.Family.List
 
 data GameConstants =
-    GameConstants { _gcBaseLayingRate       :: Double     -- ^ eggs per minute
-                  , _gcBaseSoulEggBonus     :: Double
-                  , _gcBaseVideoDoublerTime :: Double     -- ^ minutes
-                  , _gcVideoBonus           :: Double
-                  , _gcPrestigeFactor       :: Double
+    GameConstants { _gcBaseLayingRate         :: Double     -- ^ eggs per minute
+                  , _gcBaseSoulEggBonus       :: Double
+                  , _gcBaseVideoDoublerTime   :: Double     -- ^ minutes
+                  , _gcVideoBonus             :: Double
+                  , _gcPrestigeFactor         :: Double
+                  , _gcBaseHatcheryCapacity   :: Double
+                  , _gcBaseHatcheryRefillRate :: Double     -- ^ per minute
                   }
   deriving (Show, Eq, Ord, Generic)
 
