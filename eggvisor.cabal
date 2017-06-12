@@ -23,8 +23,8 @@ library
                        Egg.GameData
                        Egg.Farm
                        Egg.Action
-  other-modules:       Data.Type.Combinator.Util
                        Data.Vector.Sized.Util
+  other-modules:       Data.Type.Combinator.Util
                        Data.Singletons.Util
   build-depends:       base >= 4.7 && < 5
                      , aeson
@@ -55,6 +55,7 @@ executable eggvisor-sim-terminal
                      , brick
                      , eggvisor
                      , singletons
+                     , lens
                      , typelits-witnesses
                      , vty
                      , yaml
