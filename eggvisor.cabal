@@ -57,6 +57,7 @@ executable eggvisor-sim-terminal
                      , brick
                      , eggvisor
                      , lens
+                     , profunctors
                      , singletons
                      , type-combinators
                      , typelits-witnesses

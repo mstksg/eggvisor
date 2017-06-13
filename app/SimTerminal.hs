@@ -1,3 +1,4 @@
+{-# LANGUAGE Arrows              #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE LambdaCase          #-}
@@ -12,11 +13,15 @@ import           Brick
 import           Brick.BChan
 import           Brick.Widgets.Center
 import           Brick.Widgets.ProgressBar
+import           Control.Arrow hiding      (app)
+import           Control.Auto.Blip
+import           Control.Category
 import           Control.Concurrent
 import           Control.Lens
 import           Control.Monad
 import           Data.Foldable
 import           Data.Maybe
+import           Data.Profunctor
 import           Data.Proxy
 import           Data.Singletons
 import           Data.Singletons.TypeLits
@@ -28,15 +33,15 @@ import           Data.Yaml
 import           Egg
 import           GHC.TypeLits.Compare
 import           Graphics.Vty
+import           Prelude hiding            ((.), id)
 import           Text.Printf
 import           Type.Class.Higher
 import qualified Control.Auto              as A
-import qualified Control.Category          as C
 import qualified GHC.TypeLits              as TL
 
 type AppState eggs te habs vehicles
     = A.Auto Maybe
-        (FarmEvent eggs te habs vehicles) (AppOut eggs te habs vehicles)
+        (Either (FarmEvent eggs te habs vehicles) UIEvent) (AppOut eggs te habs vehicles)
 
 type AppOut eggs te habs vehicles
     = (Widget ())
@@ -45,21 +50,25 @@ farmAuto
     :: (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles, 1 TL.<= eggs, 1 TL.<= habs, 1 TL.<= vehicles)
     => GameData eggs '(tiers, epic) habs vehicles
     -> AppState eggs '(tiers, epic) habs vehicles
-farmAuto gd = A.accum_ processEvent (initFarmStatus gd) C.>>> _
+farmAuto gd = proc inp -> do
+    fs <- A.holdWith_ (initFarmStatus gd) . arr fst . onEithers
+        . left' (A.accum_ processEvent (initFarmStatus gd))
+       -< inp
+    id -< str "No output"
   where
     processEvent fs0 = \case
       FEClock dt        -> stepFarmDT gd NotCalm dt fs0
       FEAction (Some a) -> case runAction gd a fs0 of
         Left _    -> fs0
         Right fs1 -> fs1
-      FEUI              -> fs0
 
 data FarmEvent eggs te habs vehicles =
       FEClock Double
     | FEAction (SomeAction eggs te habs vehicles)
-    | FEUI
 
-toFarmEvent :: BrickEvent () Double -> Maybe (FarmEvent eggs '(tiers, epic) habs vehicles)
+data UIEvent
+
+toFarmEvent :: BrickEvent () Double -> Maybe (Either (FarmEvent eggs '(tiers, epic) habs vehicles) UIEvent)
 toFarmEvent = undefined
 
 -- type AppState eggs '(tiers, epic) habs vehicles
