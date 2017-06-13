@@ -111,6 +111,7 @@ makePrisms ''UpgradeError
 
 data HatchError = HEHatcheryLow { _heHatchery :: Double }
                 | HEHabsFull    { _heHabitats :: Double }
+  deriving (Show, Eq, Ord)
 
 makePrisms ''HatchError
 makeLenses ''HatchError
@@ -407,8 +408,6 @@ farmBonuses gd fs = totalBonuses (gd ^. gdResearchData) (fs ^. fsResearch)
 --
 -- Should be += integral (R c(t)) dt
 --   where c'(t) = rt
---
--- TODO: take into account depots filling up
 stepFarm
     :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs, KnownNat vehicles)
     =&gt; GameData   eggs '(tiers, epic) habs vehicles
