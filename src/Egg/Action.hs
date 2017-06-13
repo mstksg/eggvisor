@@ -13,6 +13,7 @@
 
 module Egg.Action (
     Action(..)
+  , SomeAction
   , PurchaseError(..)
   , _PEInsufficientFunds
   , runAction
@@ -85,6 +86,8 @@ data Action :: Nat -> ([Nat], Nat) -> Nat -> Nat -> [Type] -> Type where
     APrestige
         :: Action eggs '(tiers, epic) habs vehicles
              '[]
+
+type SomeAction eggs te habs vehicles = Some (Action eggs te habs vehicles)
 
 -- | Execute an action as a change in a 'FarmStatus'.
 runAction
