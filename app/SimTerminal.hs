@@ -5,6 +5,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE PolyKinds           #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE TypeOperators       #-}
 
@@ -15,6 +16,7 @@ import           Brick.Widgets.Center
 import           Brick.Widgets.ProgressBar
 import           Control.Arrow hiding      (app)
 import           Control.Auto.Blip
+import           Control.Auto.Effects
 import           Control.Category
 import           Control.Concurrent
 import           Control.Lens
@@ -39,37 +41,68 @@ import           Type.Class.Higher
 import qualified Control.Auto              as A
 import qualified GHC.TypeLits              as TL
 
+data FarmEvent eggs te habs vehicles =
+      FEClock Double
+    | FEAction (SomeAction eggs te habs vehicles)
+
+makePrisms ''FarmEvent
+
+data UIEvent = UIQuit
+
+makePrisms ''UIEvent
+
 type AppState eggs te habs vehicles
     = A.Auto Maybe
-        (Either (FarmEvent eggs te habs vehicles) UIEvent) (AppOut eggs te habs vehicles)
-
-type AppOut eggs te habs vehicles
-    = (Widget ())
+        (Either (FarmEvent eggs te habs vehicles) UIEvent) (Widget ())
 
 farmAuto
     :: (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles, 1 TL.<= eggs, 1 TL.<= habs, 1 TL.<= vehicles)
     => GameData eggs '(tiers, epic) habs vehicles
     -> AppState eggs '(tiers, epic) habs vehicles
 farmAuto gd = proc inp -> do
-    fs <- A.holdWith_ (initFarmStatus gd) . arr fst . onEithers
-        . left' (A.accum_ processEvent (initFarmStatus gd))
-       -< inp
-    id -< str "No output"
+    (fEs, uEs) <- onEithers -< inp
+    -- quit if UIQuit
+    execB Nothing . filterB (has _UIQuit) -< uEs
+    -- update farm if FarmEvent
+    fs <- scanB_ processEvent (initFarmStatus gd) -< fEs
+    vBox <$> sequenceA [
+        arr (header . fst)
+      ] -< (fs, uEs)
   where
     processEvent fs0 = \case
       FEClock dt        -> stepFarmDT gd NotCalm dt fs0
       FEAction (Some a) -> case runAction gd a fs0 of
         Left _    -> fs0
         Right fs1 -> fs1
+    header fs = vBox
+      [ str "Egg simulator"
+      , hBox [ str "Egg: "
+             , txt $ gd ^. gdEggData . _EggData . ixSV (fs ^. fsEgg) . eggName
+             ]
+      , hBox [ str "Cash: "
+             , str . show $ fs ^. fsBocks
+             ]
+      , hBox [ str "Income: "
+             , str . show $ farmIncome gd fs
+             , str " per sec"
+             ]
+      , progShow "Hatchery" (fs ^. fsHatchery) (hatcheryCapacity gd fs)
+      ]
+    progShow :: String -> Double -> Double -> Widget n
+    progShow s x y = progressBar (Just $ printf "%s (%d / %d)" s (round @_ @Int x) (round @_ @Int y))
+                                 (realToFrac (x / y))
 
-data FarmEvent eggs te habs vehicles =
-      FEClock Double
-    | FEAction (SomeAction eggs te habs vehicles)
+toFarmEvent
+    :: BrickEvent () Double
+    -> Maybe (Either (FarmEvent eggs '(tiers, epic) habs vehicles) UIEvent)
+toFarmEvent = \case
+    VtyEvent e -> case e of
+      EvKey (KChar 'q') _ -> Just $ Right UIQuit
+      EvKey (KChar ' ') _ -> Just $ Left (FEAction (Some (AHatch 1)))
+      _                   -> Nothing
+    AppEvent dt -> Just $ Left (FEClock dt)
+    _ -> Nothing
 
-data UIEvent
-
-toFarmEvent :: BrickEvent () Double -> Maybe (Either (FarmEvent eggs '(tiers, epic) habs vehicles) UIEvent)
-toFarmEvent = undefined
 
 -- type AppState eggs '(tiers, epic) habs vehicles
 
@@ -105,7 +138,7 @@ toFarmEvent = undefined
 app
     :: (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles, 1 TL.<= eggs, 1 TL.<= habs, 1 TL.<= vehicles)
     => GameData eggs '(tiers, epic) habs vehicles
-    -> App (AppState eggs '(tiers, epic) habs vehicles, AppOut eggs '(tiers, epic) habs vehicles) Double ()
+    -> App (AppState eggs '(tiers, epic) habs vehicles, Widget ()) Double ()
 app gd = App draw cursor handle return am
   where
     draw = (:[]) . snd
@@ -125,13 +158,6 @@ app gd = App draw cursor handle return am
       Just fe -> case A.stepAuto a0 fe of
         Nothing       -> halt (a0, o0)
         Just (o1, a1) -> continue (a1, o1)
-    -- handle fs0 = \case
-    --   VtyEvent e  -> case e of
-    --     EvKey (KChar 'q') _ -> halt fs0
-    --     EvKey (KChar ' ') _ -> nextRight fs0 $ runAction gd (AHatch 1) fs0
-    --     _              -> continue fs0
-    --   AppEvent dt -> continue $ stepFarmDT gd NotCalm dt fs0
-    --   _           -> continue fs0
     am _ = attrMap defAttr $
         [(progressIncompleteAttr, white `on` black)
         ,(progressCompleteAttr  , black `on` white)
