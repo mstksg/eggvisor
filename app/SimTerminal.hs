@@ -47,7 +47,9 @@ data FarmEvent eggs te habs vehicles =
 
 makePrisms ''FarmEvent
 
-data UIEvent = UIQuit
+data UIEvent =
+      UIQuit
+    | UIHab (Maybe Bool)
 
 makePrisms ''UIEvent
 
@@ -67,6 +69,7 @@ farmAuto gd = proc inp -> do
     fs <- scanB_ processEvent (initFarmStatus gd) -< fEs
     vBox <$> sequenceA [
         arr (header . fst)
+      , habs
       ] -< (fs, uEs)
   where
     processEvent fs0 = \case
@@ -88,6 +91,21 @@ farmAuto gd = proc inp -> do
              ]
       , progShow "Hatchery" (fs ^. fsHatchery) (hatcheryCapacity gd fs)
       ]
+    habs = proc (fs, uEs) -> do
+      hEs <- mapMaybeB (preview _UIHab) -< uEs
+      expanded <- scanB (\e -> fromMaybe (not e)) False -< hEs
+      let bs = farmBonuses gd fs
+          habCaps = habCapacities (gd ^. gdHabData) bs (fs ^. fsHabs)
+          avails  = fs ^. fsHabs . availableSpaces (gd ^. gdHabData) bs
+          breakdown = fold $
+            (\h c a -> return $ case h of
+                Nothing -> hCenter . str $ "(No hab in slot)"
+                Just h' -> progShow (gd ^. gdHabData . _HabData . ixSV h' . habName . unpacked)
+                                (c - fromMaybe 0 a) c
+            ) <$> (fs ^. fsHabs . hsSlots) <*> habCaps <*> avails
+      id -< vBox $
+        progShow "All Habs" (sum habCaps - sum (Comp avails)) (sum habCaps)
+        : if expanded then breakdown else []
     progShow :: String -> Double -> Double -> Widget n
     progShow s x y = progressBar (Just $ printf "%s (%d / %d)" s (round @_ @Int x) (round @_ @Int y))
                                  (realToFrac (x / y))
@@ -99,6 +117,7 @@ toFarmEvent = \case
     VtyEvent e -> case e of
       EvKey (KChar 'q') _ -> Just $ Right UIQuit
       EvKey (KChar ' ') _ -> Just $ Left (FEAction (Some (AHatch 1)))
+      EvKey (KChar 'h') _ -> Just $ Right (UIHab Nothing)
       _                   -> Nothing
     AppEvent dt -> Just $ Left (FEClock dt)
     _ -> Nothing

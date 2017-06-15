@@ -819,4 +819,4 @@ constants:
   base-hatchery-capacity: 250
   # chickens per minute
   # this is a complete guess
-  base-hatchery-refill-rate: 500
+  base-hatchery-refill-rate: 125
