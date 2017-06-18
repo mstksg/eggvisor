@@ -14,42 +14,36 @@
 import           Brick
 import           Brick.BChan
 import           Brick.Widgets.Center
+import           Brick.Widgets.List
 import           Brick.Widgets.ProgressBar
-import           Control.Arrow hiding      (app)
+import           Control.Arrow hiding       (app)
 import           Control.Auto.Blip
+import           Control.Auto.Blip.Internal
 import           Control.Auto.Effects
 import           Control.Category
 import           Control.Concurrent
 import           Control.Lens
 import           Control.Monad
-import           Control.Monad.Trans.State
-import           Data.Char
-import           Data.Finite
 import           Data.Foldable
 import           Data.Maybe
 import           Data.Profunctor
 import           Data.Proxy
+import           Data.Semigroup
 import           Data.Singletons
 import           Data.Singletons.TypeLits
 import           Data.Text.Lens
 import           Data.Type.Combinator
 import           Data.Type.Equality
-import           Data.Type.Fin
-import           Data.Type.Nat             as TCN
-import           Data.Type.Vector          as TCV
 import           Data.Vector.Sized.Util
 import           Data.Yaml
 import           Egg
 import           GHC.TypeLits.Compare
 import           Graphics.Vty
-import           Prelude hiding            ((.), id)
+import           Prelude hiding             ((.), id)
 import           Text.Printf
-import           Text.Read
 import           Type.Class.Higher
-import           Type.Class.Known
-import           Type.Family.Nat
-import qualified Control.Auto              as A
-import qualified GHC.TypeLits              as TL
+import qualified Control.Auto               as A
+import qualified GHC.TypeLits               as TL
 
 data FarmEvent eggs te habs vehicles =
       FEClock Double
@@ -57,17 +51,18 @@ data FarmEvent eggs te habs vehicles =
 
 makePrisms ''FarmEvent
 
--- data Toggle =
---       THab
---     | TVehicle
+data PurchEvent =
+      PEUpDown Bool
+    | PEHomeEnd Bool
+    | PESelect
 
--- makePrisms ''Toggle
+makePrisms ''PurchEvent
 
 data UIEvent =
       UIQuit
     | UIHab
     | UIVehicle
-    | UIPick Int
+    | UIPurch PurchEvent
 
 makePrisms ''UIEvent
 
@@ -84,12 +79,14 @@ farmAuto gd = proc inp -> do
     -- quit if UIQuit
     execB Nothing . filterB (has _UIQuit) -< uEs
     -- update farm if FarmEvent
-    fs <- scanB_ processEvent (initFarmStatus gd) -< fEs
-    fmap fst . runStateA $
-      vBox <$> sequenceA [
-          arr (header . fst)
-        , habs
-        ] -< ((fs, uEs), 0 :: Int)
+    rec fs <- scanB_ (foldl' processEvent) (initFarmStatus gd) -< ((:[]) <$> fEs) <> ((:[]) <$> as)
+        pEs <- mapMaybeB (preview _UIPurch) -< uEs
+        (as, men) <- menu -< (fs, pEs)
+    disp <- sequenceA [
+        arr (header . fst)
+      , habs
+      ] -< (fs, uEs)
+    id -< vBox $ disp ++ [men]
   where
     processEvent fs0 = \case
       FEClock dt        -> stepFarmDT gd NotCalm dt fs0
@@ -111,45 +108,33 @@ farmAuto gd = proc inp -> do
       , progShow "Hatchery" (fs ^. fsHatchery) (hatcheryCapacity gd fs)
       ]
     habs = proc (fs, uEs) -> do
-        hEs <- mapMaybeB (preview _UIHab) -< uEs
-        active <- scanB (\a -> const (not a)) False -< hEs
-        let bs = farmBonuses gd fs
-            habCaps = habCapacities (gd ^. gdHabData) bs (fs ^. fsHabs)
-            avails  = fs ^. fsHabs . availableSpaces (gd ^. gdHabData) bs
-            upgrs   = habActions gd fs
-            allHabs = progShow "[h] Habs" (sum habCaps - sum (Comp avails)) (sum habCaps)
-        if active
-          then do
-            breaks <- traverse (\i -> lmap (TCV.index' i) mkBreak) (fins (known :: TCN.Nat N4))
-              -< (,,,,) <$> (fs ^. fsHabs . hsSlots) <*> habCaps <*> avails <*> vmap I upgrs <*> pure uEs
-            id -< vBox $ allHabs : breaks
-          else id -< allHabs
+      hEs <- mapMaybeB (preview _UIHab) -< uEs
+      expanded <- scanB (\e -> const (not e)) False -< hEs
+      let bs = farmBonuses gd fs
+          habCaps = habCapacities (gd ^. gdHabData) bs (fs ^. fsHabs)
+          avails  = fs ^. fsHabs . availableSpaces (gd ^. gdHabData) bs
+          breakdown = fold $
+            (\h c a -> return $ case h of
+                Nothing -> hCenter . str $ "(No hab in slot)"
+                Just h' -> progShow (gd ^. gdHabData . _HabData . ixSV h' . habName . unpacked)
+                                (c - fromMaybe 0 a) c
+            ) <$> (fs ^. fsHabs . hsSlots) <*> habCaps <*> avails
+      id -< vBox $
+        progShow "All Habs" (sum habCaps - sum (Comp avails)) (sum habCaps)
+        : if expanded then breakdown else []
+    menu = proc (fs, pEs) -> do
+        lst <- scanB_ processList (list () mempty 1) -< pEs
+        id -< (NoBlip, renderList (\_ -> str) True lst)
       where
-        mkBreak = proc (h, c, a, u, uEs) -> do
-          picker <- effect pick -< ()
-          pEs <- mapMaybeB (preview _UIPick) -< uEs
-          active <- scanB (\a -> const (not a)) False . filterB id -< (== picker) <$> pEs
-          let bar = case h of
-                Nothing -> hCenter . str $ printf "[%d] No hab in slot" picker
-                Just h' -> progShow
-                  (printf "[%d] %s" picker (gd ^. gdHabData . _HabData . ixSV h' . habName . unpacked))
-                  (c - fromMaybe 0 a) c
-          if active
-            then do
-              pickers <- arrM (traverse (\g -> (,g) <$> pick)) -< toList u
-              let pickerWidgets = pickers <&> \(i, (a, b)) ->
-                    str (printf "> [%d] Purchase %s %s" (i :: Int)
-                          ((case a of
-                             AHab _ h -> (gd ^. gdHabData . _HabData . ixSV h . habName . unpacked :: String)
-                          ) :: String) (show b) :: String)
-                  pW | null pickerWidgets = [str "No upgrade available"]
-                     | otherwise          = pickerWidgets
-              id -< vBox $ bar : pW
-            else id -< bar
+        processList l = \case
+          PEUpDown  True  -> listMoveUp l
+          PEUpDown  False -> listMoveDown l
+          PEHomeEnd True  -> listMoveTo 0 l
+          PEHomeEnd False -> listMoveTo (lengthOf (listElementsL . folded) l) l
+          _               -> l
     progShow :: String -> Double -> Double -> Widget n
     progShow s x y = progressBar (Just $ printf "%s (%d / %d)" s (round @_ @Int x) (round @_ @Int y))
                                  (realToFrac (x / y))
-    pick = state $ \i -> (i, i + 1)
 
 toFarmEvent
     :: BrickEvent () Double
@@ -160,8 +145,6 @@ toFarmEvent = \case
       EvKey (KChar ' ') _ -> Just $ Left (FEAction (Some (AHatch 1)))
       EvKey (KChar 'h') _ -> Just $ Right UIHab
       EvKey (KChar 'v') _ -> Just $ Right UIVehicle
-      EvKey (KChar d  ) _
-        | isDigit d       -> Right . UIPick <$> readMaybe [d]
       _                   -> Nothing
     AppEvent dt -> Just $ Left (FEClock dt)
     _ -> Nothing
