@@ -659,7 +659,9 @@ farmValue gd fs = (x + y + z) ^. bonusingFor bs BTFarmValue
     hd       = gd ^. gdHabData
     income   = farmIncome gd fs
     chickens = fs ^. fsHabs . to (totalChickens hd)
-    incomepc = income / chickens
+    incomepc
+      | chickens > 0 = income / chickens
+      | otherwise    = 0
     capacity = fs ^. fsHabs . to (totalHabCapacity hd bs)
     hatchery = internalHatcheryRate bs NotCalm * 60
     x = income * 54000
@@ -691,13 +693,18 @@ prestigeFarm gd fs =
 
 -- | Watch Video Doubler video.
 --
--- Currently no limit to how often you can do this.
+-- Returns 'Left' if video doubler refresh limit has not yet been reached,
+-- with time left.
 watchVideo
     :: GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> FarmStatus eggs '(tiers, epic) habs vehicles
-watchVideo gd fs = fs & fsVideoBonus %~ maybe (Just time) (Just . (+ time))
+    -> Either Double (FarmStatus eggs '(tiers, epic) habs vehicles)
+watchVideo gd fs = case fs ^. fsVideoBonus of
+    Just t | t > lim -> Left (t - lim)
+    _                ->
+        Right $ fs & fsVideoBonus %~ maybe (Just time) (Just . (+ time))
   where
+    lim  = gd ^. gdConstants . gcVideoBonusRefresh . multiplying 60
     time = gd ^. gdConstants
                . gcBaseVideoDoublerTime
                . bonusingFor (farmBonuses gd fs) BTVideoDoublerTime

@@ -36,6 +36,7 @@ import           Data.Singletons.TypeLits
 import           Data.Text.Lens
 import           Data.Type.Combinator
 import           Data.Type.Equality
+import           Data.Type.Fin
 import           Data.Vector.Sized.Util
 import           Data.Yaml
 import           Egg
@@ -74,7 +75,7 @@ type AppState eggs te habs vehicles
         (Either (FarmEvent eggs te habs vehicles) UIEvent) (Widget ())
 
 farmAuto
-    :: (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles, 1 TL.<= eggs, 1 TL.<= habs, 1 TL.<= vehicles)
+    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles, 1 TL.<= eggs, 1 TL.<= habs, 1 TL.<= vehicles)
     => GameData eggs '(tiers, epic) habs vehicles
     -> AppState eggs '(tiers, epic) habs vehicles
 farmAuto gd = proc inp -> do
@@ -107,6 +108,15 @@ farmAuto gd = proc inp -> do
       , hBox [ str "Income: "
              , str . show $ farmIncome gd fs
              , str " per sec"
+             ]
+      , case fs ^. fsVideoBonus of
+          Nothing -> emptyWidget
+          Just v  -> hBox [ str "Video bonus: x2, "
+                          , str $ printf "%.1f" (v / 60)
+                          , str " mins remaining"
+                          ]
+      , hBox [ str "Farm value: "
+             , str . show $ farmValue gd fs
              ]
       , progShow "Hatchery" (fs ^. fsHatchery) (hatcheryCapacity gd fs)
       ]
@@ -145,20 +155,27 @@ farmAuto gd = proc inp -> do
             PEHomeEnd True  -> listMoveTo 0 l
             PEHomeEnd False -> listMoveTo (lengthOf (listElementsL . folded) l) l
             _               -> l
-        renderAction :: Bool -> (SomeAction _ _ _ _, _) -> Widget ()
+        renderAction
+            :: Bool
+            -> (SomeAction eggs '(tiers, epic) habs vehicles, Maybe (Either Bock GoldenEgg))
+            -> Widget ()
         renderAction b (Some a, cost) = str $ printf "%s%s (%s)" s d c
           where
             s, d, c :: String
             s | b         = "* "
               | otherwise = ""
             d = case a of
-              AHab l h      -> printf "Hab %s %s" (show l) (show h)
-              AVehicle l v  -> printf "Vehicle %d %s" l (show v)
-              AHatch n      -> printf "Hatch %d" n
+              AResearch i   -> printf "Research %s"
+                                 (gd ^. gdResearchData . researchIxData i . rName . unpacked)
+              AHab l h      -> printf "Hab slot %d to %s" (fin l)
+                                 (gd ^. gdHabData . _HabData . ixSV h . habName . unpacked)
+              AVehicle l v  -> printf "Vehicle slot %d to %s" l
+                                 (gd ^. gdVehicleData . _VehicleData . ixSV v . vName . unpacked)
+              AHatch n      -> printf "Hatch %d chickens" n
               AWatchVideo   -> "Watch video"
               AEggUpgrade e -> printf "Upgrade egg %s" (show e)
               APrestige     -> "Prestige"
-              _ -> "unknown"
+              -- _ -> "unknown"
             c = show cost
         -- renderAction True = \_ -> str "selected"
         -- renderAction False = \case

@@ -814,6 +814,8 @@ constants:
   # minutes
   base-video-doubler-time: 30
   video-bonus: 2
+  # minutes -- complete guess
+  video-bonus-refresh: 10
   prestige-factor: 1000000
   base-fleet-size: 4
   base-hatchery-capacity: 250

@@ -41,6 +41,7 @@ data GameConstants =
                   , _gcBaseSoulEggBonus       :: Double
                   , _gcBaseVideoDoublerTime   :: Double     -- ^ minutes
                   , _gcVideoBonus             :: Double
+                  , _gcVideoBonusRefresh      :: Double     -- ^ minutes
                   , _gcPrestigeFactor         :: Double
                   , _gcBaseHatcheryCapacity   :: Double
                   , _gcBaseHatcheryRefillRate :: Double     -- ^ per minute

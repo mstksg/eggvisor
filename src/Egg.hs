@@ -18,4 +18,5 @@ import           Egg.Egg       as E
 import           Egg.Farm      as E
 import           Egg.GameData  as E
 import           Egg.Habitat   as E
+import           Egg.Research  as E
 import           Egg.Vehicle   as E
