@@ -63,6 +63,7 @@ executable eggvisor-sim-terminal
                      , transformers
                      , type-combinators
                      , typelits-witnesses
+                     , vector
                      , vty
                      , yaml
   default-language:    Haskell2010

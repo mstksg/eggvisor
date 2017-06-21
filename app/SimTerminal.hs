@@ -1,14 +1,15 @@
-{-# LANGUAGE Arrows              #-}
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE GADTs               #-}
-{-# LANGUAGE LambdaCase          #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE PolyKinds           #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell     #-}
-{-# LANGUAGE TupleSections       #-}
-{-# LANGUAGE TypeApplications    #-}
-{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE Arrows                #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE PolyKinds             #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TupleSections         #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeOperators         #-}
 
 
 import           Brick
@@ -16,6 +17,7 @@ import           Brick.BChan
 import           Brick.Widgets.Center
 import           Brick.Widgets.List
 import           Brick.Widgets.ProgressBar
+import           Control.Applicative
 import           Control.Arrow hiding       (app)
 import           Control.Auto.Blip
 import           Control.Auto.Blip.Internal
@@ -38,11 +40,12 @@ import           Data.Vector.Sized.Util
 import           Data.Yaml
 import           Egg
 import           GHC.TypeLits.Compare
-import           Graphics.Vty
+import           Graphics.Vty hiding        ((<|>))
 import           Prelude hiding             ((.), id)
 import           Text.Printf
 import           Type.Class.Higher
 import qualified Control.Auto               as A
+import qualified Data.Vector                as V
 import qualified GHC.TypeLits               as TL
 
 data FarmEvent eggs te habs vehicles =
@@ -79,8 +82,8 @@ farmAuto gd = proc inp -> do
     -- quit if UIQuit
     execB Nothing . filterB (has _UIQuit) -< uEs
     -- update farm if FarmEvent
-    rec fs <- scanB_ (foldl' processEvent) (initFarmStatus gd) -< ((:[]) <$> fEs) <> ((:[]) <$> as)
-        pEs <- mapMaybeB (preview _UIPurch) -< uEs
+    rec fs  <- scanB_ (foldl' processEvent) (initFarmStatus gd) . lagBlips_ -< ((:[]) <$> fEs) <> ((:[]) <$> as)
+        pEs <- lagBlips_ . mapMaybeB (preview _UIPurch) -< uEs
         (as, men) <- menu -< (fs, pEs)
     disp <- sequenceA [
         arr (header . fst)
@@ -123,15 +126,44 @@ farmAuto gd = proc inp -> do
         progShow "All Habs" (sum habCaps - sum (Comp avails)) (sum habCaps)
         : if expanded then breakdown else []
     menu = proc (fs, pEs) -> do
-        lst <- scanB_ processList (list () mempty 1) -< pEs
-        id -< (NoBlip, renderList (\_ -> str) True lst)
+        -- lst <- scanB_ processList (list () mempty 1) -< (pEs `description` _)
+        let upgrs = actions gd fs
+        lst <- A.accum_ processList (list () mempty 1) . substituteB
+            -< (Left upgrs, Right <$> pEs)
+        purch <- mapMaybeB (preview _PESelect) -< pEs
+        let pB = case listSelectedElement lst of
+                   Nothing -> NoBlip
+                   Just e  -> FEAction (fst (lst ^?! listElementsL . ix (fst e))) <$ purch
+        id -< (pB, renderList renderAction True lst)
       where
         processList l = \case
-          PEUpDown  True  -> listMoveUp l
-          PEUpDown  False -> listMoveDown l
-          PEHomeEnd True  -> listMoveTo 0 l
-          PEHomeEnd False -> listMoveTo (lengthOf (listElementsL . folded) l) l
-          _               -> l
+          Left  acts -> l & listElementsL . iso V.toList V.fromList .~ acts
+                          & listSelectedL .~ ((l ^. listSelectedL) <|> Just 0)
+          Right pe   -> case pe of
+            PEUpDown  True  -> listMoveUp l
+            PEUpDown  False -> listMoveDown l
+            PEHomeEnd True  -> listMoveTo 0 l
+            PEHomeEnd False -> listMoveTo (lengthOf (listElementsL . folded) l) l
+            _               -> l
+        renderAction :: Bool -> (SomeAction _ _ _ _, _) -> Widget ()
+        renderAction b (Some a, cost) = str $ printf "%s%s (%s)" s d c
+          where
+            s, d, c :: String
+            s | b         = "* "
+              | otherwise = ""
+            d = case a of
+              AHab l h      -> printf "Hab %s %s" (show l) (show h)
+              AVehicle l v  -> printf "Vehicle %d %s" l (show v)
+              AHatch n      -> printf "Hatch %d" n
+              AWatchVideo   -> "Watch video"
+              AEggUpgrade e -> printf "Upgrade egg %s" (show e)
+              APrestige     -> "Prestige"
+              _ -> "unknown"
+            c = show cost
+        -- renderAction True = \_ -> str "selected"
+        -- renderAction False = \case
+        --   (Some (AHab s h), _) -> str $ printf "Hab %s %s" (show s) (show h)
+        --   _ -> str "unknown action"
     progShow :: String -> Double -> Double -> Widget n
     progShow s x y = progressBar (Just $ printf "%s (%d / %d)" s (round @_ @Int x) (round @_ @Int y))
                                  (realToFrac (x / y))
@@ -145,6 +177,11 @@ toFarmEvent = \case
       EvKey (KChar ' ') _ -> Just $ Left (FEAction (Some (AHatch 1)))
       EvKey (KChar 'h') _ -> Just $ Right UIHab
       EvKey (KChar 'v') _ -> Just $ Right UIVehicle
+      EvKey KUp         _ -> Just $ Right (UIPurch (PEUpDown True))
+      EvKey KDown       _ -> Just $ Right (UIPurch (PEUpDown False))
+      EvKey KHome       _ -> Just $ Right (UIPurch (PEHomeEnd True))
+      EvKey KEnd        _ -> Just $ Right (UIPurch (PEHomeEnd False))
+      EvKey KEnter      _ -> Just $ Right (UIPurch PESelect)
       _                   -> Nothing
     AppEvent dt -> Just $ Left (FEClock dt)
     _ -> Nothing
