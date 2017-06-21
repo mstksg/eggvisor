@@ -623,7 +623,7 @@ eggUpgrades
     -> (SV.Vector eggs :.: Either UpgradeError) (Finite eggs)
 eggUpgrades gd fs = Comp . SV.generate $ \e ->
     let unlock = gd ^. gdEggData . _EggData . ixSV e . eggUnlock
-    in  if | e < fs ^. fsEgg          -> Left UERegression
+    in  if | e <= fs ^. fsEgg         -> Left UERegression
            | farmValue gd fs < unlock -> Left UELocked
            | otherwise                -> Right e
 
