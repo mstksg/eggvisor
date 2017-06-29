@@ -1,24 +1,25 @@
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE DeriveFunctor         #-}
-{-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE LambdaCase            #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE PartialTypeSignatures #-}
-{-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TemplateHaskell       #-}
-{-# LANGUAGE TupleSections         #-}
-{-# LANGUAGE TypeApplications      #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeSynonymInstances  #-}
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE DeriveFunctor          #-}
+{-# LANGUAGE DeriveGeneric          #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE LambdaCase             #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE PartialTypeSignatures  #-}
+{-# LANGUAGE RankNTypes             #-}
+{-# LANGUAGE RecordWildCards        #-}
+{-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TupleSections          #-}
+{-# LANGUAGE TypeApplications       #-}
+{-# LANGUAGE TypeFamilies           #-}
+{-# LANGUAGE TypeOperators          #-}
+{-# LANGUAGE TypeSynonymInstances   #-}
 
 module Egg.Habitat (
     Hab(..), habName, habBaseCapacity, habCosts
-  , HabData(..), _HabData
+  , HabData(..), HasHabData(..)
   , SomeHabData
   , HabStatus(..), _HabStatus, hsSlots, hsPop
   , IsCalm(..), _NotCalm, _Calm
@@ -90,7 +91,7 @@ makeLenses ''Hab
 newtype HabData habs = HabData { _hdHabs :: SV.Vector habs Hab }
   deriving (Show, Eq, Ord, Generic)
 
-makePrisms ''HabData
+makeClassy ''HabData
 makeWrapped ''HabData
 
 type SomeHabData = DSum Sing HabData
@@ -171,7 +172,7 @@ baseHabCapacities
     -> Vec N4 Natural
 baseHabCapacities hd = fmap go . _hsSlots
   where
-    go = maybe 0 (\h -> hd ^. _HabData . ixSV h . habBaseCapacity)
+    go = maybe 0 (\h -> hd ^. hdHabs . ixSV h . habBaseCapacity)
 
 -- | Total base capacity of all slots.
 baseHabCapacity
@@ -240,7 +241,7 @@ habPrice hd hs hab = fmap priceOf
                    $ hs
   where
     priceOf :: Fin N4 -> Bock
-    priceOf i = hd ^. _HabData . ixSV hab . habCosts . ixV i
+    priceOf i = hd ^. hdHabs . ixSV hab . habCosts . ixV i
 
 -- | Get the actual capacity for a given hab, with given bonuses.
 habCapacity
@@ -272,7 +273,7 @@ totalGrowthRate
 totalGrowthRate hd bs cm hs =
     internalHatcheryRate bs cm
         ^. multiplying (1 + sharingRate * fromIntegral numFull)
-         . multiplying (4 - fromIntegral numFull)
+         . to (* (4 - fromIntegral numFull))
   where
     numFull      :: Finite 5
     numFull      = sumOf (availableSpace hd bs . to (maybe 1 (const 0))) hs
@@ -314,7 +315,7 @@ habUpgrades hd bs hs = hs ^. hsSlots
     hist :: M.Map (Finite habs) (Fin N5)
     hist = habHistory hs
     go :: Maybe (Finite habs) -> SV.Vector habs (Either (Finite habs) Bock)
-    go i = hd ^. _HabData
+    go i = hd ^. hdHabs
                & SV.imap
                    (\j h -> do
                        case i of
@@ -337,7 +338,7 @@ fullHabs hd bs = fmap (uncurry isFull) . view _HabStatus
     isFull s c = case s of
       Nothing -> True
       Just m  ->
-        let totCap = hd ^. _HabData . ixSV m . to (habCapacity bs)
+        let totCap = hd ^. hdHabs . ixSV m . to (habCapacity bs)
         in  c >= totCap
 
 -- | Gives total avaiable space of each hab (Nothing if hab full), and also
@@ -391,7 +392,7 @@ availableSpace hd bs f0 hs = (_HabStatus . traverse) (uncurry (go f0)) hs
                   Nothing -> Nothing
                   Just c  | p < c     -> Just (c - p)
                           | otherwise -> Nothing
-        cap = h <&> \i -> hd ^. _HabData
+        cap = h <&> \i -> hd ^. hdHabs
                               . ixSV i
                               . habBaseCapacity
                               . to  fromIntegral
@@ -431,7 +432,7 @@ availableSpaces hd bs f0 hs = (_HabStatus) (go f0) hs
     availCap :: Maybe (Finite habs) -> Double -> (Maybe Double, Maybe Double)
     availCap h p = (subtract p <$> mfilter (> p) cap, cap)
       where
-        cap = h <&> \i -> hd ^. _HabData
+        cap = h <&> \i -> hd ^. hdHabs
                               . ixSV i
                               . habBaseCapacity
                               . to  fromIntegral

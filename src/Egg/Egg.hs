@@ -1,19 +1,20 @@
-{-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE InstanceSigs          #-}
-{-# LANGUAGE LambdaCase            #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TemplateHaskell       #-}
-{-# LANGUAGE TypeApplications      #-}
-{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE DeriveGeneric          #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE InstanceSigs           #-}
+{-# LANGUAGE LambdaCase             #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE RecordWildCards        #-}
+{-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeApplications       #-}
+{-# LANGUAGE TypeFamilies           #-}
 
 module Egg.Egg (
     Egg(..)
   , eggName, eggDescription, eggValue, eggDiscover, eggUnlock, eggMultiplier
-  , EggData(..), _EggData
+  , EggData(..), HasEggData(..)
   , SomeEggData
   ) where
 
@@ -43,7 +44,7 @@ makeLenses ''Egg
 data EggData eggs = EggData { _edEggs :: SV.Vector eggs Egg }
   deriving (Show, Eq, Ord, Generic)
 
-makePrisms ''EggData
+makeClassy ''EggData
 makeWrapped ''EggData
 
 type SomeEggData = DSum Sing EggData

@@ -42,6 +42,7 @@ import           Data.Yaml
 import           Egg
 import           GHC.TypeLits.Compare
 import           Graphics.Vty hiding        ((<|>))
+import           Numeric.Lens
 import           Prelude hiding             ((.), id)
 import           Text.Printf
 import           Type.Class.Higher
@@ -100,7 +101,7 @@ farmAuto gd = proc inp -> do
     header fs = vBox
       [ str "Egg simulator"
       , hBox [ str "Egg: "
-             , txt $ gd ^. gdEggData . _EggData . ixSV (fs ^. fsEgg) . eggName
+             , txt $ gd ^. edEggs . ixSV (fs ^. fsEgg) . eggName
              ]
       , hBox [ str "Cash: "
              , str . show $ fs ^. fsBocks
@@ -129,7 +130,7 @@ farmAuto gd = proc inp -> do
           breakdown = fold $
             (\h c a -> return $ case h of
                 Nothing -> hCenter . str $ "(No hab in slot)"
-                Just h' -> progShow (gd ^. gdHabData . _HabData . ixSV h' . habName . unpacked)
+                Just h' -> progShow (gd ^. hdHabs . ixSV h' . habName . unpacked)
                                 (c - fromMaybe 0 a) c
             ) <$> (fs ^. fsHabs . hsSlots) <*> habCaps <*> avails
       id -< vBox $
@@ -144,7 +145,7 @@ farmAuto gd = proc inp -> do
         let pB = case listSelectedElement lst of
                    Nothing -> NoBlip
                    Just e  -> FEAction (fst (lst ^?! listElementsL . ix (fst e))) <$ purch
-        id -< (pB, renderList renderAction True lst)
+        id -< (pB, renderList (renderAction fs) True lst)
       where
         processList l = \case
           Left  acts -> l & listElementsL . iso V.toList V.fromList .~ acts
@@ -156,31 +157,29 @@ farmAuto gd = proc inp -> do
             PEHomeEnd False -> listMoveTo (lengthOf (listElementsL . folded) l) l
             _               -> l
         renderAction
-            :: Bool
+            :: FarmStatus eggs '(tiers, epic) habs vehicles
+            -> Bool
             -> (SomeAction eggs '(tiers, epic) habs vehicles, Maybe (Either Bock GoldenEgg))
             -> Widget ()
-        renderAction b (Some a, cost) = str $ printf "%s%s (%s)" s d c
+        renderAction fs b (Some a, cost) = str $ printf "%s%s (%s)" s d c
           where
             s, d, c :: String
             s | b         = "* "
               | otherwise = ""
             d = case a of
-              AResearch i   -> printf "Research %s"
+              AResearch i   -> printf "Research %s (%d/%d)"
                                  (gd ^. gdResearchData . researchIxData i . rName . unpacked)
+                                 (fs ^. fsResearch . researchIxStatus i)
+                                 (gd ^. gdResearchData . researchIxData i . to maxLevel)
               AHab l h      -> printf "Hab slot %d to %s" (fin l)
-                                 (gd ^. gdHabData . _HabData . ixSV h . habName . unpacked)
+                                 (gd ^. hdHabs . ixSV h . habName . unpacked)
               AVehicle l v  -> printf "Vehicle slot %d to %s" l
                                  (gd ^. gdVehicleData . _VehicleData . ixSV v . vName . unpacked)
               AHatch n      -> printf "Hatch %d chickens" n
               AWatchVideo   -> "Watch video"
               AEggUpgrade e -> printf "Upgrade egg %s" (show e)
               APrestige     -> "Prestige"
-              -- _ -> "unknown"
             c = show cost
-        -- renderAction True = \_ -> str "selected"
-        -- renderAction False = \case
-        --   (Some (AHab s h), _) -> str $ printf "Hab %s %s" (show s) (show h)
-        --   _ -> str "unknown action"
     progShow :: String -> Double -> Double -> Widget n
     progShow s x y = progressBar (Just $ printf "%s (%d / %d)" s (round @_ @Int x) (round @_ @Int y))
                                  (realToFrac (x / y))

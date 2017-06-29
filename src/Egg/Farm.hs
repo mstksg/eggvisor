@@ -84,7 +84,7 @@ data FarmStatus :: Nat -> ([Nat], Nat) -> Nat -> Nat -> Type where
                   , _fsGoldenEggs    :: GoldenEgg
                   , _fsSoulEggs      :: SoulEgg
                   , _fsVideoBonus    :: Maybe Double   -- ^ in seconds
-                  , _fsPrestEarnings :: Double
+                  , _fsPrestEarnings :: Bock
                   }
                -> FarmStatus eggs '(tiers, epic) habs vehicles
 
@@ -135,11 +135,11 @@ fsGoldenEggs :: Lens' (FarmStatus e '(t, g) h v) GoldenEgg
 fsGoldenEggs f fs = (\e -> fs { _fsGoldenEggs = max 0 e }) <$> f (_fsGoldenEggs fs)
 fsSoulEggs :: Lens' (FarmStatus e '(t, g) h v) SoulEgg
 fsSoulEggs f fs = (\s -> fs { _fsSoulEggs = max 0 s }) <$> f (_fsSoulEggs fs)
-fsPrestEarnings :: Lens' (FarmStatus e '(t, g) h v) Double
+fsPrestEarnings :: Lens' (FarmStatus e '(t, g) h v) Bock
 fsPrestEarnings f fs = (\pe -> fs { _fsPrestEarnings = max 0 pe }) <$> f (_fsPrestEarnings fs)
 
 -- | Only for incrementing
-fsBocksAndPrest :: Traversal' (FarmStatus e '(t, g) h v) Double
+fsBocksAndPrest :: Traversal' (FarmStatus e '(t, g) h v) Bock
 fsBocksAndPrest f fs = (\b p -> fs { _fsBocks = max 0 b, _fsPrestEarnings = max 0 p })
     <$> f (_fsBocks fs)
     <*> f (_fsPrestEarnings fs)
@@ -171,9 +171,8 @@ farmEggValue
     :: KnownNat eggs
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> Double
-farmEggValue gd fs = gd ^. gdEggData
-                         . _EggData
+    -> Bock
+farmEggValue gd fs = gd ^. edEggs
                          . ixSV (fs ^. fsEgg)
                          . eggValue
                          . bonusingFor (farmBonuses gd fs) BTEggValue
@@ -234,9 +233,9 @@ farmLayingRatePerChicken gd fs =
 videoDoubling
     :: GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> Iso' Double Double
+    -> Iso' Bock Bock
 videoDoubling gd fs = case fs ^. fsVideoBonus of
-    Just _  -> multiplying $ gd ^. gdConstants . gcVideoBonus
+    Just _  -> multiplying $ gd ^. gdConstants . gcVideoBonus . to realToFrac
     Nothing -> id
 
 -- | Total income (bocks per second)
@@ -244,8 +243,8 @@ farmIncome
     :: (KnownNat eggs, KnownNat vehicles)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> Double
-farmIncome gd fs = fs ^. to (farmLayingRate gd)
+    -> Bock
+farmIncome gd fs = fs ^. to (realToFrac . farmLayingRate gd)
                        . to (* farmEggValue gd fs)
                        . bonusingSoulEggs gd fs
                        . videoDoubling gd fs
@@ -276,12 +275,15 @@ farmIncomeDT
     -> IsCalm
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Double     -- ^ small time step (dt^3 = 0)
-    -> Double
+    -> Bock
 farmIncomeDT gd ic fs dt
-    | initLaying >= cap = (dt * cap * eggVal) ^. bonusingSoulEggs gd fs
-                                               . videoDoubling gd fs
+    | initLaying >= cap = (realToFrac (dt * cap) * eggVal)
+                                 ^. bonusingSoulEggs gd fs
+                                  . videoDoubling gd fs
     | otherwise         = (initHabSize * dt + growthRate * dt * dt / 2)
-                            ^. to (* (layingRate * eggVal))
+                            ^. to (* layingRate)
+                             . re bock
+                             . to (* eggVal)
                              . bonusingSoulEggs gd fs
                              . videoDoubling gd fs
 
@@ -364,16 +366,17 @@ farmIncomeDTInv
     -> Maybe Double
 farmIncomeDTInv gd ic fs goal
     | initLaying <= 0   = Nothing
-    | initLaying >= cap = Just $
-        dBock / (cap * eggVal ^. bonusingSoulEggs gd fs
-                               . videoDoubling gd fs
+    | initLaying >= cap = Just . realToFrac $
+        dBock / (realToFrac cap * eggVal
+                   ^. bonusingSoulEggs gd fs
+                    . videoDoubling gd fs
                 )
     | otherwise         =
-        let c = dBock ^. dividing (layingRate * eggVal)
+        let c = dBock ^. dividing (realToFrac layingRate * eggVal)
                        . from (bonusingSoulEggs gd fs)
                        . from (videoDoubling gd fs)
                        . negated
-        in  quadratic (growthRate / 2) initHabSize c
+        in  quadratic (growthRate / 2) initHabSize (realToFrac c)
   where
     curr        = fs ^. fsBocks
     dBock       = goal - curr
@@ -389,9 +392,9 @@ farmIncomeDTInv gd ic fs goal
 bonusingSoulEggs
     :: GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> Iso' Double Double
+    -> Iso' Bock Bock
 bonusingSoulEggs gd fs = multiplying $
-    1 + (bonus * fromIntegral (fs ^. fsSoulEggs)) / 100
+    1 + (realToFrac bonus * fromIntegral (fs ^. fsSoulEggs)) / 100
   where
     bonus = gd ^. gdConstants
                 . gcBaseSoulEggBonus
@@ -613,7 +616,7 @@ upgradeEgg gd e fs
            & fsVideoBonus    %~ id
            & fsPrestEarnings %~ id
   where
-    unlock = gd ^. gdEggData . _EggData . ixSV e . eggUnlock
+    unlock = gd ^. edEggs . ixSV e . eggUnlock
 
 -- | Vector of possible upgrades
 eggUpgrades
@@ -622,7 +625,7 @@ eggUpgrades
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> (SV.Vector eggs :.: Either UpgradeError) (Finite eggs)
 eggUpgrades gd fs = Comp . SV.generate $ \e ->
-    let unlock = gd ^. gdEggData . _EggData . ixSV e . eggUnlock
+    let unlock = gd ^. edEggs . ixSV e . eggUnlock
     in  if | e <= fs ^. fsEgg         -> Left UERegression
            | farmValue gd fs < unlock -> Left UELocked
            | otherwise                -> Right e
@@ -634,7 +637,7 @@ eggsVisible
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> (SV.Vector eggs :.: Maybe) (Finite eggs)
 eggsVisible gd fs = Comp . SV.generate $ \e ->
-    let unlock = gd ^. gdEggData . _EggData . ixSV e . eggUnlock
+    let unlock = gd ^. edEggs . ixSV e . eggUnlock
     in  guard (farmValue gd fs >= unlock) $> e
 
 -- | Farm value
@@ -652,21 +655,21 @@ farmValue
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Bock
 farmValue gd fs = (x + y + z) ^. bonusingFor bs BTFarmValue
-                               . multiplying eggBonus
+                               . multiplying (realToFrac eggBonus)
   where
-    eggBonus = gd ^. gdEggData . _EggData . ixSV (fs ^. fsEgg) . eggMultiplier
+    eggBonus = gd ^. edEggs . ixSV (fs ^. fsEgg) . eggMultiplier
     bs       = farmBonuses gd fs
     hd       = gd ^. gdHabData
     income   = farmIncome gd fs
     chickens = fs ^. fsHabs . to (totalChickens hd)
     incomepc
-      | chickens > 0 = income / chickens
+      | chickens > 0 = income / realToFrac chickens
       | otherwise    = 0
     capacity = fs ^. fsHabs . to (totalHabCapacity hd bs)
     hatchery = internalHatcheryRate bs NotCalm * 60
     x = income * 54000
-    y = incomepc * capacity * 6000
-    z = incomepc * hatchery * 7200000
+    y = incomepc * realToFrac capacity * 6000
+    z = incomepc * realToFrac hatchery * 7200000
 
 -- | Prestige!  Resets farm, increments soul eggs.
 prestigeFarm
@@ -687,7 +690,7 @@ prestigeFarm gd fs =
        & fsPrestEarnings .~ 0
   where
     pBonus = fs ^. fsPrestEarnings
-                 . dividing (gd ^. gdConstants . gcPrestigeFactor)
+                 . dividing (realToFrac (gd ^. gdConstants . gcPrestigeFactor))
                  . exponentiating 0.15
                  . bonusingFor (farmBonuses gd fs) BTPrestigeEggs
 

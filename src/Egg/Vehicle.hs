@@ -123,7 +123,7 @@ traverseSomeDepotStatus bs f sds0 = withSomeSing fleetSize $ \(SNat :: Sing slot
           <$> f @slots ds0
   where
     fleetSize :: Integer
-    fleetSize = 4 ^. bonusingFor bs BTFleetSize . to round
+    fleetSize = 4 ^. bonusingFor @Double bs BTFleetSize . to round
 
 vehicleParseOptions :: Options
 vehicleParseOptions = defaultOptions

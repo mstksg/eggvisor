@@ -1,17 +1,18 @@
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE GADTs                #-}
-{-# LANGUAGE KindSignatures       #-}
-{-# LANGUAGE LambdaCase           #-}
-{-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE RankNTypes           #-}
-{-# LANGUAGE RecordWildCards      #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE StandaloneDeriving   #-}
-{-# LANGUAGE TemplateHaskell      #-}
-{-# LANGUAGE TypeOperators        #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE KindSignatures        #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 module Egg.GameData (
     GameConstants(..), HasGameConstants(..)
@@ -73,6 +74,11 @@ gdVehicleData :: Lens (GameData e '(t, g) h v1) (GameData e '(t, g) h v2) (Vehic
 gdVehicleData f gd = (\vd -> gd { _gdVehicleData = vd }) <$> f (_gdVehicleData gd)
 gdConstants :: Lens' (GameData e '(t, g) h v) GameConstants
 gdConstants f gd = (\vd -> gd { _gdConstants = vd }) <$> f (_gdConstants gd)
+
+instance HasEggData (GameData e '(t, g) h v1) e where
+    eggData = gdEggData
+instance HasHabData (GameData e '(t, g) h v1) h where
+    habData = gdHabData
 
 data SomeGameData :: Type where
     SomeGameData

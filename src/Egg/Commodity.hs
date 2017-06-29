@@ -1,7 +1,8 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell            #-}
 
 module Egg.Commodity (
-    Bock
+    Bock(..), bock
   , GoldenEgg
   , SoulEgg
   , MultiCost(..), mcBocks, mcGoldenEggs
@@ -10,8 +11,16 @@ module Egg.Commodity (
   ) where
 
 import           Control.Lens
+import           Data.Aeson
 
-type Bock      = Double
+newtype Bock = Bock { _bock :: Double }
+  deriving (Eq, Ord, Num, Fractional, Floating, Real, RealFrac, RealFloat, ToJSON, FromJSON)
+
+instance Show Bock
+
+makeLenses ''Bock
+
+-- type Bock      = Double
 type GoldenEgg = Integer
 type SoulEgg   = Integer
 
