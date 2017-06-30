@@ -1,25 +1,26 @@
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE LambdaCase            #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE PolyKinds             #-}
-{-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TemplateHaskell       #-}
-{-# LANGUAGE TupleSections         #-}
-{-# LANGUAGE TypeApplications      #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeSynonymInstances  #-}
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE DeriveGeneric          #-}
+{-# LANGUAGE FlexibleContexts       #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE GADTs                  #-}
+{-# LANGUAGE LambdaCase             #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE PolyKinds              #-}
+{-# LANGUAGE RankNTypes             #-}
+{-# LANGUAGE RecordWildCards        #-}
+{-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TupleSections          #-}
+{-# LANGUAGE TypeApplications       #-}
+{-# LANGUAGE TypeFamilies           #-}
+{-# LANGUAGE TypeOperators          #-}
+{-# LANGUAGE TypeSynonymInstances   #-}
 
 module Egg.Vehicle (
     Vehicle(..), vName, vBaseCapacity, vCosts
-  , VehicleData(..), _VehicleData, SomeVehicleData
+  , VehicleData(..), HasVehicleData(..), SomeVehicleData
   , DepotStatus(..), _DepotStatus, SomeDepotStatus, _SomeDepotStatus
   , SomeVehicleUpgradeError(..), _SVUERegression, _SVUENoSlot
   , withSomeDepotStatus
@@ -71,7 +72,7 @@ makeLenses ''Vehicle
 newtype VehicleData vs = VehicleData { _vdVehicles :: SV.Vector vs Vehicle }
   deriving (Show, Eq, Ord, Generic)
 
-makePrisms ''VehicleData
+makeClassy ''VehicleData
 makeWrapped ''VehicleData
 
 type SomeVehicleData = DSum Sing VehicleData
@@ -218,7 +219,7 @@ vehiclePrice vd ds v = withKnownNat (SNat @slots %:+ SNat @1) $
   where
     priceOf :: Finite slots -> Bock
     priceOf i = fromMaybe 0 $
-                  vd ^? _VehicleData . ixSV v . vCosts . ix (fromIntegral i)
+                  vd ^? vdVehicles . ixSV v . vCosts . ix (fromIntegral i)
 
 -- | Purchase a vehicle upgrade.  Returns cost and new depot status,
 -- if purchase is valid.
@@ -280,7 +281,7 @@ vehicleUpgrades vd bs ds = Comp . Comp $ SV.generate go
     hist = withKnownNat slots1 $
              vehicleHistory ds
     go :: Finite slots -> SV.Vector vs (Either (Finite vs) Bock)
-    go s = vd ^. _VehicleData
+    go s = vd ^. vdVehicles
               & SV.imap
                   (\j h -> withKnownNat slots1 $ do
                       case currVeh of

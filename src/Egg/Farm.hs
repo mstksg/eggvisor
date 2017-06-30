@@ -159,7 +159,7 @@ initFarmStatus gd@(GameData _ rd _ _ _) =
                (emptyResearchStatus rd)
                initHabStatus
                initSomeDepotStatus
-               (gd ^. gdConstants . gcBaseHatcheryCapacity)
+               (gd ^. gcBaseHatcheryCapacity)
                0
                0
                0
@@ -224,8 +224,7 @@ farmLayingRatePerChicken
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Double
 farmLayingRatePerChicken gd fs =
-    gd ^. gdConstants
-        . gcBaseLayingRate
+    gd ^. gcBaseLayingRate
         . dividing 60
         . bonusingFor (farmBonuses gd fs) BTLayingRate
 
@@ -235,7 +234,7 @@ videoDoubling
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Iso' Bock Bock
 videoDoubling gd fs = case fs ^. fsVideoBonus of
-    Just _  -> multiplying $ gd ^. gdConstants . gcVideoBonus . to realToFrac
+    Just _  -> multiplying $ gd ^. gcVideoBonus . to realToFrac
     Nothing -> id
 
 -- | Total income (bocks per second)
@@ -314,8 +313,7 @@ hatcheryRefillRate
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Double
 hatcheryRefillRate gd fs =
-        gd ^. gdConstants
-            . gcBaseHatcheryRefillRate
+        gd ^. gcBaseHatcheryRefillRate
             . dividing 60
             . bonusingFor (farmBonuses gd fs) BTHatcheryRate
 
@@ -323,8 +321,7 @@ hatcheryCapacity
     :: GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Double
-hatcheryCapacity gd fs = gd ^. gdConstants
-                             . gcBaseHatcheryCapacity
+hatcheryCapacity gd fs = gd ^. gcBaseHatcheryCapacity
                              . bonusingFor (farmBonuses gd fs) BTHatcheryCapacity
 
 refillHatcheries
@@ -396,8 +393,7 @@ bonusingSoulEggs
 bonusingSoulEggs gd fs = multiplying $
     1 + (realToFrac bonus * fromIntegral (fs ^. fsSoulEggs)) / 100
   where
-    bonus = gd ^. gdConstants
-                . gcBaseSoulEggBonus
+    bonus = gd ^. gcBaseSoulEggBonus
                 . bonusingFor (farmBonuses gd fs) BTSoulEggBonus
 
 -- | Bonuses from a given 'GameData' and 'FarmStatus'
@@ -690,7 +686,7 @@ prestigeFarm gd fs =
        & fsPrestEarnings .~ 0
   where
     pBonus = fs ^. fsPrestEarnings
-                 . dividing (realToFrac (gd ^. gdConstants . gcPrestigeFactor))
+                 . dividing (realToFrac (gd ^. gcPrestigeFactor))
                  . exponentiating 0.15
                  . bonusingFor (farmBonuses gd fs) BTPrestigeEggs
 
@@ -707,9 +703,8 @@ watchVideo gd fs = case fs ^. fsVideoBonus of
     _                ->
         Right $ fs & fsVideoBonus %~ maybe (Just time) (Just . (+ time))
   where
-    lim  = gd ^. gdConstants . gcVideoBonusRefresh . multiplying 60
-    time = gd ^. gdConstants
-               . gcBaseVideoDoublerTime
+    lim  = gd ^. gcVideoBonusRefresh . multiplying 60
+    time = gd ^. gcBaseVideoDoublerTime
                . bonusingFor (farmBonuses gd fs) BTVideoDoublerTime
                . multiplying 60
 

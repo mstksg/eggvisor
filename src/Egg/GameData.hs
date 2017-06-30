@@ -79,6 +79,10 @@ instance HasEggData (GameData e '(t, g) h v1) e where
     eggData = gdEggData
 instance HasHabData (GameData e '(t, g) h v1) h where
     habData = gdHabData
+instance HasGameConstants (GameData e '(t, g) h v) where
+    gameConstants = gdConstants
+instance HasVehicleData (GameData e '(t, g) h v) v where
+    vehicleData = gdVehicleData
 
 data SomeGameData :: Type where
     SomeGameData

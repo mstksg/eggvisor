@@ -174,7 +174,7 @@ farmAuto gd = proc inp -> do
               AHab l h      -> printf "Hab slot %d to %s" (fin l)
                                  (gd ^. hdHabs . ixSV h . habName . unpacked)
               AVehicle l v  -> printf "Vehicle slot %d to %s" l
-                                 (gd ^. gdVehicleData . _VehicleData . ixSV v . vName . unpacked)
+                                 (gd ^. vdVehicles . ixSV v . vName . unpacked)
               AHatch n      -> printf "Hatch %d chickens" n
               AWatchVideo   -> "Watch video"
               AEggUpgrade e -> printf "Upgrade egg %s" (show e)
