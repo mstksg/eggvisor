@@ -372,30 +372,31 @@ bonuses :: M.Map BonusType [BonusAmount] -&gt; Bonuses
 bonuses = Bonuses . M.filter (not . null) . fmap (filter hasEffect)
 
 -- | Apply a list of bonuses (from left to right) to a value.
-bonusEffect :: [BonusAmount] -&gt; Double -&gt; Double
+bonusEffect :: Fractional a =&gt; [BonusAmount] -&gt; a -&gt; a
 bonusEffect = flip . foldl' $ \e -&gt; \case
-    BAIncrement  i -&gt; e + i
-    BAPercent    p -&gt; e * (1 + p / 100)
-    BAMultiplier r -&gt; e * r
+    BAIncrement  i -&gt; e + realToFrac i
+    BAPercent    p -&gt; e * (1 + realToFrac p / 100)
+    BAMultiplier r -&gt; e * realToFrac r
 
 -- | Iso on a value under a list of bonuses (from left to right).
-bonusing :: [BonusAmount] -&gt; Iso' Double Double
+bonusing :: (Fractional a, Eq a) =&gt; [BonusAmount] -&gt; Iso' a a
 bonusing = flip foldl' id $ \e -&gt; \case
-             BAIncrement i  -&gt; e . adding i
-             BAPercent   p  -&gt; e . multiplying (1 + p / 100)
-             BAMultiplier r -&gt; e . multiplying r
+             BAIncrement i  -&gt; e . adding (realToFrac i)
+             BAPercent   p  -&gt; e . multiplying (1 + realToFrac p / 100)
+             BAMultiplier r -&gt; e . multiplying (realToFrac r)
 
 -- | Iso on a value under the bonuses of a given bonus type.
 bonusingFor
-    :: Bonuses
+    :: (Fractional a, Eq a)
+    =&gt; Bonuses
     -&gt; BonusType
-    -&gt; Iso' Double Double
+    -&gt; Iso' a a
 bonusingFor bs bt = case M.lookup bt (_bMap bs) of
                       Nothing -&gt; id
                       Just bl -&gt; bonusing bl
 
 -- | Apply bonuses for a given type on a value.
-bonusEffectFor :: Bonuses -&gt; BonusType -&gt; Double -&gt; Double
+bonusEffectFor :: Fractional a =&gt; Bonuses -&gt; BonusType -&gt; a -&gt; a
 bonusEffectFor bs bt = maybe id bonusEffect $ M.lookup bt (_bMap bs)
 
 -- | No bonuses
