@@ -264,17 +264,19 @@ app gd = App draw cursor handle return am
 
 main :: IO ()
 main = do
-    Just sgd <- decodeFile "data/gamedata.yaml"
-    withSomeGameData sgd $ \(gd :: GameData eggs '(tiers, epic) habs vehicles) -> do
-      Just Refl <- return $ isLE (Proxy @1) (Proxy @eggs)
-      Just Refl <- return $ isLE (Proxy @1) (Proxy @habs)
-      Just Refl <- return $ isLE (Proxy @1) (Proxy @vehicles)
-      clock <- newBChan 2
-      void . forkIO . forever $ do
-        threadDelay 100000
-        writeBChan clock 0.1
-      void $ customMain (mkVty defaultConfig) (Just clock) (app gd)
-        (farmAuto gd, str "Loading..")
+    sgde <- decodeFileEither "data/gamedata.yaml"
+    case sgde of
+      Left e -> error $ show e
+      Right sgd -> withSomeGameData sgd $ \(gd :: GameData eggs '(tiers, epic) habs vehicles) -> do
+        Just Refl <- return $ isLE (Proxy @1) (Proxy @eggs)
+        Just Refl <- return $ isLE (Proxy @1) (Proxy @habs)
+        Just Refl <- return $ isLE (Proxy @1) (Proxy @vehicles)
+        clock <- newBChan 2
+        void . forkIO . forever $ do
+          threadDelay 100000
+          writeBChan clock 0.1
+        void $ customMain (mkVty defaultConfig) (Just clock) (app gd)
+          (farmAuto gd, str "Loading..")
 
 nextRight :: a -> Either e a -> EventM n (Next a)
 nextRight d (Left _)  = continue d

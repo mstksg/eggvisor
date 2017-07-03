@@ -36,11 +36,12 @@ showBock b
     powpre = fromMaybe (printf "e%d" (pow3*3)) $ powpres V.!? pow3
 
 powpres :: V.Vector String
-powpres = V.fromList [ "" , "" , "M", "B"
-                     , "T", "q", "Q", "s"
-                     , "S", "o", "N", "d"
-                     , "U", "D", "Td", "qd"
-                     , "Qd", "sd", "Sd"]
+powpres = V.fromList [ ""  , ""  , "M" , "B"
+                     , "T" , "q" , "Q" , "s"
+                     , "S" , "o" , "N" , "d"
+                     , "U" , "D" , "Td", "qd"
+                     , "Qd", "sd", "Sd"
+                     ]
 
 -- type Bock      = Double
 type GoldenEgg = Integer

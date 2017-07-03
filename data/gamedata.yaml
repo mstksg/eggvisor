@@ -169,7 +169,7 @@ research:
       techs:
         - name: Comfortable Nests
           description: Increase egg laying rate by 10%
-          levels: 50
+          costs: [0.25,1.83,3.9,6.75,10.49,15.56,22.26,31.23,43.16,58.93,80.05,107,144,192,258,341,455,600,797,1049,1388,1825,2407,3163,4160,5464,7166,9412,12311,16174,21100,27730,36101,47455,61754,81022,105457,138117,179805,235058,306114,399424,520427,677740,883612,1148414,1498369,1943447,2537803,3284844]
           bonuses:
             laying-rate:
               base-amount:
@@ -177,7 +177,7 @@ research:
                 type: percent
         - name: Nutritional Supplements
           description: Increase egg value by 25%
-          levels: 40
+          costs: [1.08,10.69,25.03,46.11,77.26,124,192,291,438,654,965,1417,2086,3048,4429,6455,9391,13587,19611,28473,41108,59112,85308,123053,176680,253128,365077,523885,749041,1074795,1542509,2204255,3142730,4513092,6450132,9186709,13128887,18776101,26741850,37992750]
           bonuses:
             egg-value:
               base-amount:
@@ -185,7 +185,7 @@ research:
                 type: percent
         - name: Better Incubators
           description: Hatchery will refill 10% faster
-          levels: 15
+          costs: [9.14,25.11,52.81,100,182,321,558,959,1636,2775,4685,7882,13223,22126,36942]
           bonuses:
             hatchery-rate:
               base-amount:
@@ -193,7 +193,7 @@ research:
                 type: percent
         - name: Excitable Chickens
           description: +0.1% egg value bonus for each running chicken
-          levels: 10
+          costs: [0.53,118,911,6038,37859,231306,1385884,8159922,47710021,274232000]
           bonuses:
             running-bonus:
               base-amount:
@@ -203,7 +203,7 @@ research:
       techs:
         - name: Hen House Remodel
           description: Increase capacity of all habs by 5%
-          levels: 8
+          costs: [273,568,1149,2282,4496,8830,17195,33190]
           bonuses:
             hab-capacity:
               base-amount:
@@ -211,7 +211,7 @@ research:
                 type: percent
         - name: Internal Hatcheries
           description: Each hen house adds 2 additional chickens per minute
-          levels: 10
+          costs: [911,3799,14732,55943,207549,762593,2771174,9969047,35766538,126643000,7277360,10310190,14533679,20454839,28970677,40816346,57312230,81057091,114167000,160189000,225925000,318184000,446234000,627545000,833889000,1239000000,1738000000,2448000000,3432000000,4798000000]
           bonuses:
             internal-hatchery:
               base-amount:
@@ -219,7 +219,7 @@ research:
                 type: increment
         - name: Padded Packaging
           description: Increases earnings per egg by 25%
-          levels: 30
+          costs: [221652,316799,450062,636787,906460,1286084,1816626,2575938,3651500,5151619]
           bonuses:
             egg-value:
               base-amount:
@@ -227,7 +227,7 @@ research:
                 type: percent
         - name: Hatchery Expansion
           description: Increases Hatchery capacity by 10
-          levels: 10
+          costs: [36.57,328,1556,6546,26655,105459,409527,1586004,6049750,22822839]
           bonuses:
             hatchery-capacity:
               base-amount:
@@ -235,7 +235,7 @@ research:
                 type: increment
         - name: Bigger Eggs
           description: DOUBLES egg value
-          levels: 1
+          costs: [661172]
           bonuses:
             egg-value:
               base-amount:
@@ -245,7 +245,7 @@ research:
       techs:
         - name: Internal Hatchery Upgrades
           description: Each hen house adds an additional 5 chickens/min
-          levels: 10
+          costs: [7717536,43466409,240266000,1321000000,7198000000,38920000000,209862000000,1121000000000,5997000000000,31712000000000]
           bonuses:
             internal-hatchery:
               base-amount:
@@ -253,7 +253,7 @@ research:
                 type: percent
         - name: Improved Leafsprings
           description: Increase vehicle capacity by 5%
-          levels: 30
+          costs: [1543507,2466448,3936256,6274421,9990145,15889312,25246418,40075702,63558542,100717000,159474000,252327000,398974000,630464000,995714000,1574000000,2489000000,3933000000,6211000000,9801000000,15457000000,24363000000,38376000000,60418000000,95.071,149528000000,235074000000,369415000000,580323000000,911357000000]
           bonuses:
             vehicle-capacity:
               base-amount:
@@ -261,7 +261,7 @@ research:
                 type: percent
         - name: Vehicle Reliability
           description: Increase fleet size by 1
-          levels: 2
+          costs: [154243000,12028000000000]
           bonuses:
             fleet-size:
               base-amount:
@@ -269,7 +269,7 @@ research:
                 type: increment
         - name: Rooster Booster
           description: Hatchery will refill 5% faster
-          levels: 25
+          costs: [1929384,4028695,8325964,17268285,35611962,73432947,151186000,310191000,637748000,1303000000,2675000000,5445000000,11170000000,22698000000,46434000000,94369000000,192316000000,390905000000,793869000000,1614000000000,3267000000000,6643000000000,13412000000000,27268000000000,54928000000000]
           bonuses:
             hatchery-rate:
               base-amount:
@@ -277,7 +277,7 @@ research:
                 type: percent
         - name: Coordinated Clucking
           description: Max running chicken bonus increased by 0.1x
-          levels: 25
+          costs: [5788152,10640823,19514353,35676989,64997945,118167000,215705000,392918000,713756000,1292000000,2340000000,4250000000,7704000000,13928000000,25107000000,45344000000,82034000000,148125000000,266799000000,479195000000,864023000000,1558000000000,2805000000000,5037000000000,9021000000000]
           bonuses:
             max-running-bonus:
               base-amount:
@@ -287,7 +287,7 @@ research:
       techs:
         - name: Hatchery Rebuild
           description: Increases Hatchery capacity by 50
-          levels: 1
+          costs: [87021000000]
           bonuses:
             hatchery-capacity:
               base-amount:
@@ -295,7 +295,7 @@ research:
                 type: increment
         - name: USDE Prime Certification
           description: TRIPLES egg value
-          levels: 1
+          costs: [14839000000000]
           bonuses:
             egg-value:
               base-amount:
@@ -303,7 +303,7 @@ research:
                 type: multiplier
         - name: Hen House A/C
           description: Increase egg laying rate by 5%
-          levels: 50
+          costs: [1426427,1944493,2631021,3567042,4841620,6532612,8881502,12010369,16232675,22028255,29700406,40275046,54449253,73371715,99571552,134196000,181513000,245390000,3.313993383366958e+8,447555000,603096000,813685000,1100000000,1479000000,2002000000,2698000000,3631000000,4911000000,6600000000,8915000000,12017000000,16132000000,21832000000,29343000000,39550000000,53333000000,71528000000,96710000000,130013000000,174855000000,235917000000,316394000000,427025000000,574297000000,770647000000,1040000000000,1396000000000,1880000000000,2530000000000,3387000000000]
           bonuses:
             laying-rate:
               base-amount:
@@ -311,7 +311,7 @@ research:
                 type: percent
         - name: Super-Feed™ Diet
           description: Increase egg value by 25%
-          levels: 35
+          costs: [251438000,353008000,492849000,685646000,961132000,1341000000,1865000000,2610000000,3641000000,5058000000,7070000000,9859000000,13692000000,19109000000,26642000000,36984000000,51546000000,71853000000,99716000000,138787000000,193443000000,268389000000,373040000000,519924000000,721225000000,1001000000000,1395000000000,1935000000000,2683000000000,3739000000,5186000000000,7179000000000,10007000000000,13877000000000,19186000000000]
           bonuses:
             egg-value:
               base-amount:
@@ -319,7 +319,7 @@ research:
                 type: percent
         - name: Microlux™ Chicken Suites
           description: Increase capacity of all habs by 5%
-          levels: 10
+          costs: [319874000,809799000,2045000000,5152000000,12954000000,32505000000,81419000000,203620000000,508522000000,1268000000000]
           bonuses:
             hab-capacity:
               base-amount:
@@ -329,7 +329,7 @@ research:
       techs:
         - name: Compact Incubators
           description: Increases Hatchery capacity by 10
-          levels: 10
+          costs: [1117000000,7198000000,45912000000,290300000000,1823000000000,11423000000000,71404000000000,443616000000000,2.742E+15,1.6878E+16]
           bonuses:
             hatchery-capacity:
               base-amount:
@@ -337,7 +337,7 @@ research:
                 type: increment
         - name: Lightweight Boxes
           description: Increase vehicle capacity by 10%
-          levels: 40
+          costs: [317987000000,447357000000,626305000000,873949000000,1227000000000,1719000000000,2398000000000,3359000000000,4708000000000,6573000000000,9180000000000,12880000000000,17988000000000,25055000000000,35181000000000,49163000000000,68482000000000,95962000000000,134198000000000,186975000000000,261407000000000,365856000000000,509947000000000,711171000000000,996213000000000,1.389E+15,1.932E+15,2.709E+15,3.781E+15,5.26E+15,7.361E+15,1.0281E+16,1.4306E+16,1.9975E+16,2.7923E+16,3.8874E+16,5.415E+16,7.5765E+16,1.05545E+17,1.46639E+17]
           bonuses:
             vehicle-capacity:
               base-amount:
@@ -345,7 +345,7 @@ research:
                 type: percent
         - name: Depot Worker Exoskeletons
           description: Increase maximum fleet size by 1
-          levels: 2
+          costs: [400199000000,3.02355E+17]
           bonuses:
             fleet-size:
               base-amount:
@@ -353,7 +353,7 @@ research:
                 type: increment
         - name: Internal Hatchery Expansion
           description: Each hen house adds an additional 10 chickens/min
-          levels: 15
+          costs: [1325000000000,3504000000000,9256000000000,24417000000000,64338000000000,169346000000000,445295000000000,1.17E+15,3.07E+15,8.052E+15,2.1098E+16,5.5243E+16,1.44544E+17,3.77945E+17,9.87595E+17]
           bonuses:
             internal-hatchery:
               base-amount:
@@ -361,7 +361,7 @@ research:
                 type: increment
         - name: Improved Genetics
           description: Increase egg laying rate AND egg value by 15%
-          levels: 30
+          costs: [3418000000000,4959000000000,7173000000000,10348000000000,14904000000000,21593000000000,31224000000000,45029000000000,64822000000000,93773000000000,135570000000000,195457000000000,281259000000000,406255000000000,587254000000000,846495000000000,1.218E+15,1.756E+15,2.538E+15,3.658E+15,5.261E+15,7.576E+15,1.0951E+16,1.5781E+16,2.2691E+16,3.2625E+16,4.7156E+16,6.7955E+16,9.7693E+16,1.40249E+17]
           bonuses:
             laying-rate:
               base-amount:
@@ -375,7 +375,7 @@ research:
       techs:
         - name: Traffic Management
           description: Increase vehicle fleet size by 1
-          levels: 2
+          costs: [2.387E+15,5.7257E+19]
           bonuses:
             fleet-size:
               base-amount:
@@ -383,7 +383,7 @@ research:
                 type: increment
         - name: Motivational Clucking
           description: Max running chicken bonus increased by 0.1x
-          levels: 45
+          costs: [6014000000000,10453000000000,18157000000000,31512000000000,54637000000000,94623000000000,163672000000000,282738000000000,489500000000000,848447000000000,1.47E+15,2.543E+15,4.397E+15,7.593E+15,1.3097E+16,2.2599E+16,3.9105E+16,6.7629E+16,1.16869E+17,2.01777E+17,3.48009E+17,5.99539E+17,1.032E+18,1.783E+18,3.079E+18,5.315E+18,9.166E+18,1.5793E+19,2.7183E+19,4.6733E+19,8.0532E+19,1.38951E+20,2.39615E+20,4.129E+20,7.10869E+20,1.223E+21,2.101E+21,3.611E+21,6.225E+21,1.0726E+22,1.8469E+22,3.1777E+22,5.4622E+22,9.3792E+22,1.60875E+23]
           bonuses:
             max-running-bonus:
               base-amount:
@@ -391,7 +391,7 @@ research:
                 type: increment
         - name: Driver Training
           description: Increase vehicle speed by 5%
-          levels: 30
+          costs: [5.064E+15,7.324E+15,1.0561E+16,1.5191E+16,2.1817E+16,3.1518E+16,4.5448E+16,6.5365E+16,9.3849E+16,1.35407E+17,1.9526E+17,2.80817E+17,4.03113E+17,5.80859E+17,8.37672E+17,1.205E+18,1.729E+18,2.488E+18,3.589E+18,5.161E+18,7.407E+18,1.0645E+19,1.5355E+19,2.2085E+19,3.1693E+19,4.5483E+19,6.5618E+19,9.4387E+19,1.35452E+20,1.94117E+20]
           bonuses:
             vehicle-speed:
               base-amount:
@@ -399,7 +399,7 @@ research:
                 type: percent
         - name: Shell Fortification
           description: Increase egg value by 15%
-          levels: 60
+          costs: [6.517E+15,8.366E+15,1.0638E+16,1.3652E+16,1.736E+16,2.2271E+16,2.8325E+16,3.6326E+16,4.6206E+16,5.9239E+16,7.5363E+16,9.6587E+16,1.22895E+17,1.57452E+17,2.00372E+17,2.56624E+17,3.26638E+17,4.18186E+17,5.32384E+17,6.81346E+17,8.67586E+17,1.11E+18,1.414E+18,1.808E+18,2.303E+18,2.944E+18,3.751E+18,4.793E+18,6.109E+18,7.803E+18,9.948E+18,1.2702E+19,1.6197E+19,2.0672E+19,2.6368E+19,3.3638E+19,4.2919E+19,5.473E+19,6.985E+19,8.9033E+19,1.13665E+20,1.44816E+20,1.84938E+20,2.3552E+20,3.00866E+20,3.82983E+20,4.894E+20,6.22694E+20,7.95979E+20,1.012E+21,1.294E+21,1.646E+21,2.105E+21,2.674E+21,3.422E+21,4.346E+21,5.563E+21,7.062E+21,9.043E+21,1.1474E+22]
           bonuses:
             egg-value:
               base-amount:
@@ -409,7 +409,7 @@ research:
       techs:
         - name: Egg Loading Bots
           description: Increase fleet size by 1
-          levels: 2
+          costs: [1.629E+21,3.6438E+22]
           bonuses:
             fleet-size:
               base-amount:
@@ -417,7 +417,7 @@ research:
                 type: increment
         - name: Super Alloy Frames
           description: Increase vehicle capacity by 5%
-          levels: 50
+          costs: [6.1607E+19,8.0588E+19,1.04536E+20,1.36518E+20,1.77336E+20,2.31119E+20,3.0073E+20,3.91013E+20,5.09768E+20,6.1107E+20,8.63677E+20,1.119E+21,1.462E+21,1.898E+21,2.475E+21,3.217E+21,4.186E+21,5.451E+21,7.074E+21,9.232E+21,1.1957E+22,1.5626E+22,2.0263E+22,2.6436E+22,3.433E+22,4.4695E+22,5.8144E+22,7.5517E+22,9.8436E+22,1.2751E+23,1.66568E+23,2.15828E+23,2.81707E+23,3.65512E+23,4.76157E+23,6.1883E+23,8.04328E+23,1.047E+24,1.358E+24,1.772E+24,2.294E+24,2.996E+24,3.884E+24,5.062E+24,6.573E+24,8.549E+24,1.1121E+25,1.4429E+25,1.8798E+25,2.4292E+25]
           bonuses:
             vehicle-capacity:
               base-amount:
@@ -425,7 +425,7 @@ research:
                 type: percent
         - name: Even Bigger Eggs
           description: DOUBLES egg value
-          levels: 5
+          costs: [1.238E+19,6.263E+21,3.11E+24,1.495E+27,6.36503E+29]
           bonuses:
             egg-value:
               base-amount:
@@ -433,7 +433,7 @@ research:
                 type: multiplier
         - name: Internal Hatchery Expansion
           description: Each hen house adds an additional 25 chickens/min
-          levels: 30
+          costs: [1.44544E+17,3.11313E+17,6.65234E+17,1.427E+18,3.055E+18,6.522E+18,1.3999E+19,2.9835E+19,6.3978E+19,1.36589E+20,2.91603E+20,6.24095E+20,1.327E+21,2.845E+21,6.059E+21,1.294E+22,2.7621E+22,5.87E+22,1.25666E+23,2.67062E+23,5.70491E+23,1.215E+24,2.584E+24,5.518E+24,1.1705E+25,2.5012E+25,5.3148E+25,1.12531E+26,2.37556E+26,4.97615E+26]
           bonuses:
             internal-hatchery:
               base-amount:
@@ -443,7 +443,7 @@ research:
       techs:
         - name: Quantum Egg Storage
           description: Increase vehicle capacity by 5%
-          levels: 20
+          costs: [2.08792E+23,7.17411E+23,2.445E+24,8.369E+24,2.8342E+22,9.4925E+25,3.18367E+26,1.06E+27,3.547E+27,1.1692E+28,3.8155E+28,1.22775E+29,3.87837E+29,1.214E+30,3.713E+30,1.1229E+31]
           bonuses:
             vehicle-capacity:
               base-amount:
@@ -451,7 +451,7 @@ research:
                 type: percent
         - name: Genetic Purification
           description: Increases egg value by 10%
-          levels: 100
+          costs: [4.7715E+19,6.8191E+19,9.7112E+19,1.37924E+20,1.95951E+20,2.79771E+20,3.98097E+20,5.65047E+20,8.03807E+20,1.147E+21,1.63E+21,2.313E+21,3.294E+21,4.694E+21,6.669E+21,9.456E+21,1.3483E+22,1.9199E+22,2.7259E+22,3.8634E+22,5.5141E+22,7.8454E+22,1.11319E+23,1.57941E+23,2.25303E+23,3.2031E+23,4.54228E+23,6.45341E+23,9.19777E+23,1.307E+24,1.852E+24,2.635E+24,3.752E+24,5.326E+24,7.546E+24,1.0747E+25,1.5292E+25,2.1691E+25,3.0665E+25,4.3586E+25,6.1729E+25,8.7134E+25,1.22881E+26,1.74247E+26,2.46224E+26,3.47016E+26,4.89719E+26,6.93549E+26,9.79089E+26,1.379E+27,1.948E+27,2.757E+27,3.88E+27,5.47E+27,7.726E+27,1.0899E+28,1.5319E+28,2.1471E+28,3.025E+28,4.2479E+28,5.9433E+28,8.2981E+28,1.16429E+29,1.62664E+29,2.26443E+29,3.15129E+29,4.39723E+29,6.11034E+29,8.46145E+29,1.173E+30,1.628E+30,2.249E+30,3.098E+30,4.277E+30,5.899E+30,8.104E+30]
           bonuses:
             egg-value:
               base-amount:
@@ -459,7 +459,8 @@ research:
                 type: percent
         - name: Machine Learning Incubators
           description: Each hen house adds an additional 5 chickens/min
-          levels: 250
+          # levels: 250
+          costs: [5.9904E+22,6.6617E+22,7.4011E+22,8.2085E+22,9.084E+22,1.006E+23,1.11842E+23,1.24179E+23,1.37613E+23,1.52142E+23,1.68917E+23,1.87712E+23,2.08273E+23,2.30598E+23,2.5503E+23,2.83567E+23,3.14946E+23,3.49167E+23,3.86231E+23,4.28162E+23,4.75904E+23,5.28222E+23,5.85118E+23,6.46591E+23,7.18697E+23,7.9845E+23,8.85573E+23,9.80067E+23,1.085E+24,1.206E+24,1.339E+24,1.484E+24,1.641E+24,1.821E+24,2.023E+24,2.245E+24,2.486E+24,2.748E+24,3.056E+24,3.394E+24,3.762E+24,4.162E+24,4.612E+24,5.126E+24,5.69E+24,6.303E+24,6.965E+24,7.738E+24,8.597E+24,9.535E+24,1.0553E+25,1.1677E+25,1.2978E+25,1.4405E+25,1.5956E+25,1.7632E+25,1.9545E+25,2.17E+25,2.4054E+25,2.6609E+25,2.9375E+25,3.2621E+25,3.6185E+25,4.0068E+25,4.4269E+25,4.8968E+25,5.4347E+25,6.0235E+25,6.6631E+25,7.3536E+25,8.1535E+25,9.0437E+25,1.00152E+26,1.10679E+26,1.22234E+26,1.35654E+26,1.5037E+26,1.66383E+26,1.83692E+26,2.03339E+26,2.25567E+26,2.49865E+26,2.76232E+26,3.04669E+26,3.38136E+26,3.74906E+26,4.1498E+26,4.58357E+26,5.06642E+26,5.6212E+26,6.22871E+26,6.88895E+26,7.60193E+26,8.42362E+26,9.342E+26,1.034E+27,1.143E+27,1.262E+27,1.4E+27,1.552E+27,1.717E+27,1.896E+27,2.097E+27,2.326E+27,2.576E+27,2.848E+27,3.14E+27,3.482E+27,3.859E+27,4.27E+27,4.714E+27,5.206E+27,5.772E+27,6.391E+27,7.063E+27,7.787E+27,8.617E+27,9.546E+27,1.0559E+28,1.1655E+28,1.2845E+28,1.4233E+28,1.5752E+28,1.7402E+28,1.9183E+28,2.1181E+28,2.3451E+28,2.5926E+28,2.8606E+28,3.1492E+28,3.4842E+28,3.8538E+28,4.2556E+28,4.6895E+28,5.1666E+28,5.7163E+28,6.3161E+28,6.966E+28,7.666E+28,8.4615E+28,9.3531E+28,1.03227E+29,1.13701E+29,1.25007E+29,1.38202E+29,1.52607E+29,1.68221E+29,1.85045E+29,2.03784E+29,2.25094E+29,2.48276E+29,2.73331E+29,3.00259E+29,3.31282E+29,3.65556E+29,4.02723E+29,4.42782E+29,4.86545E+29,5.36998E+29,5.91906E+29,6.51268E+29,7.15086E+29,7.871E+29,8.67874E+29,9.55492E+29,1.05E+30,1.151E+30,1.27E+30,1.398E+30,1.538E+30,1.687E+30,1.853E+30,2.042E+30,2.246E+30,2.467E+30,2.703E+30,2.974E+30,3.273E+30,3.596E+30]
           bonuses:
             internal-hatchery:
               base-amount:
@@ -467,7 +468,7 @@ research:
                 type: increment
         - name: Time Compression
           description: Increase egg laying rate by 10%
-          levels: 20
+          costs: [1.4311E+22,4.9239E+22,1.6803E+23,5.75832E+23,1.968E+24,6.712E+24,2.2894E+25,7.6658E+25,2.57589E+26,8.59431E+26,2.872E+27,9.524E+27,3.11E+28,1.00831E+29,3.20034E+29,1.006E+30,3.101E+30]
           bonuses:
             laying-rate:
               base-amount:
@@ -477,7 +478,8 @@ research:
       techs:
         - name: Hover Upgrades
           description: Increase hover vehicle capacity by 5%
-          levels: 25
+          # levels: 25
+          costs: [4.86492E+26,1.291E+27,3.419E+27,9.007E+27,2.3539E+28,6.0966E+28,1.56397E+29,3.97211E+29,9.98372E+29,2.482E+30]
           bonuses:
             hover-vehicle-capacity:
               base-amount:
@@ -485,7 +487,8 @@ research:
                 type: percent
         - name: Graviton Coating
           description: DOUBLES egg density and thus egg value
-          levels: 8
+          # levels: 8
+          costs: [3.1003E+28,9.569E+30,2.045E+33]
           bonuses:
             egg-value:
               base-amount:
@@ -493,7 +496,8 @@ research:
                 type: multiplier
         - name: Grav Plating
           description: Increase capacity of all habs by 2%
-          levels: 25
+          # levels: 25
+          costs: [7.087E+30]
           bonuses:
             hab-capacity:
               base-amount:
@@ -501,7 +505,8 @@ research:
                 type: percent
         - name: Crystalline Shelling
           description: Increases egg value by 25%
-          levels: +100
+          # levels: 100
+          costs: [9.524E+28,1.23596E+29,1.59058E+29,2.05795E+29,2.64936E+29,3.41615E+29,4.40027E+29,5.65274E+29,7.28624E+29,9.32322E+29,1.203E+30,1.539E+30,1.979E+30,2.532E+30,3.245E+30]
           bonuses:
             egg-value:
               base-amount:
@@ -511,7 +516,8 @@ research:
       techs:
         - name: Autonomous Vehicles
           description: Increase fleet size by 1
-          levels: 6
+          # levels: 6
+          costs: [1.18765E+32,8.835E+33]
           bonuses:
             fleet-size:
               base-amount:
@@ -519,7 +525,8 @@ research:
                 type: increment
         - name: Neural Linking
           description: Each hen house adds an additional 50 chickens/min
-          levels: 20
+          # levels: 20
+          costs: [1.13379E+26,4.45758E+26,1.735E+27,6.73E+27,2.6061E+28,1.00037E+29,3.7811E+29,1.404E+30,5.115E+30,1.8268E+31]
           bonuses:
             internal-hatchery:
               base-amount:
@@ -527,7 +534,8 @@ research:
                 type: increment
         - name: Telephatic Will
           description: Increase egg quality (value) by 25%
-          levels: 50
+          # levels: 50
+          costs: [4.3018E+35]
           bonuses:
             egg-value:
               base-amount:
@@ -535,7 +543,8 @@ research:
                 type: percent
         - name: Enlightened Chickens
           description: Quadruple running chicken bonus!
-          levels: 3
+          # levels: 3
+          costs: [4.055E+39]
           bonuses:
             running-bonus:
               base-amount:
@@ -545,7 +554,8 @@ research:
       techs:
         - name: Dark Containment
           description: Increase vehicle capacity by 5%
-          levels: 25
+          # levels: 25
+          costs: [3.72794E+35]
           bonuses:
             vehicle-capacity:
               base-amount:
@@ -553,7 +563,8 @@ research:
                 type: percent
         - name: Atomic Purification
           description: Increase egg value by 10%
-          levels: 25
+          # levels: 25
+          costs: [4.98E+43]
           bonuses:
             egg-value:
               base-amount:
@@ -561,7 +572,8 @@ research:
                 type: percent
         - name: Multiversal Layering
           description: 10x egg value
-          levels: 2
+          # levels: 2
+          costs: [2.4462E+49]
           bonuses:
             egg-value:
               base-amount:

@@ -260,7 +260,7 @@ instance FromJSON a => FromJSON (Research a) where
         Research <$> v .: "name"
                  <*> v .: "description"
                  <*> (mkBase =<< v .: "bonuses")
-                 <*> (Left <$> (v .: "levels") <|> Right <$> (v .: "costs"))
+                 <*> (Right <$> (v .: "costs") <|> Left <$> (v .: "levels") <|> fail "No costs or levels")
       where
         mkBase :: M.Map BonusType Object -> Parser Bonuses
         mkBase = fmap (Bonuses . fmap (:[])) . traverse (.: "base-amount")
