@@ -594,7 +594,7 @@ hatchChickens gd (fromIntegral->n) fs = do
     if fs ^. fsHatchery >= n
       then Right ()
       else Left $ HEHatcheryLow (fs ^. fsHatchery)
-    fs & fsHatchery -~ n & habData %%~ \h ->
+    fs & fsHatchery -~ n & fsHabs %%~ \h ->
       case addChickens gd bs n h of
         (Just _ , _ ) -> Left $ HEHabsFull (totalHabCapacity gd bs h)
         (Nothing, h') -> Right h'
