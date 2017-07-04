@@ -53,6 +53,7 @@ import qualified GHC.TypeLits               as TL
 data FarmEvent eggs te habs vehicles =
       FEClock Double
     | FEAction (SomeAction eggs te habs vehicles)
+    | FEDrone Drone
 
 makePrisms ''FarmEvent
 
@@ -90,6 +91,7 @@ farmAuto gd = proc inp -> do
     disp <- sequenceA [
         arr (header . fst)
       , habs
+      , vehs
       ] -< (fs, uEs)
     id -< vBox $ disp ++ [men]
   where
@@ -98,6 +100,7 @@ farmAuto gd = proc inp -> do
       FEAction (Some a) -> case runAction gd a fs0 of
         Left _    -> fs0
         Right fs1 -> fs1
+      FEDrone d         -> popDrone gd d fs0
     header fs = vBox
       [ str "Egg simulator"
       , hBox [ str "Egg: "
@@ -110,6 +113,14 @@ farmAuto gd = proc inp -> do
              , str . show $ farmIncome gd fs
              , str " per sec"
              ]
+      , if fs ^. fsSoulEggs > 0
+          then hBox [ str "Soul egg bonus: x"
+                    , str . show $ 1 ^. bonusingSoulEggs gd fs
+                    , str " ("
+                    , str . show $ fs ^. fsSoulEggs
+                    , str " )"
+                    ]
+          else emptyWidget
       , case fs ^. fsVideoBonus of
           Nothing -> emptyWidget
           Just v  -> hBox [ str "Video bonus: x2, "
@@ -136,6 +147,9 @@ farmAuto gd = proc inp -> do
       id -< vBox $
         progShow "All Habs" (sum habCaps - sum (Comp avails)) (sum habCaps)
         : if expanded then breakdown else []
+    vehs = proc (fs, uEs) -> do
+      let (r, c) = farmLayingRateAvailability gd fs
+      id -< progShow "Depot" r (r + fromMaybe 0 c)
     menu = proc (fs, pEs) -> do
         -- lst <- scanB_ processList (list () mempty 1) -< (pEs `description` _)
         let upgrs = actions gd fs
@@ -171,13 +185,13 @@ farmAuto gd = proc inp -> do
                                  (gd ^. gdResearchData . researchIxData i . rName . unpacked)
                                  (fs ^. fsResearch . researchIxStatus i)
                                  (gd ^. gdResearchData . researchIxData i . to maxLevel)
-              AHab l h      -> printf "Hab slot %d to %s" (fin l)
+              AHab l h      -> printf "Hab slot %d to %s" (fin l + 1)
                                  (gd ^. hdHabs . ixSV h . habName . unpacked)
-              AVehicle l v  -> printf "Vehicle slot %d to %s" l
+              AVehicle l v  -> printf "Vehicle slot %d to %s" (l + 1)
                                  (gd ^. vdVehicles . ixSV v . vName . unpacked)
               AHatch n      -> printf "Hatch %d chickens" n
               AWatchVideo   -> "Watch video"
-              AEggUpgrade e -> printf "Upgrade egg %s" (show e)
+              AEggUpgrade e -> printf "Upgrade egg: %s" (gd ^. edEggs . ixSV (fs ^. fsEgg) . eggName)
               APrestige     -> "Prestige"
             c = show cost
     progShow :: String -> Double -> Double -> Widget n
@@ -193,6 +207,7 @@ toFarmEvent = \case
       EvKey (KChar ' ') _ -> Just $ Left (FEAction (Some (AHatch 1)))
       EvKey (KChar 'h') _ -> Just $ Right UIHab
       EvKey (KChar 'v') _ -> Just $ Right UIVehicle
+      EvKey (KChar 'd') _ -> Just $ Left (FEDrone EliteDrone)
       EvKey KUp         _ -> Just $ Right (UIPurch (PEUpDown True))
       EvKey KDown       _ -> Just $ Right (UIPurch (PEUpDown False))
       EvKey KHome       _ -> Just $ Right (UIPurch (PEHomeEnd True))

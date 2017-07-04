@@ -21,6 +21,7 @@ module Egg.Farm (
   , IncomeChange(..), _ICHabFill, _ICDepotFill, _ICVideoDoublerExpire
   , UpgradeError(..), _UELocked, _UERegression
   , HatchError(..), heHabitats, heHatchery
+  , Drone(..), _NormalDrone, _EliteDrone
   , initFarmStatus
   , farmEggValue
   , farmLayingRate
@@ -29,6 +30,7 @@ module Egg.Farm (
   , hatcheryRefillRate
   , hatcheryCapacity
   , refillHatcheries
+  , farmIncomeNoBonus
   , farmIncome
   , farmIncomeDT
   , farmIncomeDTInv
@@ -48,6 +50,7 @@ module Egg.Farm (
   , eggsVisible
   , prestigeFarm
   , watchVideo
+  , popDrone
   ) where
 
 import           Control.Lens
@@ -116,6 +119,12 @@ data HatchError = HEHatcheryLow { _heHatchery :: Double }
 makePrisms ''HatchError
 makeLenses ''HatchError
 
+data Drone = NormalDrone (Fin N3)
+           | EliteDrone
+  deriving (Show, Eq, Ord)
+
+makePrisms ''Drone
+
 fsEgg :: Lens (FarmStatus e1 '(t, g) h v) (FarmStatus e2 '(t, g) h v) (Finite e1) (Finite e2)
 fsEgg f fs = (\e -> fs { _fsEgg = e }) <$> f (_fsEgg fs)
 fsResearch :: Lens (FarmStatus e '(t1, g1) h v) (FarmStatus e '(t2, g2) h v) (ResearchStatus t1 g1) (ResearchStatus t2 g2)
@@ -148,6 +157,8 @@ fsBocksAndPrest f fs = (\b p -> fs { _fsBocks = max 0 b, _fsPrestEarnings = max 
 fsVideoBonus :: Lens' (FarmStatus e '(t, g) h v) (Maybe Double)
 fsVideoBonus f fs = (\vb -> fs { _fsVideoBonus = mfilter (> 0) vb }) <$> f (_fsVideoBonus fs)
 
+instance HasHabStatus (FarmStatus e '(t, g) h v) h where
+    habStatus = fsHabs
 
 
 initFarmStatus
@@ -213,7 +224,7 @@ farmLayingRateAvailability gd fs =
   where
     bs = farmBonuses gd fs
     chickens :: Double
-    chickens = fs ^. fsHabs . to (totalChickens (gd ^. gdHabData))
+    chickens = totalChickens fs
     cap :: Double
     cap = withSomeDepotStatus bs (fs ^. fsDepot) $
             totalDepotCapacity (gd ^. gdVehicleData) bs
@@ -237,15 +248,24 @@ videoDoubling gd fs = case fs ^. fsVideoBonus of
     Just _  -> multiplying $ gd ^. gcVideoBonus . to realToFrac
     Nothing -> id
 
--- | Total income (bocks per second)
+-- | Total income (bocks per second), no bonuses
+farmIncomeNoBonus
+    :: (KnownNat eggs, KnownNat vehicles)
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Bock
+farmIncomeNoBonus gd fs
+    = fs ^. to (realToFrac . farmLayingRate gd)
+          . to (* farmEggValue gd fs)
+          . bonusingSoulEggs gd fs
+
+-- | Total income (bocks per second), with bonuses
 farmIncome
     :: (KnownNat eggs, KnownNat vehicles)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Bock
-farmIncome gd fs = fs ^. to (realToFrac . farmLayingRate gd)
-                       . to (* farmEggValue gd fs)
-                       . bonusingSoulEggs gd fs
+farmIncome gd fs = fs ^. to (farmIncomeNoBonus gd)
                        . videoDoubling gd fs
 
 -- | Total bock income over a given small-ish period of time, assuming
@@ -289,10 +309,8 @@ farmIncomeDT gd ic fs dt
   where
     layingRate  = farmLayingRatePerChicken gd fs
     eggVal      = farmEggValue gd fs
-    initHabSize = fs ^. fsHabs
-                      . to (totalChickens (gd ^. gdHabData))
-    growthRate  = fs ^. fsHabs
-                      . to (totalGrowthRate (gd ^. gdHabData) (farmBonuses gd fs) ic)
+    initHabSize = totalChickens fs
+    growthRate  = totalGrowthRate gd (farmBonuses gd fs) ic fs
     initLaying  = layingRate * initHabSize
     cap         = fs ^. to (farmDepotCapacity gd)
 
@@ -379,9 +397,8 @@ farmIncomeDTInv gd ic fs goal
     dBock       = goal - curr
     layingRate  = farmLayingRatePerChicken gd fs
     eggVal      = farmEggValue gd fs
-    initHabSize = fs ^. fsHabs . to (totalChickens (gd ^. gdHabData))
-    growthRate  = fs ^. fsHabs
-                      . to (totalGrowthRate (gd ^. gdHabData) (farmBonuses gd fs) ic)
+    initHabSize = totalChickens fs
+    growthRate  = totalGrowthRate gd (farmBonuses gd fs) ic fs
     initLaying  = layingRate * initHabSize
     cap         = fs ^. to (farmDepotCapacity gd)
 
@@ -445,7 +462,7 @@ stepFarmDT
     -> FarmStatus eggs '(tiers, epic) habs vehicles
 stepFarmDT gd ic dt fs = fs
     & fsBocksAndPrest       +~ farmIncomeDT gd ic fs dt
-    & fsHabs                %~ stepHabs (gd ^. gdHabData) (farmBonuses gd fs) ic dt
+    & stepHabs gd (farmBonuses gd fs) ic dt
     & fsVideoBonus . mapped -~ dt
     & refillHatcheries gd dt
 
@@ -493,7 +510,7 @@ waitTilNextIncomeChange
     -> IsCalm
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> WaitTilRes ((,) IncomeChange) (FarmStatus eggs '(tiers, epic) habs vehicles)
-waitTilNextIncomeChange gd ic fs0 = case getComp $ fsHabs traverseWait fs0 of
+waitTilNextIncomeChange gd ic fs0 = case waitTilNextFilled gd bs ic fs0 of
     Left e -> case e of
       HWENoInternalHatcheries
         | initAllFull    -> NonStarter
@@ -511,7 +528,7 @@ waitTilNextIncomeChange gd ic fs0 = case getComp $ fsHabs traverseWait fs0 of
          in  case depotStatChangeIn <> videoDoublerChangeIn of
                Just (Min (Arg tChange ich)) ->
                  let fs2 = fs0 & fsBocksAndPrest       +~ farmIncomeDT gd ic fs0 tChange
-                               & fsHabs  . availableSpace (gd ^. gdHabData) bs . mapped -~ rt * tChange
+                               & availableSpace gd bs . mapped -~ rt * tChange
                                & fsVideoBonus . mapped -~ tChange
                                & refillHatcheries gd tChange
                  in  WaitTilSuccess tChange (ich, fs2)
@@ -522,16 +539,12 @@ waitTilNextIncomeChange gd ic fs0 = case getComp $ fsHabs traverseWait fs0 of
                                & refillHatcheries gd tFill
                  in  WaitTilSuccess tFill (ICHabFill s, fs2)
   where
-    initAllFull    = andOf (fsHabs . to (fullHabs (gd ^. gdHabData) bs) . folded) fs0
+    initAllFull    = andOf (to (fullHabs gd bs) . folded) fs0
     initMaxedDepot = has _Nothing depotAvail0
     bs :: Bonuses
     bs = farmBonuses gd fs0
     depotAvail0 :: Maybe Double
     depotAvail0 = snd (farmLayingRateAvailability gd fs0)
-    traverseWait
-        :: HabStatus habs
-        -> (Either HWaitError :.: (,) ((Fin N4, Double), Double)) (HabStatus habs)
-    traverseWait = Comp . waitTilNextFilled (gd ^. gdHabData) bs ic
 
 -- | Wait until population reaches a given point.
 --
@@ -545,7 +558,7 @@ waitTilFarmPop
     -> WaitTilRes (Either (FarmStatus eggs '(tiers, epic) habs vehicles))
                   (FarmStatus eggs '(tiers, epic) habs vehicles)
 waitTilFarmPop gd ic goal fs0 =
-    case waitTilPop (gd ^. gdHabData) (farmBonuses gd fs0) ic goal (fs0 ^. fsHabs) of
+    case waitTilPop gd (farmBonuses gd fs0) ic goal fs0 of
       NoWait             -> NoWait
       NonStarter         -> NonStarter
       WaitTilSuccess t h ->
@@ -581,12 +594,11 @@ hatchChickens gd (fromIntegral->n) fs = do
     if fs ^. fsHatchery >= n
       then Right ()
       else Left $ HEHatcheryLow (fs ^. fsHatchery)
-    fs & fsHatchery -~ n & fsHabs %%~ \h ->
-      case addChickens hd bs n h of
-        (Just _ , _ ) -> Left $ HEHabsFull (totalHabCapacity hd bs h)
+    fs & fsHatchery -~ n & habData %%~ \h ->
+      case addChickens gd bs n h of
+        (Just _ , _ ) -> Left $ HEHabsFull (totalHabCapacity gd bs h)
         (Nothing, h') -> Right h'
   where
-    hd = gd ^. gdHabData
     bs = farmBonuses gd fs
 
 -- | Upgrade your egg!
@@ -655,19 +667,20 @@ farmValue gd fs = (x + y + z) ^. bonusingFor bs BTFarmValue
   where
     eggBonus = gd ^. edEggs . ixSV (fs ^. fsEgg) . eggMultiplier
     bs       = farmBonuses gd fs
-    hd       = gd ^. gdHabData
-    income   = farmIncome gd fs
-    chickens = fs ^. fsHabs . to (totalChickens hd)
+    income   = farmIncomeNoBonus gd fs
+    chickens = totalChickens fs
     incomepc
       | chickens > 0 = income / realToFrac chickens
       | otherwise    = 0
-    capacity = fs ^. fsHabs . to (totalHabCapacity hd bs)
+    capacity = totalHabCapacity gd bs fs
     hatchery = internalHatcheryRate bs NotCalm * 60
     x = income * 54000
     y = incomepc * realToFrac capacity * 6000
     z = incomepc * realToFrac hatchery * 7200000
 
 -- | Prestige!  Resets farm, increments soul eggs.
+--
+-- TODO: only available if pBonus > 0
 prestigeFarm
     :: (KnownNat eggs, KnownNat habs, KnownNat vehicles, 1 TL.<= habs, 1 TL.<= vehicles)
     => GameData  eggs '(tiers, epic) habs vehicles
@@ -707,6 +720,23 @@ watchVideo gd fs = case fs ^. fsVideoBonus of
     time = gd ^. gcBaseVideoDoublerTime
                . bonusingFor (farmBonuses gd fs) BTVideoDoublerTime
                . multiplying 60
+
+popDrone
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> Drone
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+popDrone gd d fs = fs & fsBocksAndPrest +~ (mult * farmValue gd fs)
+  where
+    mult = case d of
+      NormalDrone i -> case i of
+        FZ         -> 0.0004
+        FS FZ      -> 0.003
+        FS (FS FZ) -> 0.01
+        _          -> error "unreachable"
+      EliteDrone -> 0.4
+
 
 -- | Largest root to a x^2 + b x + c, if any
 quadratic :: Double -> Double -> Double -> Maybe Double

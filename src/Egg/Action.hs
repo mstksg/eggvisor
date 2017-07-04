@@ -112,9 +112,8 @@ runAction gd = \case
               then return (g - cost)
               else Left (inj . I $ PEInsufficientFunds cost)
     AHab s h    -> \fs0 -> do
-      (cost, fs1) <- first (inj . I) . getComp $
-        fsHabs (Comp . upgradeHab (gd ^. gdHabData) (farmBonuses gd fs0) s h)
-               fs0
+      (cost, fs1) <- first (inj . I) $
+        upgradeHab gd (farmBonuses gd fs0) s h fs0
       fs1 & fsBocks %%~ \b ->
         if b >= cost
           then return (b - cost)
@@ -172,7 +171,7 @@ habActions
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> VecT N4 (SV.Vector habs :.: Either (Sum I '[PurchaseError Bock, Finite habs])) (Action eggs '(tiers, epic) habs vehicles '[PurchaseError Bock, Finite habs], Bock)
 habActions gd fs =
-    habUpgrades (gd ^. gdHabData) (farmBonuses gd fs) (fs ^. fsHabs)
+    habUpgrades gd (farmBonuses gd fs) fs
       & (isets TCV.imap <. _Comp) <.> imapped %@~ \(s, h) c -> do
         cost <- first (inj . I) c
         if fs ^. fsBocks >= cost

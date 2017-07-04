@@ -673,7 +673,8 @@ legalResearchesCommon rd rs =
           pure (case r ^. rCosts of
                   Left m | currLevel < m -> Right 0
                          | otherwise     -> Left REMaxedOut
-                  Right cs -> Right . maybe 0 (view (bonusingFor bs BTResearchCosts)) $
+                  Right cs -> maybe (Left REMaxedOut)
+                                    (Right . view (bonusingFor bs BTResearchCosts)) $
                     cs V.!? fromIntegral currLevel
                )
 
@@ -688,8 +689,8 @@ legalResearchesEpic
 legalResearchesEpic rd rs = Comp $ do
     r         <- _rdEpic rd
     currLevel <- _rsEpic rs
-    pure (case r ^. rCosts of
-            Left m | currLevel < m -> Just 0
-                   | otherwise     -> Nothing
-            Right cs -> (cs V.!? fromIntegral currLevel) <|> Just 0
-         )
+    pure $ case r ^. rCosts of
+      Left m | currLevel < m -> Just 0
+             | otherwise     -> Nothing
+      Right cs -> cs V.!? fromIntegral currLevel
+
