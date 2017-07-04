@@ -260,7 +260,7 @@ instance FromJSON a =&gt; FromJSON (Research a) where
         Research &lt;$&gt; v .: &quot;name&quot;
                  &lt;*&gt; v .: &quot;description&quot;
                  &lt;*&gt; (mkBase =&lt;&lt; v .: &quot;bonuses&quot;)
-                 &lt;*&gt; (Left &lt;$&gt; (v .: &quot;levels&quot;) &lt;|&gt; Right &lt;$&gt; (v .: &quot;costs&quot;))
+                 &lt;*&gt; (Right &lt;$&gt; (v .: &quot;costs&quot;) &lt;|&gt; Left &lt;$&gt; (v .: &quot;levels&quot;) &lt;|&gt; fail &quot;No costs or levels&quot;)
       where
         mkBase :: M.Map BonusType Object -&gt; Parser Bonuses
         mkBase = fmap (Bonuses . fmap (:[])) . traverse (.: &quot;base-amount&quot;)
@@ -673,7 +673,8 @@ legalResearchesCommon rd rs =
           pure (case r ^. rCosts of
                   Left m | currLevel &lt; m -&gt; Right 0
                          | otherwise     -&gt; Left REMaxedOut
-                  Right cs -&gt; Right . maybe 0 (view (bonusingFor bs BTResearchCosts)) $
+                  Right cs -&gt; maybe (Left REMaxedOut)
+                                    (Right . view (bonusingFor bs BTResearchCosts)) $
                     cs V.!? fromIntegral currLevel
                )
 
@@ -688,9 +689,9 @@ legalResearchesEpic
 legalResearchesEpic rd rs = Comp $ do
     r         &lt;- _rdEpic rd
     currLevel &lt;- _rsEpic rs
-    pure (case r ^. rCosts of
-            Left m | currLevel &lt; m -&gt; Just 0
-                   | otherwise     -&gt; Nothing
-            Right cs -&gt; (cs V.!? fromIntegral currLevel) &lt;|&gt; Just 0
-         )
+    pure $ case r ^. rCosts of
+      Left m | currLevel &lt; m -&gt; Just 0
+             | otherwise     -&gt; Nothing
+      Right cs -&gt; cs V.!? fromIntegral currLevel
+
 </span></pre></body></html>

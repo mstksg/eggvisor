@@ -12,13 +12,36 @@
 </span><a name="line-12"></a><span>
 </span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Control</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span>
 </span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Aeson</span><span>
-</span><a name="line-15"></a><span>
-</span><a name="line-16"></a><span class="hs-keyword">newtype</span><span> </span><a name="Bock"><a href="Egg.Commodity.html#Bock"><span class="hs-identifier">Bock</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Bock"><a href="Egg.Commodity.html#Bock"><span class="hs-identifier">Bock</span></a></a><span> </span><span class="hs-special">{</span><span> </span><a name="_bock"><a href="Egg.Commodity.html#_bock"><span class="hs-identifier">_bock</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Double</span><span> </span><span class="hs-special">}</span><span>
-</span><a name="line-17"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Num</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Fractional</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Floating</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Real</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">RealFrac</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">RealFloat</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">FromJSON</span><span class="hs-special">)</span><span>
-</span><a name="line-18"></a><span>
-</span><a name="line-19"></a><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier hs-type">Show</span><span> </span><a href="Egg.Commodity.html#Bock"><span class="hs-identifier hs-type">Bock</span></a><span>
-</span><a name="line-20"></a><span>
-</span><a name="line-21"></a><span class="hs-identifier hs-var">makeLenses</span><span> </span><span class="hs-char">''Bock
+</span><a name="line-15"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Maybe</span><span>
+</span><a name="line-16"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Numeric</span><span class="hs-operator">.</span><span class="hs-identifier">Lens</span><span>
+</span><a name="line-17"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Text</span><span class="hs-operator">.</span><span class="hs-identifier">Printf</span><span>
+</span><a name="line-18"></a><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-identifier">Data</span><span class="hs-operator">.</span><span class="hs-identifier">Vector</span><span>  </span><span class="hs-keyword">as</span><span> </span><span class="hs-identifier">V</span><span>
+</span><a name="line-19"></a><span>
+</span><a name="line-20"></a><span class="hs-keyword">newtype</span><span> </span><a name="Bock"><a href="Egg.Commodity.html#Bock"><span class="hs-identifier">Bock</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><a name="Bock"><a href="Egg.Commodity.html#Bock"><span class="hs-identifier">Bock</span></a></a><span> </span><span class="hs-special">{</span><span> </span><a name="_bock"><a href="Egg.Commodity.html#_bock"><span class="hs-identifier">_bock</span></a></a><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Double</span><span> </span><span class="hs-special">}</span><span>
+</span><a name="line-21"></a><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Eq</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Ord</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Num</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Fractional</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Floating</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">Real</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">RealFrac</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">RealFloat</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">ToJSON</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-type">FromJSON</span><span class="hs-special">)</span><span>
+</span><a name="line-22"></a><span>
+</span><a name="line-23"></a><span class="hs-identifier hs-var">makeLenses</span><span> </span><span class="hs-char">''Bock
+
+instance Show Bock where
+  show = showBock
+
+showBock :: Bock -&gt; String
+showBock b
+    | digs &lt;= 2 = printf &quot;%.2f&quot; (b ^. bock)
+    | digs &lt;= 6 = printf &quot;%.0f&quot; (b ^. bock)
+    | otherwise = printf &quot;%.3f%s&quot; (b ^. bock . dividing (10 ^ (pow3 * 3))) powpre
+  where
+    digs = floor $ logBase 10 b
+    pow3 = digs `div` 3
+    powpre = fromMaybe (printf &quot;e%d&quot; (pow3*3)) $ powpres V.!? pow3
+
+powpres :: V.Vector String
+powpres = V.fromList [ &quot;&quot;  , &quot;&quot;  , &quot;M&quot; , &quot;B&quot;
+                     , &quot;T&quot; , &quot;q&quot; , &quot;Q&quot; , &quot;s&quot;
+                     , &quot;S&quot; , &quot;o&quot; , &quot;N&quot; , &quot;d&quot;
+                     , &quot;U&quot; , &quot;D&quot; , &quot;Td&quot;, &quot;qd&quot;
+                     , &quot;Qd&quot;, &quot;sd&quot;, &quot;Sd&quot;
+                     ]
 
 -- type Bock      = Double
 type GoldenEgg = Integer

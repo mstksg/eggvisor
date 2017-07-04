@@ -21,7 +21,7 @@
 </span><a name="line-21"></a><span>    </span><a href="Egg.Habitat.html#Hab"><span class="hs-identifier hs-type">Hab</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habName"><span class="hs-identifier hs-var">habName</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habBaseCapacity"><span class="hs-identifier hs-var">habBaseCapacity</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habCosts"><span class="hs-identifier hs-var">habCosts</span></a><span>
 </span><a name="line-22"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#HabData"><span class="hs-identifier hs-type">HabData</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#HasHabData"><span class="hs-identifier hs-type">HasHabData</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
 </span><a name="line-23"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#SomeHabData"><span class="hs-identifier hs-type">SomeHabData</span></a><span>
-</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#HabStatus"><span class="hs-identifier hs-type">HabStatus</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#_HabStatus"><span class="hs-identifier hs-var">_HabStatus</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#hsSlots"><span class="hs-identifier hs-var">hsSlots</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#hsPop"><span class="hs-identifier hs-var">hsPop</span></a><span>
+</span><a name="line-24"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#HabStatus"><span class="hs-identifier hs-type">HabStatus</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#HasHabStatus"><span class="hs-identifier hs-type">HasHabStatus</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#_HabStatus"><span class="hs-identifier hs-var">_HabStatus</span></a><span>
 </span><a name="line-25"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#IsCalm"><span class="hs-identifier hs-type">IsCalm</span></a><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#_NotCalm"><span class="hs-identifier hs-var">_NotCalm</span></a><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#_Calm"><span class="hs-identifier hs-var">_Calm</span></a><span>
 </span><a name="line-26"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#initHabStatus"><span class="hs-identifier hs-var">initHabStatus</span></a><span>
 </span><a name="line-27"></a><span>  </span><span class="hs-special">,</span><span> </span><a href="Egg.Habitat.html#habAt"><span class="hs-identifier hs-var">habAt</span></a><span>
@@ -102,7 +102,7 @@ data HabStatus habs
                 }
   deriving (Show, Eq, Ord, Generic)
 
-makeLenses ''HabStatus
+makeClassy ''HabStatus
 
 _HabStatus :: Iso' (HabStatus habs) (Vec N4 (Maybe (Finite habs), Double))
 _HabStatus = iso (\hs -&gt; liftA2 (,) (_hsSlots hs) (_hsPop hs))
@@ -166,33 +166,33 @@ initHabStatus = HabStatus (Just 0 :+ pure Nothing) (pure 0)
 
 -- | Base capacity of each slot.
 baseHabCapacities
-    :: forall habs. KnownNat habs
-    =&gt; HabData habs
-    -&gt; HabStatus habs
+    :: forall hd hs habs. (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
+    -&gt; hs
     -&gt; Vec N4 Natural
-baseHabCapacities hd = fmap go . _hsSlots
+baseHabCapacities hd = fmap go . view hsSlots
   where
     go = maybe 0 (\h -&gt; hd ^. hdHabs . ixSV h . habBaseCapacity)
 
 -- | Total base capacity of all slots.
 baseHabCapacity
-    :: forall habs. KnownNat habs
-    =&gt; HabData habs
-    -&gt; HabStatus habs
+    :: forall hd hs habs. (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
+    -&gt; hs
     -&gt; Natural
-baseHabCapacity HabData{..} =
+baseHabCapacity hd =
     sumOf $ hsSlots
           . folded
           . folded
-          . to (SV.index _hdHabs)
+          . to (SV.index (hd ^. hdHabs))
           . habBaseCapacity
 
 -- | Total capacity of all hatcheries, factoring in bonuses.
 totalHabCapacity
-    :: forall habs. KnownNat habs
-    =&gt; HabData habs
+    :: forall hd hs habs. (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
     -&gt; Bonuses
-    -&gt; HabStatus habs
+    -&gt; hs
     -&gt; Double
 totalHabCapacity hd bs =
     sumOf $ to (baseHabCapacity hd)
@@ -201,10 +201,10 @@ totalHabCapacity hd bs =
 
 -- | Capacities of all slots, factoring in bonuses.
 habCapacities
-    :: forall habs. KnownNat habs
-    =&gt; HabData habs
+    :: forall hd hs habs. (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
     -&gt; Bonuses
-    -&gt; HabStatus habs
+    -&gt; hs
     -&gt; Vec N4 Double
 habCapacities hd bs = fmap ( bonusEffectFor bs BTHabCapacity
                            . fromIntegral
@@ -212,19 +212,21 @@ habCapacities hd bs = fmap ( bonusEffectFor bs BTHabCapacity
                     . baseHabCapacities hd
 
 -- | Hab at the given slot
-habAt :: KnownNat habs =&gt; HabData habs -&gt; HabStatus habs -&gt; Fin N4 -&gt; Maybe Hab
-habAt HabData{..} hs i = hs ^? hsSlots . ixV i . folded . to (SV.index _hdHabs)
+habAt
+    :: (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
+    -&gt; hs
+    -&gt; Fin N4
+    -&gt; Maybe Hab
+habAt hd hs i = hs ^? hsSlots . ixV i . folded . to (SV.index (hd ^. hdHabs))
 
 -- | Total number of chickens
-totalChickens
-    :: HabData habs
-    -&gt; HabStatus habs
-    -&gt; Double
-totalChickens HabData{..} = sumOf $ hsPop . folded
+totalChickens :: HasHabStatus hs habs =&gt; hs -&gt; Double
+totalChickens = sumOf $ hsPop . folded
 
 -- | How many of each hab is currently owned.  If key is not found, zero
 -- purchases is implied.
-habHistory :: HabStatus habs -&gt; M.Map (Finite habs) (Fin N5)
+habHistory :: HasHabStatus hs habs =&gt; hs -&gt; M.Map (Finite habs) (Fin N5)
 habHistory = M.mapMaybe (natFin . someNat)
            . M.fromListWith (+)
            . toListOf (hsSlots . folded . folded . to (, 1))
@@ -233,7 +235,12 @@ habHistory = M.mapMaybe (natFin . someNat)
 -- Does not check if purchase is legal (see 'upgradeHab').
 --
 -- Returns Nothing if four copies of this hab are already currently owned.
-habPrice :: KnownNat habs =&gt; HabData habs -&gt; HabStatus habs -&gt; Finite habs -&gt; Maybe Bock
+habPrice
+    :: (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
+    -&gt; hs
+    -&gt; Finite habs
+    -&gt; Maybe Bock
 habPrice hd hs hab = fmap priceOf
                    . maybe (Just FZ) TC.strengthen
                    . M.lookup hab
@@ -264,11 +271,11 @@ internalHatcheryRate bs cm =
 
 -- | Total hab growth rate, in chickens per second.
 totalGrowthRate
-    :: KnownNat habs
-    =&gt; HabData habs
+    :: (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
     -&gt; Bonuses
     -&gt; IsCalm
-    -&gt; HabStatus habs
+    -&gt; hs
     -&gt; Double
 totalGrowthRate hd bs cm hs =
     internalHatcheryRate bs cm
@@ -286,13 +293,13 @@ totalGrowthRate hd bs cm hs =
 -- Purchase is invalid if purchasing a hab in a slot where a greater hab
 -- is already purchased.
 upgradeHab
-    :: KnownNat habs
-    =&gt; HabData habs
+    :: (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
     -&gt; Bonuses
     -&gt; Fin N4
     -&gt; Finite habs
-    -&gt; HabStatus habs
-    -&gt; Either (Finite habs) (Bock, HabStatus habs)
+    -&gt; hs
+    -&gt; Either (Finite habs) (Bock, hs)
 upgradeHab hd bs slot hab hs0 =
     getComp . flip (hsSlots . ixV slot) hs0 $ \s0 -&gt; Comp $ do
       case s0 of
@@ -304,10 +311,10 @@ upgradeHab hd bs slot hab hs0 =
 
 -- | Get all possible Hab upgrades
 habUpgrades
-    :: forall habs. (KnownNat habs)
-    =&gt; HabData habs
+    :: forall hd hs habs. (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
     -&gt; Bonuses
-    -&gt; HabStatus habs
+    -&gt; hs
     -&gt; VecT N4 (SV.Vector habs :.: Either (Finite habs)) Bock
 habUpgrades hd bs hs = hs ^. hsSlots
                            &amp; vmap (Comp . go . getI)
@@ -327,12 +334,12 @@ habUpgrades hd bs hs = hs ^. hsSlots
 
 -- | Which habs are full?
 fullHabs
-    :: forall habs. KnownNat habs
-    =&gt; HabData habs
+    :: forall hd hs habs. (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
     -&gt; Bonuses
-    -&gt; HabStatus habs
+    -&gt; hs
     -&gt; Vec N4 Bool
-fullHabs hd bs = fmap (uncurry isFull) . view _HabStatus
+fullHabs hd bs = fmap (uncurry isFull) . view (habStatus . _HabStatus)
   where
     isFull :: Maybe (Finite habs) -&gt; Double -&gt; Bool
     isFull s c = case s of
@@ -344,10 +351,10 @@ fullHabs hd bs = fmap (uncurry isFull) . view _HabStatus
 -- | Gives total avaiable space of each hab (Nothing if hab full), and also
 -- the capacity of each hab.
 slotAvailability
-    :: forall habs. KnownNat habs
-    =&gt; HabData habs
+    :: forall hd hs habs. (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
     -&gt; Bonuses
-    -&gt; HabStatus habs
+    -&gt; hs
     -&gt; Vec N4 (Maybe Double, Double)
 slotAvailability hd bs hs = checkAvail &lt;$&gt; caps &lt;*&gt; (hs ^. hsPop)
   where
@@ -368,11 +375,11 @@ slotAvailability hd bs hs = checkAvail &lt;$&gt; caps &lt;*&gt; (hs ^. hsPop)
 -- Will truncate the set @a@ if it's negative (to zero), making it an
 -- imporper traversal if @a@ is set to be negative.
 availableSpace
-    :: forall habs. KnownNat habs
-    =&gt; HabData habs
+    :: forall hd hs habs. (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
     -&gt; Bonuses
-    -&gt; Traversal' (HabStatus habs) (Maybe Double)
-availableSpace hd bs f0 hs = (_HabStatus . traverse) (uncurry (go f0)) hs
+    -&gt; Traversal' hs (Maybe Double)
+availableSpace hd bs f0 hs = (habStatus . _HabStatus . traverse) (uncurry (go f0)) hs
   where
     go  :: Applicative f
         =&gt; (Maybe Double -&gt; f (Maybe Double))
@@ -408,11 +415,11 @@ availableSpace hd bs f0 hs = (_HabStatus . traverse) (uncurry (go f0)) hs
 -- Will truncate the set @a@ if it's negative (to zero), making it an
 -- improper lens if @a@ is set to be negative.
 availableSpaces
-    :: forall habs. KnownNat habs
-    =&gt; HabData habs
+    :: forall hd hs habs. (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
     -&gt; Bonuses
-    -&gt; Lens' (HabStatus habs) (Vec N4 (Maybe Double))
-availableSpaces hd bs f0 hs = (_HabStatus) (go f0) hs
+    -&gt; Lens' hs (Vec N4 (Maybe Double))
+availableSpaces hd bs f0 hs = (habStatus . _HabStatus) (go f0) hs
   where
     go  :: Functor f
         =&gt; (Vec N4 (Maybe Double) -&gt; f (Vec N4 (Maybe Double)))
@@ -441,11 +448,11 @@ availableSpaces hd bs f0 hs = (_HabStatus) (go f0) hs
 
 -- | Fill up with max chickens
 maxOutHabs
-    :: KnownNat habs
-    =&gt; HabData habs
+    :: (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
     -&gt; Bonuses
-    -&gt; HabStatus habs
-    -&gt; HabStatus habs
+    -&gt; hs
+    -&gt; hs
 maxOutHabs hd bs = set (availableSpace hd bs) Nothing
 
 -- | Calculate the time until the next hab is full, and return the updated
@@ -460,12 +467,12 @@ maxOutHabs hd bs = set (availableSpace hd bs) Nothing
 -- 2. All habs are already full.
 -- 3. Hab n filled after a given amount of time.
 waitTilNextFilled
-    :: forall habs. KnownNat habs
-    =&gt; HabData habs
+    :: forall hd hs habs. (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
     -&gt; Bonuses
     -&gt; IsCalm
-    -&gt; HabStatus habs
-    -&gt; Either HWaitError (((Fin N4, Double), Double), HabStatus habs)
+    -&gt; hs
+    -&gt; Either HWaitError (((Fin N4, Double), Double), hs)
 waitTilNextFilled hd bs cm hs
     | internalRate &lt;= 0 = Left HWENoInternalHatcheries
     | otherwise         = case nextFill of
@@ -495,23 +502,23 @@ waitTilNextFilled hd bs cm hs
                                        | otherwise = m
         go i mt      Nothing                       = (i,) &lt;$&gt; mt
         go _ Nothing m@(Just _)                    = m
-    fillIt :: Double -&gt; HabStatus habs
+    fillIt :: Double -&gt; hs
     fillIt t = hs &amp; availableSpace hd bs . mapped -~ totalRate * t
 
 -- | Times for each hab to be filled.
 fillTimes
-    :: forall habs. KnownNat habs
-    =&gt; HabData habs
+    :: forall hd hs habs. (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
     -&gt; Bonuses
     -&gt; IsCalm
-    -&gt; HabStatus habs
+    -&gt; hs
     -&gt; Either HWaitError (Vec N4 Double)
 fillTimes hd bs cm hs0 = go space0 hs0
   where
     space0 = maybe (Just 0) (const Nothing ) . fst &lt;$&gt;
                slotAvailability hd bs hs0
     go  :: Vec N4 (Maybe Double)
-        -&gt; HabStatus habs
+        -&gt; hs
         -&gt; Either HWaitError (Vec N4 Double)
     go ts0 hs1 = do
       (((n, t), _), hs2) &lt;- waitTilNextFilled hd bs cm hs1
@@ -522,16 +529,16 @@ fillTimes hd bs cm hs0 = go space0 hs0
 
 -- | Steps the 'HabStatus' over the given time interval.
 stepHabs
-    :: forall habs. KnownNat habs
-    =&gt; HabData habs
+    :: forall hd hs habs. (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
     -&gt; Bonuses
     -&gt; IsCalm
     -&gt; Double           -- ^ time interval to step
-    -&gt; HabStatus habs   -- ^ initial status
-    -&gt; HabStatus habs
+    -&gt; hs               -- ^ initial status
+    -&gt; hs
 stepHabs hd bs cm = go
   where
-    go :: Double -&gt; HabStatus habs -&gt; HabStatus habs
+    go :: Double -&gt; hs -&gt; hs
     go dt hs0 = case waitTilNextFilled hd bs cm hs0 of
         Left  _                       -&gt; hs0
         Right (((_, tFill), rt), hs1)
@@ -548,13 +555,13 @@ stepHabs hd bs cm = go
 -- Mostly useful for &quot;continuous&quot; simulations.  For larger time periods
 -- where habs may fill up over the period, use 'stepHabs'.
 stepHabsDT
-    :: KnownNat habs
-    =&gt; HabData habs
+    :: (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
     -&gt; Bonuses
     -&gt; IsCalm
     -&gt; Double           -- ^ small (infinitessimal) time interval to step
-    -&gt; HabStatus habs   -- ^ initial status
-    -&gt; HabStatus habs
+    -&gt; hs               -- ^ initial status
+    -&gt; hs
 stepHabsDT hd bs cm dt hs = hs &amp; availableSpace hd bs . mapped -~ totalRate * dt
   where
     internalRate :: Double
@@ -571,13 +578,13 @@ stepHabsDT hd bs cm dt hs = hs &amp; availableSpace hd bs . mapped -~ totalRate 
 -- If wait and no result, it means the result is the time until habs are
 -- full.
 waitTilPop
-    :: forall habs. KnownNat habs
-    =&gt; HabData habs
+    :: forall hd hs habs. (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
     -&gt; Bonuses
     -&gt; IsCalm
     -&gt; Natural
-    -&gt; HabStatus habs
-    -&gt; WaitTilRes Maybe (HabStatus habs)
+    -&gt; hs
+    -&gt; WaitTilRes Maybe hs
 waitTilPop hd bs cm goal hs0
     | pop0 &gt; goal' = NoWait
     | otherwise    = go pop0 hs0
@@ -585,7 +592,7 @@ waitTilPop hd bs cm goal hs0
     goal' = fromIntegral goal
     pop0 :: Double
     pop0 = sumOf (hsPop . folded) hs0
-    go :: Double -&gt; HabStatus habs -&gt; WaitTilRes Maybe (HabStatus habs)
+    go :: Double -&gt; hs -&gt; WaitTilRes Maybe hs
     go currPop hs1 = case waitTilNextFilled hd bs cm hs1 of
       Left HWENoInternalHatcheries -&gt; NonStarter
       Left HWEMaxHabCapacity       -&gt; WaitTilSuccess 0 Nothing
@@ -599,12 +606,12 @@ waitTilPop hd bs cm goal hs0
 
 -- | Add chickens to habs, distributing properly.  Returns any leftovers.
 addChickens
-    :: KnownNat habs
-    =&gt; HabData habs
+    :: (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    =&gt; hd
     -&gt; Bonuses
     -&gt; Double
-    -&gt; HabStatus habs
-    -&gt; (Maybe Double, HabStatus habs)
+    -&gt; hs
+    -&gt; (Maybe Double, hs)
 addChickens hd bs c = availableSpaces hd bs $ \avails -&gt;
     let totAvail     = sumOf (folded . folded) avails
         newAvailPerc = 1 - c / totAvail
