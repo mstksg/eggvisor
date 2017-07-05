@@ -29,6 +29,7 @@ module Egg.Vehicle (
   , baseDepotCapacity
   , totalDepotCapacity
   , vehicleHistory
+  , vehicleCostAt
   , vehiclePrice
   , upgradeVehicle
   , upgradeSomeVehicle
@@ -36,13 +37,16 @@ module Egg.Vehicle (
   , someVehicleUpgrades
   ) where
 
+import           Control.Applicative
 import           Control.Lens hiding         ((.=))
+import           Control.Monad
 import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.Dependent.Sum
 import           Data.Finite
 import           Data.Finite.Internal
 import           Data.Finite.Util            ()
+import           Data.Functor
 import           Data.Maybe
 import           Data.Singletons
 import           Data.Singletons.Prelude.Num
@@ -54,6 +58,7 @@ import           Egg.Research
 import           GHC.Generics                (Generic)
 import           Numeric.Lens
 import           Numeric.Natural
+import           Statistics.LinearRegression
 import           Text.Printf
 import qualified Data.Map                    as M
 import qualified Data.Text                   as T
@@ -65,6 +70,7 @@ data Vehicle = Vehicle
         { _vName         :: T.Text
         , _vBaseCapacity :: Natural         -- ^ eggs per minute
         , _vCosts        :: V.Vector Bock
+        , _vRegression   :: Maybe (Double, Double)
         }
   deriving (Show, Eq, Ord, Generic)
 
@@ -133,10 +139,21 @@ vehicleParseOptions = defaultOptions
     }
 
 instance FromJSON Vehicle where
-    parseJSON  = genericParseJSON  vehicleParseOptions
+    parseJSON  = fmap fillRegression . genericParseJSON  vehicleParseOptions
 instance ToJSON Vehicle where
     toJSON     = genericToJSON     vehicleParseOptions
     toEncoding = genericToEncoding vehicleParseOptions
+
+fillRegression :: Vehicle -> Vehicle
+fillRegression v = case v ^. vRegression of
+    Just _  -> v
+    Nothing -> v & vRegression .~ reg
+  where
+    reg = guard (V.length c > 1) $>
+                 linearRegression (V.imap (\i _ -> fromIntegral i) c)
+                                  (log . view bock <$> c)
+      where
+        c = v ^. vCosts
 
 instance FromJSON SomeVehicleData where
     parseJSON o = do
@@ -215,6 +232,8 @@ vehicleHistory = M.fromListWith (+)
 
 -- | Get the BASE price of a given vehicle, if a purchase were to be made.
 -- Does not check if purchase is legal (see 'upgradeVehicle').
+--
+-- Returns Nothing if slots are all full?
 vehiclePrice
     :: forall vs slots. (KnownNat vs, KnownNat slots)
     => VehicleData vs
@@ -230,8 +249,15 @@ vehiclePrice vd ds v = withKnownNat (SNat @slots %:+ SNat @1) $
                          $ ds
   where
     priceOf :: Finite slots -> Bock
-    priceOf i = fromMaybe 0 $
-                  vd ^? vdVehicles . ixSV v . vCosts . ix (fromIntegral i)
+    priceOf i = vd ^. vdVehicles
+                    . ixSV v
+                    . to (vehicleCostAt (fromIntegral i))
+
+vehicleCostAt :: Int -> Vehicle -> Bock
+vehicleCostAt i v = fromMaybe 100 $
+        (v ^? vCosts . ix i) <|> (r <$> v ^. vRegression)
+  where
+    r (α, β) = realToFrac . exp $ α + β * fromIntegral i
 
 -- | Purchase a vehicle upgrade.  Returns cost and new depot status,
 -- if purchase is valid.
@@ -280,6 +306,8 @@ upgradeSomeVehicle vd bs slot v sds0 =
                       upgradeVehicle vd bs slot' v ds0
 
 -- | List all possible vehicle upgrades.
+--
+-- Is a Left if the vehicle upgrade would be a regression.
 vehicleUpgrades
     :: forall vs slots. KnownNat slots
     => VehicleData vs
@@ -300,15 +328,15 @@ vehicleUpgrades vd bs ds = Comp . Comp $ SV.generate go
                         Just v | v >= j -> Left v
                         _               -> Right ()
                       let n = M.findWithDefault 0 j hist
-                      return . fromMaybe 0 $
-                            h ^? vCosts
-                               . ix (fromIntegral n)
-                               . bonusingFor bs BTVehicleCosts
+                      return $ h ^. to (vehicleCostAt (fromIntegral n))
+                                  . bonusingFor bs BTVehicleCosts
                   )
       where
         currVeh = ds ^? _DepotStatus . ix s
 
 -- | List all possible vehicle upgrades for a 'SomeDepotStatus'.
+--
+-- Is a Left if the vehicle upgrade would be a regression.
 someVehicleUpgrades
     :: forall vs. ()
     => VehicleData vs

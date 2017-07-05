@@ -131,37 +131,37 @@ vehicles:
   # source: http://egg-inc.wikia.com/wiki/Vehicles
   - name: Trike
     base-capacity: 5000
-    costs: [17.06]
+    costs: [14.16,34.62,67.22,117.2,191.54,298]
   - name: Transit
     base-capacity: 15000
-    costs: [1401]
+    costs: [954,1764,3070,5098,8144,12592]
   - name: Pickup
     base-capacity: 50000
-    costs: [101155]
+    costs: [56164,149470,349326,738148,1442956,2643416]
   - name: 10 Foot
     base-capacity: 100000
-    costs: [27532910]
+    costs: [14077530,27802724,51378228,90007412,150654050,242550000]
   - name: 24 Foot
     base-capacity: 250000
-    costs: [1.922e+9]
+    costs: [1215146000,2382000000,4376000000,7624000000,12700000000,20360000000]
   - name: Semi
     base-capacity: 500000
-    costs: [240.425e+9]
+    costs: [2.55014E+11,7.4488E+11,1.86018E+12,4.132E+12,8.404E+12,1.5878E+13]
   - name: Double Semi
     base-capacity: 1000000
-    costs: [142.121e+12]
+    costs: [3.5798E+14,8.90238E+14,1.97284E+15,3.996E+15,7.536E+15,1.3398E+16]
   - name: Future Semi
     base-capacity: 5000000
-    costs: [32.856e+18]
+    costs: [2.0136E+19,3.5101E+20,2.472E+21,1.0904E+22,3.6122E+22,9.8504E+22,2.33786E+23,4.98716E+23,9.8095E+23,1.80287E+24,3.14E+24,5.226E+24,8.37E+24]
   - name: Mega Semi
     base-capacity: 15000000
-    costs: [29.372e+24]
+    costs: [1.3542E+25,3.0852E+25,6.3482E+25,1.20742E+26,2.15702E+26,3.66526E+26,5.96862E+26,9.3731E+26,1.42677E+27,2.114E+27,3.06E+27,4.334E+27,6.016E+27]
   - name: Hover Semi
     base-capacity: 30000000
-    costs: [17.132e+27]
+    costs: [8.884E+27,1.2812E+28,1.8068E+28,2.4974E+28,3.3944E+28,4.5436E+28,5.9886E+28,7.8022E+28,1.00336E+29,1.27736E+29,1.60916E+29,2.00936E+29,2.48652E+29]
   - name: Quantum Transporter
     base-capacity: 50000000
-    costs: [445.802e+27]
+    costs: [3.36522E+29,4.4866E+29,5.88944E+29,7.63898E+29,9.78546E+29,1.24007E+30,1.55632E+30,1.93455E+30,2.386E+30,2.918E+30,3.542E+30,4.272E+30,5.114E+30]
 research:
   common:
     # source: http://egg-inc.wikia.com/wiki/Research

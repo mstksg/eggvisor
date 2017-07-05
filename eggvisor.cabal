@@ -37,6 +37,7 @@ library
                      , finite-typelits
                      , lens
                      , singletons
+                     , statistics-linreg
                      , text
                      , transformers
                      , type-combinators

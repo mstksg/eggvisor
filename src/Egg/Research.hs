@@ -1,5 +1,6 @@
 {-# LANGUAGE ApplicativeDo                        #-}
 {-# LANGUAGE DataKinds                            #-}
+{-# LANGUAGE DeriveFunctor                        #-}
 {-# LANGUAGE DeriveGeneric                        #-}
 {-# LANGUAGE FlexibleContexts                     #-}
 {-# LANGUAGE FlexibleInstances                    #-}
@@ -70,7 +71,6 @@ module Egg.Research (
 
 import           Control.Applicative hiding      (some)
 import           Control.Lens hiding             ((.=), (:<), Index)
-import           Control.Monad
 import           Data.Aeson.Encoding
 import           Data.Aeson.Types
 import           Data.Bifunctor
@@ -78,6 +78,7 @@ import           Data.Dependent.Sum
 import           Data.Finite
 import           Data.Foldable
 import           Data.Kind
+import           Data.Maybe
 import           Data.Monoid                     (First(..))
 import           Data.Singletons
 import           Data.Singletons.Prelude hiding  (Flip)
@@ -95,6 +96,7 @@ import           Egg.Commodity
 import           GHC.Generics                    (Generic)
 import           Numeric.Lens
 import           Numeric.Natural
+import           Statistics.LinearRegression
 import           Type.Class.Higher
 import           Type.Class.Witness
 import           Type.Family.Tuple
@@ -158,11 +160,9 @@ data Research a =
     Research { _rName        :: T.Text
              , _rDescription :: T.Text
              , _rBaseBonuses :: Bonuses
-             -- | 'Left' if no cost data, just giving the maximum level.
-             -- 'Right' with cost data.
-             , _rCosts       :: Either Natural (V.Vector a)
+             , _rCosts       :: V.Vector (Maybe a)
              }
-  deriving (Show, Eq, Ord, Generic)
+  deriving (Show, Eq, Ord, Generic, Functor)
 
 makeClassy ''Research
 
@@ -256,31 +256,52 @@ instance Monoid Bonuses where
     mappend (Bonuses x) (Bonuses y) =
       Bonuses (M.unionWith (++) x y)
 
-instance FromJSON a => FromJSON (Research a) where
+instance (FromJSON a, RealFrac a) => FromJSON (Research a) where
     parseJSON = withObject "Research" $ \v ->
         Research <$> v .: "name"
                  <*> v .: "description"
                  <*> (mkBase =<< v .: "bonuses")
-                 <*> (Right <$> (v .: "costs") <|> Left <$> (v .: "levels") <|> fail "No costs or levels")
+                 <*> (mkCosts <$> (v .:? "costs") <*> (v .:? "levels"))
       where
         mkBase :: M.Map BonusType Object -> Parser Bonuses
         mkBase = fmap (Bonuses . fmap (:[])) . traverse (.: "base-amount")
+        mkCosts :: Maybe [a] -> Maybe Natural -> V.Vector (Maybe a)
+        mkCosts Nothing        Nothing  = V.empty
+        mkCosts Nothing        (Just l) = V.replicate (fromIntegral l) Nothing
+        mkCosts (Just [] )     (Just l) = V.replicate (fromIntegral l) Nothing
+        mkCosts (Just v  )     Nothing  = Just <$> V.fromList v
+        mkCosts (Just [x])     (Just l) = Just x `V.cons` V.replicate (fromIntegral l - 1) Nothing
+        mkCosts (Just v@(_:_)) (Just l) = Just <$> V.fromList v V.++ extras
+          where
+            lv = length v
+            extras = V.generate (fromIntegral l - lv) $ \i -> realToFrac . exp $
+              α + β * fromIntegral (i + lv)
+            (α, β) = linearRegression (V.fromList $ zipWith const [0..] v)
+                                      (V.fromList (log . realToFrac <$> v))
 
 instance ToJSON a => ToJSON (Research a) where
-    toJSON Research{..} = object
+    toJSON Research{..} = object $
         [ "name"        .= _rName
         , "description" .= _rDescription
         , "bonuses"     .= object [ "base-amount" .= _bMap _rBaseBonuses ]
-        , case _rCosts of Left  l  -> "levels" .= l
-                          Right cs -> "costs"  .= cs
-        ]
+        ] ++ case sequence _rCosts of
+            Just v  ->   [ "costs"  .= v ]
+            Nothing -> case sequence (V.takeWhile isJust _rCosts) of
+              Nothing -> [ "levels" .= V.length _rCosts ]
+              Just v  -> [ "costs"  .= v
+                         , "levels" .= V.length _rCosts
+                         ]
     toEncoding Research{..} = pairs . mconcat $
         [ "name"        .= _rName
         , "description" .= _rDescription
         , pair "bonuses" (pairs ("base-amount" .= _bMap _rBaseBonuses))
-        , case _rCosts of Left  l  -> "levels" .= l
-                          Right cs -> "costs"  .= cs
-        ]
+        ] ++ case sequence _rCosts of
+            Just v  ->   [ "costs"  .= v ]
+            Nothing -> case sequence (V.takeWhile isJust _rCosts) of
+              Nothing -> [ "levels" .= V.length _rCosts ]
+              Just v  -> [ "costs"  .= v
+                         , "levels" .= V.length _rCosts
+                         ]
 
 researchTierParseOptions :: Options
 researchTierParseOptions = defaultOptions
@@ -306,7 +327,7 @@ instance ToJSON SomeResearchTier where
 instance FromJSON SomeResearchData where
     parseJSON = withObject "ResearchData" $ \v -> do
         res   <- v .: "common"
-        epics <- v .: "epic"
+        epics <- (fmap . fmap) (round @Double) <$> v .: "epic"
         withV res $ \resV ->
           some (withProd (dsumSome . getI) resV) $ \(_ :&: (unzipP->(resS :&: resP))) ->
             SV.withSized epics   $ \sizedV ->
@@ -320,7 +341,7 @@ instance (SingI tiers, KnownNat epic) => FromJSON (ResearchData tiers epic) wher
     parseJSON = withObject "ResearchData" $ \v -> do
         res   <- v .: "common"
         resV  <- go sing res
-        epics <- v .: "epic"
+        epics <- (fmap . fmap) (round @Double) <$> v .: "epic"
         epicsV <- case SV.toSized epics of
           Nothing -> fail "Bad number of items in list."
           Just eV -> return eV
@@ -449,7 +470,7 @@ emptyBonuses = Bonuses M.empty
 
 -- | Maximum level for a given research.
 maxLevel :: Research a -> Natural
-maxLevel = either fromIntegral (fromIntegral . V.length) . _rCosts
+maxLevel = fromIntegral . V.length . _rCosts
 
 -- | Empty status (no research).
 emptyResearchStatus :: ResearchData tiers epic -> ResearchStatus tiers epic
@@ -527,10 +548,11 @@ purchaseResearch rd i rs0 = pp . getComp . researchIxStatusLegal rd i (Comp . go
         RICommon _ -> Right (c ^. bonusingFor bs BTResearchCosts, rs)
         RIEpic   _ -> Right (c, rs)
     go :: Natural -> Maybe (First a, Natural)
-    go currLevel = first (First . Just) <$> case rd ^. researchIxData i . rCosts of
-        Left m   -> (0, currLevel + 1) <$ guard (currLevel < m)
-                        \\ researchIxNum i
-        Right cs -> (, currLevel + 1) <$> (cs V.!? fromIntegral currLevel)
+    go currLevel = first (First . Just) <$>
+      rd ^? researchIxData i
+          . rCosts
+          . ix (fromIntegral currLevel)
+          . to ((, currLevel + 1) . fromMaybe (0 \\ researchIxNum i))
 
 -- | Get a 'Num' instance from a 'ResearchIx'.
 researchIxNum :: ResearchIx tiers epic a -> Wit (Num a)
@@ -714,13 +736,9 @@ legalResearchesCommon rd rs =
       | otherwise                 = do
           r         <- rt ^. rtTechs
           currLevel <- c
-          pure (case r ^. rCosts of
-                  Left m | currLevel < m -> Right 0
-                         | otherwise     -> Left REMaxedOut
-                  Right cs -> maybe (Left REMaxedOut)
-                                    (Right . view (bonusingFor bs BTResearchCosts)) $
-                    cs V.!? fromIntegral currLevel
-               )
+          pure $ case r ^? rCosts . ix (fromIntegral currLevel) of
+            Nothing -> Left REMaxedOut
+            Just b  -> Right $ fromMaybe 0 b ^. bonusingFor bs BTResearchCosts
 
 -- | All legal epic researches.
 --
@@ -733,8 +751,5 @@ legalResearchesEpic
 legalResearchesEpic rd rs = Comp $ do
     r         <- _rdEpic rd
     currLevel <- _rsEpic rs
-    pure $ case r ^. rCosts of
-      Left m | currLevel < m -> Just 0
-             | otherwise     -> Nothing
-      Right cs -> cs V.!? fromIntegral currLevel
+    pure $ fromMaybe 0 <$> r ^? rCosts . ix (fromIntegral currLevel)
 
