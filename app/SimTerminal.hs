@@ -47,6 +47,8 @@ import           Prelude hiding             ((.), id)
 import           Text.Printf
 import           Type.Class.Higher
 import qualified Control.Auto               as A
+import qualified Data.Text                  as T
+import qualified Data.Text.Encoding         as T
 import qualified Data.Vector                as V
 import qualified GHC.TypeLits               as TL
 
@@ -94,6 +96,7 @@ farmAuto gd = proc inp -> do
       , vehs
       ] -< (fs, uEs)
     id -< vBox $ disp ++ [men]
+      -- ++ [txt . T.unlines . take 20 . T.lines . T.decodeUtf8 $ encode fs]
   where
     processEvent fs0 = \case
       FEClock dt        -> stepFarmDT gd NotCalm dt fs0

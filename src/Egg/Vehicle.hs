@@ -36,12 +36,13 @@ module Egg.Vehicle (
   , someVehicleUpgrades
   ) where
 
-import           Control.Lens hiding           ((.=))
+import           Control.Lens hiding         ((.=))
 import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.Dependent.Sum
 import           Data.Finite
 import           Data.Finite.Internal
+import           Data.Finite.Util            ()
 import           Data.Maybe
 import           Data.Singletons
 import           Data.Singletons.Prelude.Num
@@ -50,15 +51,15 @@ import           Data.Type.Combinator
 import           Data.Vector.Sized.Util
 import           Egg.Commodity
 import           Egg.Research
-import           GHC.Generics                  (Generic)
+import           GHC.Generics                (Generic)
 import           Numeric.Lens
 import           Numeric.Natural
 import           Text.Printf
-import qualified Data.Map                      as M
-import qualified Data.Text                     as T
-import qualified Data.Vector                   as V
-import qualified Data.Vector.Sized             as SV
-import qualified GHC.TypeLits                  as TL
+import qualified Data.Map                    as M
+import qualified Data.Text                   as T
+import qualified Data.Vector                 as V
+import qualified Data.Vector.Sized           as SV
+import qualified GHC.TypeLits                as TL
 
 data Vehicle = Vehicle
         { _vName         :: T.Text
@@ -157,6 +158,17 @@ instance KnownNat vs => FromJSON (VehicleData vs) where
 instance ToJSON (VehicleData habs) where
     toJSON     = toJSON     . SV.fromSized . _vdVehicles
     toEncoding = toEncoding . SV.fromSized . _vdVehicles
+
+instance (KnownNat vs, KnownNat slots) => FromJSON (DepotStatus vs slots) where
+    parseJSON o = DepotStatus <$> parseJSON o
+instance ToJSON (DepotStatus vs slots) where
+    toJSON = toJSON . _dsSlots
+    toEncoding = toEncoding . _dsSlots
+instance KnownNat vs => FromJSON (SomeDepotStatus vs) where
+    parseJSON o = SomeDepotStatus <$> parseJSON o
+instance ToJSON (SomeDepotStatus vs) where
+    toJSON = toJSON . _sdsSlots
+    toEncoding = toEncoding . _sdsSlots
 
 -- | Initial 'DepotStatus' to start off the game.
 initDepotStatus :: (KnownNat vs, KnownNat slots, 1 TL.<= vs, 1 TL.<= slots) => DepotStatus vs slots

@@ -55,30 +55,31 @@ module Egg.Habitat (
   ) where
 
 import           Control.Applicative
-import           Control.Lens hiding        ((.=))
+import           Control.Lens hiding       ((.=))
 import           Control.Monad
 import           Data.Aeson.Types
 import           Data.Dependent.Sum
 import           Data.Finite
+import           Data.Finite.Util          ()
 import           Data.Maybe
 import           Data.Singletons
 import           Data.Singletons.TypeLits
 import           Data.Type.Combinator
-import           Data.Type.Combinator.Util  as TC
+import           Data.Type.Combinator.Util as TC
 import           Data.Type.Fin
-import           Data.Type.Vector           as TCV
+import           Data.Type.Vector          as TCV
 import           Data.Vector.Sized.Util
 import           Egg.Commodity
 import           Egg.Research
-import           GHC.Generics               (Generic)
-import           GHC.TypeLits               as TL
+import           GHC.Generics              (Generic)
+import           GHC.TypeLits              as TL
 import           Numeric.Lens
 import           Numeric.Natural
 import           Text.Printf
 import           Type.Family.Nat
-import qualified Data.Map                   as M
-import qualified Data.Text                  as T
-import qualified Data.Vector.Sized          as SV
+import qualified Data.Map                  as M
+import qualified Data.Text                 as T
+import qualified Data.Vector.Sized         as SV
 
 data Hab = Hab { _habName         :: T.Text
                , _habBaseCapacity :: Natural
@@ -139,6 +140,18 @@ instance KnownNat habs => FromJSON (HabData habs) where
 instance ToJSON (HabData habs) where
     toJSON     = toJSON     . SV.fromSized . _hdHabs
     toEncoding = toEncoding . SV.fromSized . _hdHabs
+
+habStatusParseOptions :: Options
+habStatusParseOptions = defaultOptions
+    { fieldLabelModifier = camelTo2 '-' . drop 3
+    }
+
+instance KnownNat habs => FromJSON (HabStatus habs) where
+    parseJSON  = genericParseJSON  habStatusParseOptions
+instance ToJSON (HabStatus habs) where
+    toJSON     = genericToJSON     habStatusParseOptions
+    toEncoding = genericToEncoding habStatusParseOptions
+
 
 data IsCalm = NotCalm | Calm
     deriving (Show, Eq, Ord, Enum)

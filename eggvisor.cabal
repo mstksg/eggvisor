@@ -27,6 +27,7 @@ library
                        Data.Vector.Sized.Util
   other-modules:       Data.Type.Combinator.Util
                        Data.Singletons.Util
+                       Data.Finite.Util
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , constraints
@@ -52,6 +53,7 @@ executable eggvisor-sim-terminal
   main-is:             SimTerminal.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -O2
   build-depends:       base >= 4.9
+                     , aeson
                      , ansi-wl-pprint
                      , auto
                      , brick
@@ -60,6 +62,7 @@ executable eggvisor-sim-terminal
                      , lens
                      , profunctors
                      , singletons
+                     , text
                      , transformers
                      , type-combinators
                      , typelits-witnesses

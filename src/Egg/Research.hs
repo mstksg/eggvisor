@@ -196,9 +196,10 @@ data ResearchStatus :: [Nat] -> Nat -> Type where
            , _rsEpic   :: SV.Vector epic Natural
            }
         -> ResearchStatus tiers epic
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Generic)
 
 makeLenses ''ResearchStatus
+
 
 type SomeResearchStatus = DSum Sing (Uncur ResearchStatus)
 
@@ -352,6 +353,49 @@ instance ToJSON (ResearchData tiers epic) where
         , "epic"   .= SV.fromSized _rdEpic
         ]
 
+instance (SingI tiers, KnownNat epic) => FromJSON (ResearchStatus tiers epic) where
+    parseJSON = withObject "ResearchStatus" $ \v -> do
+        res   <- v .: "common"
+        resV  <- go sing res
+        epics <- v .: "epic"
+        epicsV <- case SV.toSized epics of
+          Nothing -> fail "Bad number of items in list."
+          Just eV -> return eV
+        return $ ResearchStatus resV epicsV
+      where
+        go :: Sing ts -> [Value] -> Parser (Prod (Flip SV.Vector Natural) ts)
+        go = \case
+          SNil -> \case
+            []  -> return Ø
+            _:_ -> fail "Too many items in list"
+          SNat `SCons` ss -> \case
+            []   -> fail "Too few items in list"
+            x:xs -> (:<) <$> parseJSON x <*> go ss xs
+instance ToJSON (ResearchStatus tiers epic) where
+    toJSON ResearchStatus{..} = object
+        [ "common" .= TCP.toList (SV.fromSized . getFlip) _rsCommon
+        , "epic"   .= SV.fromSized _rsEpic
+        ]
+    toEncoding ResearchStatus{..} = pairs . mconcat $
+        [ "common" .= TCP.toList (SV.fromSized . getFlip) _rsCommon
+        , "epic"   .= SV.fromSized _rsEpic
+        ]
+instance FromJSON SomeResearchStatus where
+    parseJSON = withObject "ResearchStatus" $ \v -> do
+        res   <- v .: "common"
+        epics <- v .: "epic"
+        withV res $ \resV ->
+          some (withProd (go . getI) resV) $ \(_ :&: (unzipP->(resS :&: resP))) ->
+            SV.withSized epics   $ \sizedV ->
+              return (STuple2 (prodSing resS) SNat :=> Uncur (ResearchStatus resP sizedV))
+      where
+        go :: V.Vector Natural -> Some (Sing :&: Flip SV.Vector Natural)
+        go v = SV.withSized v $ \u -> Some (SNat :&: Flip u)
+instance ToJSON SomeResearchStatus where
+    toJSON = \case
+        _ :=> Uncur r -> toJSON r
+    toEncoding = \case
+        _ :=> Uncur r -> toEncoding r
 
 -- | Scales a bonus amount by a "level".
 scaleAmount :: Natural -> BonusAmount -> BonusAmount

@@ -6,7 +6,9 @@
 {-# LANGUAGE KindSignatures         #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE MultiWayIf             #-}
+{-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE RankNTypes             #-}
+{-# LANGUAGE RecordWildCards        #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
 {-# LANGUAGE StandaloneDeriving     #-}
 {-# LANGUAGE TemplateHaskell        #-}
@@ -53,12 +55,14 @@ module Egg.Farm (
   , popDrone
   ) where
 
-import           Control.Lens
+import           Control.Lens hiding       ((.=))
 import           Control.Monad
+import           Data.Aeson
 import           Data.Finite
 import           Data.Functor
 import           Data.Kind
 import           Data.Semigroup
+import           Data.Singletons
 import           Data.Singletons.TypeLits
 import           Data.Type.Combinator
 import           Data.Type.Combinator.Util
@@ -74,8 +78,8 @@ import           Numeric.Lens
 import           Numeric.Natural
 import           Type.Family.List
 import           Type.Family.Nat
-import qualified Data.Vector.Sized          as SV
-import qualified GHC.TypeLits               as TL
+import qualified Data.Vector.Sized         as SV
+import qualified GHC.TypeLits              as TL
 
 data FarmStatus :: Nat -> ([Nat], Nat) -> Nat -> Nat -> Type where
     FarmStatus :: { _fsEgg           :: Finite eggs
@@ -160,6 +164,45 @@ fsVideoBonus f fs = (\vb -> fs { _fsVideoBonus = mfilter (> 0) vb }) <$> f (_fsV
 instance HasHabStatus (FarmStatus e '(t, g) h v) h where
     habStatus = fsHabs
 
+instance (KnownNat egg, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
+      => FromJSON (FarmStatus egg '(tiers, epic) habs vehicles) where
+    parseJSON  = withObject "FarmStatus" $ \v ->
+        FarmStatus <$> v .: "eggs"
+                   <*> v .: "research"
+                   <*> v .: "habs"
+                   <*> v .: "depot"
+                   <*> v .: "hatchery"
+                   <*> v .: "bocks"
+                   <*> v .: "golden-eggs"
+                   <*> v .: "soul-eggs"
+                   <*> v .: "video-bonus"
+                   <*> v .: "prest-earnings"
+
+instance ToJSON (FarmStatus egg research habs vehicles) where
+    toJSON FarmStatus{..} = object
+        [ "egg"            .= _fsEgg
+        , "research"       .= _fsResearch
+        , "habs"           .= _fsHabs
+        , "depot"          .= _fsDepot
+        , "hatchery"       .= _fsHatchery
+        , "bocks"          .= _fsBocks
+        , "golden-eggs"    .= _fsGoldenEggs
+        , "soul-eggs"      .= _fsSoulEggs
+        , "video-bonus"    .= _fsVideoBonus
+        , "prest-earnings" .= _fsPrestEarnings
+        ]
+    toEncoding FarmStatus{..} = pairs . mconcat $
+        [ "egg"            .= _fsEgg
+        , "research"       .= _fsResearch
+        , "habs"           .= _fsHabs
+        , "depot"          .= _fsDepot
+        , "hatchery"       .= _fsHatchery
+        , "bocks"          .= _fsBocks
+        , "golden-eggs"    .= _fsGoldenEggs
+        , "soul-eggs"      .= _fsSoulEggs
+        , "video-bonus"    .= _fsVideoBonus
+        , "prest-earnings" .= _fsPrestEarnings
+        ]
 
 initFarmStatus
     :: (KnownNat eggs, KnownNat habs, KnownNat vehicles, 1 TL.<= eggs, 1 TL.<= habs, 1 TL.<= vehicles)
