@@ -42,7 +42,9 @@ import           Data.Type.Index
 import           Data.Type.Product
 import           Data.Type.Sum
 import           Data.Type.Vector          as TCV
+import           Data.Vector.Sized.Util
 import           Egg.Commodity
+import           Egg.Egg
 import           Egg.Farm
 import           Egg.GameData
 import           Egg.Habitat
@@ -236,20 +238,20 @@ actions gd fs = mconcat [ commonResearchActions gd fs ^.. liftTraversal (_Flip .
     wrap f = bimap Some (Just . f)
 
 renderAction
-    :: (SingI tiers, KnownNat epic)
+    :: (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> Action eggs '(tiers, epic) habs vehicles errs
     -> String
 renderAction gd = \case
     AResearch i   -> printf "Research %s" (gd ^. gdResearchData . researchIxData i . rName)
-    AHab _ _      -> "Upgrade Hab"
-    AVehicle _ _  -> "Upgrade Vehicle"
+    AHab s h      -> printf "Upgrade Hab (slot %d) to %s"
+                       (fin s + 1)
+                       (gd ^. hdHabs . ixSV h . habName)
+    AVehicle s v  -> printf "Upgrade Vehicle (slot %d) to %s"
+                       (s + 1)
+                       (gd ^. vdVehicles . ixSV v . vName)
     AHatch n      -> printf "Hatch %d chickens" n
     AWatchVideo   -> "Watch bonus video"
-    AEggUpgrade _ -> "Upgrade egg"
+    AEggUpgrade e -> printf "Upgrade egg to %s"
+                       (gd ^. edEggs . ixSV e . eggName)
     APrestige     -> "Prestige"
-
---               AResearch i   -> printf "Research %s (%d/%d)"
---                                  (gd ^. gdResearchData . researchIxData i . rName . unpacked)
---                                  (fs ^. fsResearch . researchIxStatus i)
---                                  (gd ^. gdResearchData . researchIxData i . to maxLevel)

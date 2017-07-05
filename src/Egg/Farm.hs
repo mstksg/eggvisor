@@ -12,6 +12,7 @@
 {-# LANGUAGE ScopedTypeVariables    #-}
 {-# LANGUAGE StandaloneDeriving     #-}
 {-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeApplications       #-}
 {-# LANGUAGE TypeOperators          #-}
 {-# LANGUAGE UndecidableInstances   #-}
 {-# LANGUAGE ViewPatterns           #-}
@@ -727,7 +728,7 @@ prestigeFarm
     => GameData  eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Maybe (FarmStatus eggs '(tiers, epic) habs vehicles)
-prestigeFarm gd fs = guard (round pBonus > 0) $>
+prestigeFarm gd fs = guard (round @_ @Int pBonus > 0) $>
     (fs & fsEgg           .~ 0
         & fsResearch . rsCommon . liftTraversal (_Flip . mapped) .~ 0
         & fsHabs          .~ initHabStatus

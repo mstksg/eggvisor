@@ -194,7 +194,7 @@ farmAuto gd = proc inp -> do
                                  (gd ^. vdVehicles . ixSV v . vName . unpacked)
               AHatch n      -> printf "Hatch %d chickens" n
               AWatchVideo   -> "Watch video"
-              AEggUpgrade e -> printf "Upgrade egg: %s" (gd ^. edEggs . ixSV (fs ^. fsEgg) . eggName)
+              AEggUpgrade e -> printf "Upgrade egg: %s" (gd ^. edEggs . ixSV e . eggName)
               APrestige     -> "Prestige"
             c = show cost
     progShow :: String -> Double -> Double -> Widget n
