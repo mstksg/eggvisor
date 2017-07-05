@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE KindSignatures        #-}
@@ -6,6 +7,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -23,6 +25,7 @@ module Egg.Action (
   , vehicleActions
   , eggActions
   , actions
+  , renderAction
   ) where
 
 import           Control.Lens hiding       ((:<), Index)
@@ -46,6 +49,7 @@ import           Egg.Habitat
 import           Egg.Research
 import           Egg.Vehicle
 import           Numeric.Natural
+import           Text.Printf
 import           Type.Class.Higher
 import           Type.Family.Nat
 import qualified Data.Vector               as V
@@ -85,9 +89,11 @@ data Action :: Nat -> ([Nat], Nat) -> Nat -> Nat -> [Type] -> Type where
              '[UpgradeError]
     APrestige
         :: Action eggs '(tiers, epic) habs vehicles
-             '[]
+             '[()]
 
 type SomeAction eggs te habs vehicles = Some (Action eggs te habs vehicles)
+
+deriving instance Show (Sum Finite tiers) => Show (Action eggs '(tiers, epic) habs vehicles errs)
 
 -- | Execute an action as a change in a 'FarmStatus'.
 runAction
@@ -129,7 +135,7 @@ runAction gd = \case
     AHatch c      -> first (inj . I) . hatchChickens gd c
     AWatchVideo   -> first (inj . I) . watchVideo gd
     AEggUpgrade e -> first (inj . I) . upgradeEgg gd e
-    APrestige     -> Right . prestigeFarm gd
+    APrestige     -> maybe (Left (inj (I ()))) Right . prestigeFarm gd
 
 -- | All possible common research actions and their costs.
 commonResearchActions
@@ -203,7 +209,7 @@ eggActions gd fs = eggUpgrades gd fs & _Comp . mapped %~ bimap (InL . I) AEggUpg
 -- | All possible actions, with their costs
 actions
     :: forall eggs tiers epic habs vehicles.
-       (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
+       (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles, 1 TL.<= habs, 1 TL.<= vehicles)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> [(Some (Action eggs '(tiers, epic) habs vehicles), Maybe (Either Bock GoldenEgg))]
@@ -211,12 +217,16 @@ actions gd fs = mconcat [ commonResearchActions gd fs ^.. liftTraversal (_Flip .
                         , epicResearchActions   gd fs ^.. folded . to (wrap Right)
                         , habActions            gd fs ^.. folded . to (wrap Left)
                         , vehicleActions        gd fs ^.. folded . to (wrap Left)
-                        , [(Some (AHatch 1), Nothing)]
+                        , case hatchChickens gd 1 fs of
+                            Left  _ -> []
+                            Right _ -> [(Some (AHatch 1), Nothing)]
                         , case watchVideo gd fs of
                             Left _  -> []
                             Right _ -> [(Some AWatchVideo, Nothing)]
                         , eggActions            gd fs ^.. folded . to ((, Nothing) . Some)
-                        , [(Some APrestige  , Nothing)]
+                        , case prestigeFarm gd fs of
+                            Nothing -> []
+                            Just _  -> [(Some APrestige  , Nothing)]
                         ]
   where
     wrap
@@ -225,3 +235,21 @@ actions gd fs = mconcat [ commonResearchActions gd fs ^.. liftTraversal (_Flip .
         -> (Some (Action eggs '(tiers, epic) habs vehicles), Maybe (Either Bock GoldenEgg))
     wrap f = bimap Some (Just . f)
 
+renderAction
+    :: (SingI tiers, KnownNat epic)
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> Action eggs '(tiers, epic) habs vehicles errs
+    -> String
+renderAction gd = \case
+    AResearch i   -> printf "Research %s" (gd ^. gdResearchData . researchIxData i . rName)
+    AHab _ _      -> "Upgrade Hab"
+    AVehicle _ _  -> "Upgrade Vehicle"
+    AHatch n      -> printf "Hatch %d chickens" n
+    AWatchVideo   -> "Watch bonus video"
+    AEggUpgrade _ -> "Upgrade egg"
+    APrestige     -> "Prestige"
+
+--               AResearch i   -> printf "Research %s (%d/%d)"
+--                                  (gd ^. gdResearchData . researchIxData i . rName . unpacked)
+--                                  (fs ^. fsResearch . researchIxStatus i)
+--                                  (gd ^. gdResearchData . researchIxData i . to maxLevel)

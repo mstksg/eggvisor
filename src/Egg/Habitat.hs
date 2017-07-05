@@ -599,8 +599,8 @@ waitTilPop
     -> hs
     -> WaitTilRes Maybe hs
 waitTilPop hd bs cm goal hs0
-    | pop0 > goal' = NoWait
-    | otherwise    = go pop0 hs0
+    | pop0 >= goal' = NoWait
+    | otherwise     = go pop0 hs0
   where
     goal' = fromIntegral goal
     pop0 :: Double
@@ -628,6 +628,6 @@ addChickens
 addChickens hd bs c = availableSpaces hd bs $ \avails ->
     let totAvail     = sumOf (folded . folded) avails
         newAvailPerc = 1 - c / totAvail
-    in  if c >= totAvail
+    in  if c >= (totAvail + 0.1)
           then (Just (c - totAvail), pure Nothing                            )
           else (Nothing            , avails & mapped . mapped *~ newAvailPerc)

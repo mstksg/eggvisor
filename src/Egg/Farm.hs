@@ -722,24 +722,23 @@ farmValue gd fs = (x + y + z) ^. bonusingFor bs BTFarmValue
     z = incomepc * realToFrac hatchery * 7200000
 
 -- | Prestige!  Resets farm, increments soul eggs.
---
--- TODO: only available if pBonus > 0
 prestigeFarm
     :: (KnownNat eggs, KnownNat habs, KnownNat vehicles, 1 TL.<= habs, 1 TL.<= vehicles)
     => GameData  eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> FarmStatus eggs '(tiers, epic) habs vehicles
-prestigeFarm gd fs =
-    fs & fsEgg           .~ 0
-       & fsResearch . rsCommon . liftTraversal (_Flip . mapped) .~ 0
-       & fsHabs          .~ initHabStatus
-       & fsDepot         .~ initSomeDepotStatus
-       & (\f -> f & fsHatchery .~ hatcheryCapacity gd f)
-       & fsBocks         .~ 0
-       & fsGoldenEggs    %~ id
-       & fsSoulEggs      +~ round pBonus
-       & fsVideoBonus    %~ id
-       & fsPrestEarnings .~ 0
+    -> Maybe (FarmStatus eggs '(tiers, epic) habs vehicles)
+prestigeFarm gd fs = guard (round pBonus > 0) $>
+    (fs & fsEgg           .~ 0
+        & fsResearch . rsCommon . liftTraversal (_Flip . mapped) .~ 0
+        & fsHabs          .~ initHabStatus
+        & fsDepot         .~ initSomeDepotStatus
+        & (\f -> f & fsHatchery .~ hatcheryCapacity gd f)
+        & fsBocks         .~ 0
+        & fsGoldenEggs    %~ id
+        & fsSoulEggs      +~ round pBonus
+        & fsVideoBonus    %~ id
+        & fsPrestEarnings .~ 0
+    )
   where
     pBonus = fs ^. fsPrestEarnings
                  . dividing (realToFrac (gd ^. gcPrestigeFactor))
