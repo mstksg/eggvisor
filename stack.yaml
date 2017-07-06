@@ -50,6 +50,8 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps:
 - statistics-linreg-0.3
+- brick-0.19
+- data-clist-0.1.1.0
 
 # Override default flag values for local packages and extra-deps
 flags: {}
