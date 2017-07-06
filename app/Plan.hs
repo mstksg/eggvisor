@@ -5,12 +5,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
 
+import           Control.Monad.Trans.State
 import           Data.Foldable
 import           Data.Maybe
 import           Data.Proxy
-import           Data.Semigroup hiding (option)
+import           Data.Semigroup hiding     (option)
 import           Data.Type.Equality
-import           Data.Yaml hiding      (Parser)
+import           Data.Yaml hiding          (Parser)
 import           Egg
 import           Egg.Search
 import           GHC.TypeLits.Compare
@@ -63,7 +64,19 @@ main = do
           Nothing -> putStrLn "no path found"
           Just ps -> do
             putStrLn "path found"
-            forM_ (zip [1 :: Int ..] ps) $ \case
-              (i, WAWait w         ) -> printf "%d)\tWait %.1f s\n" i w
-              (i, WADo     (Some a)) -> printf "%d)\t%s\n" i (renderAction gd a)
-              (i, WAAnd  w (Some a)) -> printf "%d)\tWait %.1f s => %s\n" i w (renderAction gd a)
+            flip evalStateT (initFarmStatus gd) . forM_ (zip [1 :: Int ..] ps) $ \(i, wa) -> StateT $ \fs0 ->
+              case wa of
+                WAWait w          -> do
+                  printf "%d)\tWait %.1f s\n" i w
+                  return ((), stepFarm gd Calm w fs0)
+                WADo     (Some a) -> do
+                  printf "%d)\t%s\n" i (renderActionFS gd fs0 a)
+                  return $ case runAction gd a fs0 of
+                    Left _ -> error "invalid action????"
+                    Right fs1 -> ((), fs1)
+                WAAnd  w (Some a) -> do
+                  let fs1 = stepFarm gd Calm w fs0
+                  printf "%d)\tWait %.1f s => %s\n" i w (renderActionFS gd fs1 a)
+                  return $ case runAction gd a fs1 of
+                    Left _ -> error "invalid action????"
+                    Right fs2 -> ((), fs2)

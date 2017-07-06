@@ -82,6 +82,7 @@ executable eggvisor-plan
   build-depends:       base >= 4.9
                      , eggvisor
                      , optparse-applicative
+                     , transformers
                      , type-combinators
                      , typelits-witnesses
                      , yaml

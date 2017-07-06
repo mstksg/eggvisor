@@ -5,6 +5,7 @@
 {-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
@@ -26,12 +27,14 @@ module Egg.Action (
   , eggActions
   , actions
   , renderAction
+  , renderActionFS
   ) where
 
 import           Control.Lens hiding       ((:<), Index)
 import           Data.Bifunctor
 import           Data.Finite
 import           Data.Kind
+import           Data.Maybe
 import           Data.Singletons.TH hiding ((%~))
 import           Data.Singletons.TypeLits
 import           Data.Type.Combinator
@@ -50,10 +53,12 @@ import           Egg.GameData
 import           Egg.Habitat
 import           Egg.Research
 import           Egg.Vehicle
+import           Numeric.Lens
 import           Numeric.Natural
 import           Text.Printf
 import           Type.Class.Higher
 import           Type.Family.Nat
+import qualified Data.Map                  as M
 import qualified Data.Vector               as V
 import qualified Data.Vector.Sized         as SV
 import qualified GHC.TypeLits              as TL
@@ -254,4 +259,38 @@ renderAction gd = \case
     AWatchVideo   -> "Watch bonus video"
     AEggUpgrade e -> printf "Upgrade egg to %s"
                        (gd ^. edEggs . ixSV e . eggName)
+    APrestige     -> "Prestige"
+
+renderActionFS
+    :: (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Action eggs '(tiers, epic) habs vehicles errs
+    -> String
+renderActionFS gd fs = \case
+    AResearch i   -> printf "Research %s (%d/%d)"
+                       (gd ^. gdResearchData . researchIxData i . rName)
+                       (fs ^. fsResearch . researchIxStatus i . adding 1)
+                       (gd ^. gdResearchData . researchIxData i . to maxLevel)
+    AHab s h      -> printf "Upgrade Hab (slot %d) to %s (from %s)"
+                       (fin s + 1)
+                       (gd ^. hdHabs . ixSV h . habName)
+                       (case fs ^. hsSlots . ixV s of
+                          Nothing -> "empty"
+                          Just h' -> gd ^. hdHabs . ixSV h' . habName
+                       )
+    AVehicle s v  ->
+      let oldVeh = withSomeDepotStatus (farmBonuses gd fs) (fs ^. fsDepot) $ \ds -> do
+            s' <- packFinite s
+            v' <- ds ^? _DepotStatus . ix s'
+            return $ gd ^. vdVehicles . ixSV v' . vName
+      in  printf "Upgrade Vehicle (slot %d) to %s (from %s)"
+            (s + 1)
+            (gd ^. vdVehicles . ixSV v . vName)
+            (fromMaybe "empty" oldVeh)
+    AHatch n      -> printf "Hatch %d chickens" n
+    AWatchVideo   -> "Watch bonus video"
+    AEggUpgrade e -> printf "Upgrade egg to %s (from %s)"
+                       (gd ^. edEggs . ixSV e . eggName)
+                       (gd ^. edEggs . ixSV (fs ^. fsEgg) . eggName)
     APrestige     -> "Prestige"
