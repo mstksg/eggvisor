@@ -33,14 +33,14 @@ import           Egg.Habitat
 import           GHC.TypeLits
 import           Numeric.Natural
 import           Type.Class.Higher
-import qualified Data.PQueue.Min      as PQ
+import qualified Data.PQueue.Prio.Min as PQ
 
-data Goal eggs tiers = GPop       Natural
-                     | GFullHabs
-                     | GCash      Bock
-                     -- | GResearch  (Sum Finite tiers) Natural
-                     -- | GFarmValue Bock
-                     -- | GEgg       (Finite eggs)
+data Goal = GPop       Natural
+          | GFullHabs
+          | GCash      Bock
+          -- | GResearch  (Sum Finite tiers) Natural
+          -- | GFarmValue Bock
+          -- | GEgg       (Finite eggs)
 
 data GoalDist = GDAchieved
               | GDWait { _gdWait :: Double }
@@ -67,7 +67,7 @@ goalDist
     :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs, KnownNat vehicles)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> Goal eggs tiers
+    -> Goal
     -> GoalDist
 goalDist gd fs = \case
     GPop p -> case waitTilPop gd (farmBonuses gd fs) Calm p fs of
@@ -103,35 +103,38 @@ search
     :: forall eggs tiers epic habs vehicles. (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles, 1 <= habs, 1 <= vehicles)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> Goal eggs tiers
+    -> Goal
     -> Maybe [Either Double (SomeAction eggs '(tiers, epic) habs vehicles)]
-search gd fs0 g = reverse <$> go (PQ.singleton (Arg (heurOf Nothing fs0) (SN [] 0 fs0)))
+search gd fs0 g = reverse <$> go (PQ.singleton (heurOf Nothing fs0) (SN [] 0 fs0))
   where
     costOf
         :: Either Double (SomeAction eggs '(tiers, epic) habs vehicles)
         -> Double
     costOf (Left w ) = w
     costOf (Right _) = 0
-    go  :: PQ.MinQueue (Arg GoalHeur (SearchNode eggs '(tiers, epic) habs vehicles))
+    go  :: PQ.MinPQueue GoalHeur (SearchNode eggs '(tiers, epic) habs vehicles)
         -> Maybe [Either Double (SomeAction eggs '(tiers, epic) habs vehicles)]
-    go q0 = case PQ.minView q0 of
+    go q0 = case PQ.minViewWithKey q0 of
       Nothing      -> Nothing
-      Just (Arg h (SN as c fs1), q1) -> case h ^. gdDist of
+      Just ((h, SN as c fs1), q1) -> case h ^. gdDist of
         GDAchieved        -> Just as
         GDWait t | t == 0 -> Just as
         _ -> let branches = fst <$> actions gd fs1
                  newNodes = PQ.fromList
                           . mapMaybe (\case
-                                Some a -> case runAction gd a fs1 of
-                                  Left _    -> Nothing
-                                  Right fs2 -> Just $ Arg (heurOf (Just (c + 0.1)) fs2) (SN (addCondensed (Right (Some a)) as) (c + 0.1) fs2)
-                                  -- Right fs2 -> trace (renderAction gd a)
-                                  --            $ Just $ Arg (heurOf (Just c) fs2) (SN (addCondensed (Right (Some a)) as) c fs2)
+                                Some a -> do
+                                  case a of
+                                    APrestige -> Nothing
+                                    AEggUpgrade _ -> Nothing
+                                    _ -> Just ()
+                                  fs2 <- either (const Nothing) Just $ runAction gd a fs1
+                                  return (heurOf (Just c) fs2, SN (addCondensed (Right (Some a)) as) c fs2)
                               )
                           $ branches
-                 waiting = Arg (heurOf (Just c) fs2) (SN (addCondensed (Left 1) as) (c + 1) fs2)
-                   where fs2 = stepFarm gd Calm 1 fs1
-                 q2 = waiting `PQ.insert` q1 `PQ.union` newNodes
+                 (waitH, waitN) = (heurOf (Just (c + 5)) fs2, SN (addCondensed (Left 5) as) (c + 5) fs2)
+                   where fs2 = stepFarm gd Calm 5 fs1
+                 q2 = PQ.insert waitH waitN $ q1 `PQ.union` newNodes
+             -- in  go . PQ.fromAscList . PQ.take 10 $ q2
              in  go q2
     condensor
         :: Either Double (SomeAction eggs '(tiers, epic) habs vehicles)
