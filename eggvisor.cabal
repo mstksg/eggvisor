@@ -97,8 +97,10 @@ executable eggvisor-edit
                      , eggvisor
                      , free
                      , lens
+                     , refined
                      , text
                      , transformers
+                     , vector
                      , vty
                      -- , optparse-applicative
                      -- , transformers
