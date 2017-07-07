@@ -16,18 +16,24 @@ import           Brick.Focus
 import           Brick.Widgets.Edit
 import           Brick.Widgets.List
 import           Control.Applicative.Free
+import           Data.Reflection
 import           Control.Applicative.Lift
 import           Control.Lens
 import           Control.Monad
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.State
+import           Data.Finite
 import           Data.Maybe
+import           Data.Proxy
 import           Data.Semigroup
+import           Egg
+import           GHC.TypeLits
 import           Refined
 import           Text.Printf
 import           Text.Read                 (readMaybe)
 import qualified Data.Text                 as T
 import qualified Data.Vector               as V
+import qualified Data.Vector.Sized         as SV
 import qualified Graphics.Vty              as Vty
 
 data Input = IText (Maybe T.Text)
@@ -54,8 +60,8 @@ renderInputState f is = txt (is ^. isLabel)
                     <+> widg
   where
     widg = case is ^. isWidget of
-      IWEditor e -> renderEditor (txt . T.unlines) f e
-                <+> case (is ^. isValidate) (T.unlines $ getEditContents e) of
+      IWEditor e -> renderEditor (txt . T.intercalate "\n") f e
+                <+> case (is ^. isValidate) (T.intercalate "\n" $ getEditContents e) of
                       Nothing  -> emptyWidget
                       Just err -> str $ printf " Error: %s" err
       IWList   l -> renderList goL f l
@@ -114,24 +120,26 @@ textInput_ p n l d = liftAp $ FormF (IText (snd <$> d)) n p' l
         Just x | T.null t -> Right x
         _                 -> Left e
 
+textInputWith
+    :: (Read a, Show a)
+    => (a -> Either String b)
+    -> (b -> a)
+    -> n
+    -> T.Text
+    -> Maybe b
+    -> Form n b
+textInputWith v r n l d = textInput_ p n l d'
+  where
+    p (T.unpack->st) = case readMaybe st of
+      Nothing -> Left $ if null st
+                          then "Empty input"
+                          else "No parse: " ++ st
+      Just  x -> v x
+    d' = fmap (\x -> (x, T.pack (show (r x)))) d
+
 
 textInput :: (Read a, Show a) => n -> T.Text -> Maybe a -> Form n a
-textInput n l d = textInput_ p n l ((\x -> (x, T.pack (show x))) <$> d)
-  where
-    p (T.unpack->str) = case readMaybe str of
-      Nothing -> Left $ if null str
-                          then "Empty input"
-                          else "No parse: " ++ str
-      Just  x -> Right x
-
-refinedTextInput :: (Read a, Show a, Predicate p a) => n -> T.Text -> Maybe (Refined p a) -> Form n (Refined p a)
-refinedTextInput n l d = textInput_ p n l ((\x -> (x, T.pack (show (unrefine x)))) <$> d)
-  where
-    p (T.unpack->str) = case readMaybe str of
-      Nothing -> Left $ if null str
-                          then "Empty input"
-                          else "No parse: " ++ str
-      Just x  -> refine x
+textInput = textInputWith Right id
 
 data FormState n = FS { _fsRing    :: FocusRing n
                       , _fsWidgets :: [InputState n]
@@ -178,6 +186,7 @@ mainForm fm = renderState <$> defaultMain app s0
         _                             -> continue =<< case focusGetCurrent (fs ^. fsRing) of
           Nothing -> return fs
           Just n  -> handleEventLensed fs (fsWidgets . atName n) handleInputStateEvent ev
+      _ -> continue fs
     aMap :: AttrMap
     aMap = attrMap Vty.defAttr
              [ (editAttr               , Vty.white `on` Vty.blue  )
@@ -196,7 +205,7 @@ mainForm fm = renderState <$> defaultMain app s0
           []   -> (Left [FE "Internal" "Something went wrong with FormState"], [])
           x:xs -> let r = do
                         y <- case x ^. isWidget of
-                          IWEditor e -> Right . T.unlines $ getEditContents e
+                          IWEditor e -> Right . T.intercalate "\n" $ getEditContents e
                           IWList   l -> do
                             i <- maybe (Left "No item selected")   Right $ l ^. listSelectedL
                             maybe (Left "Improper item selection") Right $ l ^? listElementsL . ix i
@@ -204,13 +213,61 @@ mainForm fm = renderState <$> defaultMain app s0
                   in  (over _Left ((:[]) . FE (ff ^. ffLabel)) r, xs)
 
 intBool :: Form String (Refined (LessThan 20) Int, Bool)
-intBool = (,) <$> refinedTextInput "Int" "Int" (Just x)
-              <*> textInput "Bool" "Bool" Nothing
+intBool = (,) <$> formFor "Int"  "Int" (Just x)
+              <*> formFor "Bool" "Bool" Nothing
   where
     Right x = refine 10
 
 main :: IO ()
-main = print =<< mainForm intBool
+-- main = print =<< mainForm intBool
+main = print =<< mainForm (traversableForm @_ @(SV.Vector 10) @(Finite 4) show "Vec" Nothing)
+
+class HasForm n a where
+    formFor     :: n -> T.Text -> Maybe a -> Form n a
+
+instance HasForm n Int where
+    formFor = textInput
+
+instance HasForm n Double where
+    formFor = textInput
+
+instance HasForm n Bool where
+    formFor = textInput
+
+instance HasForm n String where
+    formFor n l d = textInput_ (Right . T.unpack) n l ((\x -> (x, T.pack x)) <$> d)
+
+instance KnownNat m => HasForm n (Finite m) where
+    formFor = textInputWith p getFinite
+      where
+        p x = case packFinite x of
+          Nothing -> Left $ printf "Not in range (%d not in Finite %d)" x (natVal (Proxy @m))
+          Just y  -> Right y
+
+instance (Read a, Show a, Predicate p a) => HasForm n (Refined p a) where
+    formFor = textInputWith refine unrefine
+
+-- instance HasForm n (HabStatus habs) where
+--     formFor n l hs =
+--       HabStatus <$> traversableForm _ "Hab Slots" (hs ^? _Just . hsSlots)
+--                 <*> traversableForm _ "Hab Pops"  (hs ^? _Just . hsPop  )
+
+traversableForm
+    :: forall n t a. (Applicative t, Traversable t, HasForm n a)
+    => (Int -> n) -> T.Text -> Maybe (t a) -> Form n (t a)
+traversableForm fn l d = go (ixUp (maybe (pure Nothing) (fmap Just) d))
+  where
+    go :: t (Int, Maybe a) -> Form n (t a)
+    go = traverse $ \(i, dx) -> formFor (fn i) (T.pack $ printf "%s (%d)" l i) dx
+    ixUp :: t (Maybe a) -> t (Int, Maybe a)
+    ixUp = flip evalState 0 . traverse
+            (\x -> state $ \i -> ((i, x), i + 1))
+
+-- data HabStatus habs
+--     = HabStatus { _hsSlots :: Vec N4 (Maybe (Finite habs))
+--                 , _hsPop   :: Vec N4 Double
+--                 }
+--   deriving (Show, Eq, Ord, Generic)
 
 atName
     :: forall w n. (Named w n, Eq n)

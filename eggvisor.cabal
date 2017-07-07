@@ -95,12 +95,16 @@ executable eggvisor-edit
   build-depends:       base >= 4.9
                      , brick >= 0.19
                      , eggvisor
+                     , finite-typelits
                      , free
                      , lens
                      , refined
+                     , reflection
                      , text
                      , transformers
+                     , type-combinators
                      , vector
+                     , vector-sized
                      , vty
                      -- , optparse-applicative
                      -- , transformers
