@@ -1,40 +1,46 @@
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE DeriveFunctor         #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE LambdaCase            #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TemplateHaskell       #-}
-{-# LANGUAGE TypeApplications      #-}
-{-# LANGUAGE ViewPatterns          #-}
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE DeriveFunctor          #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE LambdaCase             #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE RankNTypes             #-}
+{-# LANGUAGE RecordWildCards        #-}
+{-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeApplications       #-}
+{-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE ViewPatterns           #-}
 
 import           Brick
 import           Brick.Focus
 import           Brick.Widgets.Edit
 import           Brick.Widgets.List
+import           Control.Applicative
 import           Control.Applicative.Free
-import           Data.Reflection
 import           Control.Applicative.Lift
 import           Control.Lens
 import           Control.Monad
+import           Control.Monad.Free
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.State
+import           Control.Monad.Trans.Writer
 import           Data.Finite
 import           Data.Maybe
 import           Data.Proxy
+import           Data.Reflection
 import           Data.Semigroup
+import           Data.Typeable
 import           Egg
 import           GHC.TypeLits
 import           Refined
 import           Text.Printf
-import           Text.Read                 (readMaybe)
-import qualified Data.Text                 as T
-import qualified Data.Vector               as V
-import qualified Data.Vector.Sized         as SV
-import qualified Graphics.Vty              as Vty
+import           Text.Read                  (readMaybe)
+import qualified Data.Text                  as T
+import qualified Data.Vector                as V
+import qualified Data.Vector.Sized          as SV
+import qualified Graphics.Vty               as Vty
 
 data Input = IText (Maybe T.Text)
            | IArea (Maybe Int) (Maybe T.Text)
@@ -42,19 +48,34 @@ data Input = IText (Maybe T.Text)
 
 makePrisms ''Input
 
-data InputWidget n = IWEditor (Editor T.Text n)
-                   | IWList   (List n T.Text)
+data InputWidget = IWEditor (Editor T.Text Int)
+                 | IWList   (List Int T.Text)
 
 makePrisms ''InputWidget
 
-data InputState n = IS { _isWidget :: InputWidget n
-                       , _isLabel  :: T.Text
-                       , _isValidate :: T.Text -> Maybe String
-                       }
+data InputState = IS { _isWidget   :: InputWidget
+                     , _isLabel    :: T.Text
+                     , _isValidate :: T.Text -> Maybe String
+                     }
 
 makeLenses ''InputState
 
-renderInputState :: (Show n, Ord n) => Bool -> InputState n -> Widget n
+newtype GenIntF a = GIGet (Int -> a)
+    deriving Functor
+
+type GenInt = Free GenIntF
+
+genInt :: GenInt Int
+genInt = liftF $ GIGet id
+
+runGenInt :: forall a. GenInt a -> a
+runGenInt = ($ 0) . iterM go
+  where
+    go :: GenIntF (Int -> a) -> Int -> a
+    go = \case
+      GIGet f -> \i -> f i (succ i)
+
+renderInputState :: Bool -> InputState -> Widget Int
 renderInputState f is = txt (is ^. isLabel)
                     <+> str ": "
                     <+> widg
@@ -72,47 +93,48 @@ renderInputState f is = txt (is ^. isLabel)
                         Just x  -> case (is ^. isValidate) x of
                           Nothing -> emptyWidget
                           Just err -> str $ printf " Error: %s" err
-    goL :: Bool -> T.Text -> Widget n
+    goL :: Bool -> T.Text -> Widget Int
     goL True  = withAttr listSelectedAttr . txt
     goL False = txt
 
-handleInputStateEvent :: Ord n => Vty.Event -> InputState n -> EventM n (InputState n)
+handleInputStateEvent :: Vty.Event -> InputState -> EventM Int InputState
 handleInputStateEvent evt = isWidget $ _IWList   (handleListEvent   evt)
                                    <=< _IWEditor (handleEditorEvent evt)
 
-instance Named (InputState n) n where
+instance Named InputState Int where
     getName is = case is ^. isWidget of
       IWEditor e -> getName e
       IWList   l -> getName l
 
-data FormF n a = FormF { _ffElem   :: Input
-                       , _ffName   :: n
-                       , _ffParser :: T.Text -> Either String a
-                       , _ffLabel  :: T.Text
-                       }
+data FormF a = FormF { _ffElem   :: Input
+                     , _ffParser :: T.Text -> Either String a
+                     , _ffLabel  :: T.Text
+                     }
 
 makeLenses ''FormF
 
-inputState :: FormF n a -> InputState n
-inputState ff = IS widg (ff ^. ffLabel) p
+inputState :: FormF a -> GenInt InputState
+inputState ff = do
+    n <- genInt
+    let widg = case ff ^. ffElem of
+          IText d   -> IWEditor $ editorText n (Just 1) (fromMaybe "" d)
+          IArea h d -> IWEditor $ editorText n h        (fromMaybe "" d)
+          IList e c -> IWList   $ list       n (V.fromList e) 1
+                                    & listSelectedL .~ c
+    return $ IS widg (ff ^. ffLabel) p
   where
-    widg = case ff ^. ffElem of
-      IText d   -> IWEditor $ editorText (ff ^. ffName) (Just 1) (fromMaybe "" d)
-      IArea h d -> IWEditor $ editorText (ff ^. ffName) h        (fromMaybe "" d)
-      IList e c -> IWList   $ list       (ff ^. ffName) (V.fromList e) 1
-                                & listSelectedL .~ c
     p = either Just (const Nothing) . (ff ^. ffParser)
 
-
-type Form n = Ap (FormF n)
+type Form = Ap FormF
 
 textInput_
-    :: (T.Text -> Either String a)
-    -> n
+    :: forall a. Typeable a
+    => (T.Text -> Either String a)
     -> T.Text
     -> Maybe (a, T.Text)
-    -> Form n a
-textInput_ p n l d = liftAp $ FormF (IText (snd <$> d)) n p' l
+    -> Form a
+textInput_ p l d = liftAp $ FormF (IText (snd <$> d)) p'
+                     (T.pack $ printf "%s [%s]" l (show (typeRep (Proxy @a))))
   where
     p' t = case p t of
       Right x -> Right x
@@ -121,14 +143,13 @@ textInput_ p n l d = liftAp $ FormF (IText (snd <$> d)) n p' l
         _                 -> Left e
 
 textInputWith
-    :: (Read a, Show a)
+    :: (Read a, Show a, Typeable b)
     => (a -> Either String b)
     -> (b -> a)
-    -> n
     -> T.Text
     -> Maybe b
-    -> Form n b
-textInputWith v r n l d = textInput_ p n l d'
+    -> Form b
+textInputWith v r l d = textInput_ p l d'
   where
     p (T.unpack->st) = case readMaybe st of
       Nothing -> Left $ if null st
@@ -138,12 +159,12 @@ textInputWith v r n l d = textInput_ p n l d'
     d' = fmap (\x -> (x, T.pack (show (r x)))) d
 
 
-textInput :: (Read a, Show a) => n -> T.Text -> Maybe a -> Form n a
+textInput :: (Read a, Show a, Typeable a) => T.Text -> Maybe a -> Form a
 textInput = textInputWith Right id
 
-data FormState n = FS { _fsRing    :: FocusRing n
-                      , _fsWidgets :: [InputState n]
-                      }
+data FormState = FS { _fsRing    :: FocusRing Int
+                    , _fsWidgets :: [InputState]
+                    }
 
 makeLenses ''FormState
 
@@ -152,32 +173,18 @@ data FormError = FE { _feLabel :: T.Text
                     }
   deriving (Show)
 
-newtype ChunkP e s a = CP { runCP :: [s] -> (Either e a, [s]) }
-  deriving (Functor)
-
-instance Semigroup e => Applicative (ChunkP e s) where
-    pure x    = CP $ \s -> (Right x, s)
-    cf <*> cx = CP $ \xs ->
-      case runCP cf xs of
-        (Right f, ys) -> case runCP cx ys of
-          (Right x, zs) -> (Right (f x), zs)
-          (Left  e, zs) -> (Left  e    , zs)
-        (Left e, ys ) -> case runCP cx ys of
-          (Right _, zs) -> (Left  e      , zs)
-          (Left  d, zs) -> (Left (e <> d), zs)
-
-mainForm :: forall n a. (Ord n, Show n) => Form n a -> IO (Either [FormError] a)
+mainForm :: forall a. Form a -> IO (Either [FormError] a)
 mainForm fm = renderState <$> defaultMain app s0
   where
-    app :: App (FormState n) () n
+    app :: App FormState () Int
     app = App ((:[]) . draw)
               (focusRingCursor (view fsRing))
               handle
               return
               (const aMap)
-    draw :: FormState n -> Widget n
+    draw :: FormState -> Widget Int
     draw (FS r w) = vBox $ withFocusRing r renderInputState <$> w
-    handle :: FormState n -> BrickEvent n () -> EventM n (Next (FormState n))
+    handle :: FormState -> BrickEvent Int () -> EventM Int (Next FormState)
     handle fs = \case
       VtyEvent ev -> case ev of
         Vty.EvKey Vty.KEsc         [] -> halt fs
@@ -196,11 +203,11 @@ mainForm fm = renderState <$> defaultMain app s0
              , (listSelectedFocusedAttr, Vty.black `on` Vty.yellow)
              ]
     s0 = FS (focusRing (getName <$> is)) is
-    is = runAp_ ((:[]) . inputState) fm
-    renderState :: FormState n -> Either [FormError] a
+    is = runGenInt . runConstT $ runAp (ConstT . fmap (:[]) . inputState) fm
+    renderState :: FormState -> Either [FormError] a
     renderState = fst . runCP (runAp go fm) . view fsWidgets
       where
-        go :: forall b. FormF n b -> ChunkP [FormError] (InputState n) b
+        go :: forall b. FormF b -> ChunkP [FormError] InputState b
         go ff = CP $ \case
           []   -> (Left [FE "Internal" "Something went wrong with FormState"], [])
           x:xs -> let r = do
@@ -212,62 +219,99 @@ mainForm fm = renderState <$> defaultMain app s0
                         (ff ^. ffParser) y
                   in  (over _Left ((:[]) . FE (ff ^. ffLabel)) r, xs)
 
-intBool :: Form String (Refined (LessThan 20) Int, Bool)
-intBool = (,) <$> formFor "Int"  "Int" (Just x)
-              <*> formFor "Bool" "Bool" Nothing
-  where
-    Right x = refine 10
+-- intBool :: Form (Refined (LessThan 20) Int, Bool)
+-- intBool = (,) <$> formFor "Int"  "Int" (Just x)
+--               <*> formFor "Bool" "Bool" Nothing
+--   where
+--     Right x = refine 10
 
 main :: IO ()
--- main = print =<< mainForm intBool
-main = print =<< mainForm (traversableForm @_ @(SV.Vector 10) @(Finite 4) show "Vec" Nothing)
+-- main = print =<< return ()
+-- main = print =<< mainForm (traversableForm @(SV.Vector 10) @(Finite 4) "Vec" Nothing)
+main = print =<< mainForm (formFor @(HabStatus 8) "Habs" Nothing)
 
-class HasForm n a where
-    formFor     :: n -> T.Text -> Maybe a -> Form n a
+class Nullable a b | a -> b where
+    toNull   :: Maybe a -> b
+    fromNull :: b -> Maybe a
 
-instance HasForm n Int where
+class HasForm a where
+    formFor     :: T.Text -> Maybe a -> Form a
+
+instance HasForm Int where
     formFor = textInput
 
-instance HasForm n Double where
+instance HasForm Integer where
     formFor = textInput
 
-instance HasForm n Bool where
+instance HasForm Double where
     formFor = textInput
 
-instance HasForm n String where
-    formFor n l d = textInput_ (Right . T.unpack) n l ((\x -> (x, T.pack x)) <$> d)
+instance HasForm Bool where
+    formFor = textInput
 
-instance KnownNat m => HasForm n (Finite m) where
+instance (HasForm b, Nullable a b) => HasForm (Maybe a) where
+    formFor l d = fromNull <$> formFor @b l (toNull <$> d)
+
+instance HasForm String where
+    formFor l d = textInput_ (Right . T.unpack) l ((\x -> (x, T.pack x)) <$> d)
+
+instance KnownNat m => HasForm (Finite m) where
     formFor = textInputWith p getFinite
       where
         p x = case packFinite x of
           Nothing -> Left $ printf "Not in range (%d not in Finite %d)" x (natVal (Proxy @m))
           Just y  -> Right y
 
-instance (Read a, Show a, Predicate p a) => HasForm n (Refined p a) where
+
+newtype MaybeFinite n = MF { getMF :: Maybe (Finite n) }
+
+instance KnownNat m => HasForm (MaybeFinite m) where
+    formFor l d = textInput_ p l ((\x -> (x, s x)) <$> d)
+      where
+        s = \case
+          MF (Just f) -> T.pack . show . getFinite $ f
+          MF Nothing  -> "x"
+        p (T.unpack -> st)
+          | st == "x" = Right (MF Nothing)
+          | otherwise = do
+              x <- maybe (Left nerr) Right $ readMaybe st
+              let rerr = printf "Not in rage (%d not in Finite %d)" x (natVal (Proxy @m))
+              maybe (Left rerr) (Right . MF . Just) $ packFinite x
+          where
+            nerr | null st   = "Empty input"
+                 | otherwise = "No parse: " ++ st
+
+instance KnownNat n => Nullable (Finite n) (MaybeFinite n) where
+    toNull   = MF
+    fromNull = getMF
+
+
+instance (Read a, Show a, Predicate p a, Typeable p, Typeable a) => HasForm (Refined p a) where
     formFor = textInputWith refine unrefine
 
--- instance HasForm n (HabStatus habs) where
---     formFor n l hs =
---       HabStatus <$> traversableForm _ "Hab Slots" (hs ^? _Just . hsSlots)
---                 <*> traversableForm _ "Hab Pops"  (hs ^? _Just . hsPop  )
+instance KnownNat habs => HasForm (HabStatus habs) where
+    formFor l hs =
+        HabStatus <$> traversableForm (l <> " Slots") (hs ^? _Just . hsSlots)
+                  <*> traversableForm (l <> " Pops")  (hs ^? _Just . hsPop  )
 
 traversableForm
-    :: forall n t a. (Applicative t, Traversable t, HasForm n a)
-    => (Int -> n) -> T.Text -> Maybe (t a) -> Form n (t a)
-traversableForm fn l d = go (ixUp (maybe (pure Nothing) (fmap Just) d))
+    :: forall t a. (Applicative t, Traversable t, HasForm a)
+    => T.Text
+    -> Maybe (t a)
+    -> Form (t a)
+traversableForm l d = go (ixUp (maybe (pure Nothing) (fmap Just) d))
   where
-    go :: t (Int, Maybe a) -> Form n (t a)
-    go = traverse $ \(i, dx) -> formFor (fn i) (T.pack $ printf "%s (%d)" l i) dx
+    go :: t (Int, Maybe a) -> Form (t a)
+    go = traverse $ \(i, dx) -> formFor (T.pack $ printf "%s (%d)" l i) dx
     ixUp :: t (Maybe a) -> t (Int, Maybe a)
     ixUp = flip evalState 0 . traverse
             (\x -> state $ \i -> ((i, x), i + 1))
 
--- data HabStatus habs
---     = HabStatus { _hsSlots :: Vec N4 (Maybe (Finite habs))
---                 , _hsPop   :: Vec N4 Double
---                 }
---   deriving (Show, Eq, Ord, Generic)
+-- -- data HabStatus habs
+-- --     = HabStatus { _hsSlots :: Vec N4 (Maybe (Finite habs))
+-- --                 , _hsPop   :: Vec N4 Double
+-- --                 }
+-- --   deriving (Show, Eq, Ord, Generic)
 
 atName
     :: forall w n. (Named w n, Eq n)
@@ -279,3 +323,25 @@ atName n f = go
     go (x:xs)
       | getName x == n = (: xs) <$> f x
       | otherwise      = (x :) <$> go xs
+
+newtype ChunkP e s a = CP { runCP :: [s] -> (Either e a, [s]) }
+  deriving (Functor)
+
+instance Semigroup e => Applicative (ChunkP e s) where
+    pure x    = CP $ \s -> (Right x, s)
+    cf <*> cx = CP $ \xs ->
+      case runCP cf xs of
+        (Right f, ys) -> case runCP cx ys of
+          (Right x, zs) -> (Right (f x), zs)
+          (Left  e, zs) -> (Left  e    , zs)
+        (Left e, ys ) -> case runCP cx ys of
+          (Right _, zs) -> (Left  e      , zs)
+          (Left  d, zs) -> (Left (e <> d), zs)
+
+newtype ConstT c m a = ConstT { runConstT :: m c }
+  deriving (Functor)
+
+instance (Applicative m, Monoid c) => Applicative (ConstT c m) where
+    pure _ = ConstT $ pure mempty
+    f <*> x = ConstT $ liftA2 mappend (runConstT f) (runConstT x)
+
