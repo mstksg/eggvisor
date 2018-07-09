@@ -26,11 +26,13 @@ import           Control.Monad.Free
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.State
 import           Control.Monad.Trans.Writer
+import           Data.Bifunctor
 import           Data.Finite
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Reflection
 import           Data.Semigroup
+import           Data.Text.Prettyprint.Doc  (pretty)
 import           Data.Typeable
 import           Egg
 import           GHC.TypeLits
@@ -287,7 +289,8 @@ instance KnownNat n => Nullable (Finite n) (MaybeFinite n) where
 
 
 instance (Read a, Show a, Predicate p a, Typeable p, Typeable a) => HasForm (Refined p a) where
-    formFor = textInputWith refine unrefine
+    -- formFor = textInputWith refine unrefine
+    formFor = textInputWith (first (show . pretty) . refine) unrefine
 
 instance KnownNat habs => HasForm (HabStatus habs) where
     formFor l hs =

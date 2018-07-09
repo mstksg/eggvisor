@@ -5,11 +5,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
 
+-- import           Data.Maybe
+-- import           Data.Semigroup hiding  (option)
 import           Control.Monad.Trans.State
 import           Data.Foldable
-import           Data.Maybe
 import           Data.Proxy
-import           Data.Semigroup hiding     (option)
 import           Data.Type.Equality
 import           Data.Yaml hiding          (Parser)
 import           Egg

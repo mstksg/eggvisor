@@ -24,7 +24,7 @@ import           Data.Singletons.Decide
 import           Data.Singletons.Prelude.Ord
 import qualified Data.Constraint             as C
 
-instance (SingKind k, Show (DemoteRep k)) => GShow (Sing :: k -> Type) where
+instance (SingKind k, Show (Demote k)) => GShow (Sing :: k -> Type) where
     gshowsPrec p = showsPrec p . fromSing
 instance SDecide k => GEq (Sing :: k -> Type) where
     geq x y = case x %~ y of
@@ -38,7 +38,7 @@ instance (SDecide k, SOrd k) => GCompare (Sing :: k -> Type) where
         Just Refl -> GEQ
       SGT -> GGT
 
-instance (SingKind k, Show (DemoteRep k), ForallF Show f) => ShowTag (Sing :: k -> Type) f where
+instance (SingKind k, Show (Demote k), ForallF Show f) => ShowTag (Sing :: k -> Type) f where
     showTaggedPrec (_ :: _ a) = showsPrec C.\\ instF @Show @f @a
 instance (SDecide k, ForallF Eq f) => EqTag (Sing :: k -> Type) f where
     eqTagged      (_ :: _ a) _ x y = x == y C.\\ instF @Eq @f @a

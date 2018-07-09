@@ -30,6 +30,7 @@ module Egg.Action (
   , renderActionFS
   ) where
 
+-- import qualified Data.Map               as M
 import           Control.Lens hiding       ((:<), Index)
 import           Data.Bifunctor
 import           Data.Finite
@@ -58,7 +59,6 @@ import           Numeric.Natural
 import           Text.Printf
 import           Type.Class.Higher
 import           Type.Family.Nat
-import qualified Data.Map                  as M
 import qualified Data.Vector               as V
 import qualified Data.Vector.Sized         as SV
 import qualified GHC.TypeLits              as TL

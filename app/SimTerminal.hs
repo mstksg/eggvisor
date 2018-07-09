@@ -12,6 +12,10 @@
 {-# LANGUAGE TypeOperators         #-}
 
 
+-- import           Data.Profunctor
+-- import           Numeric.Lens
+-- import qualified Data.Text               as T
+-- import qualified Data.Text.Encoding      as T
 import           Brick
 import           Brick.BChan
 import           Brick.Widgets.Center
@@ -28,7 +32,6 @@ import           Control.Lens
 import           Control.Monad
 import           Data.Foldable
 import           Data.Maybe
-import           Data.Profunctor
 import           Data.Proxy
 import           Data.Semigroup
 import           Data.Singletons
@@ -42,13 +45,10 @@ import           Data.Yaml
 import           Egg
 import           GHC.TypeLits.Compare
 import           Graphics.Vty hiding        ((<|>))
-import           Numeric.Lens
 import           Prelude hiding             ((.), id)
 import           Text.Printf
 import           Type.Class.Higher
 import qualified Control.Auto               as A
-import qualified Data.Text                  as T
-import qualified Data.Text.Encoding         as T
 import qualified Data.Vector                as V
 import qualified GHC.TypeLits               as TL
 

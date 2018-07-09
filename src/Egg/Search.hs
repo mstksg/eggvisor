@@ -15,16 +15,16 @@ module Egg.Search (
   , condenseWaits
   ) where
 
+-- import           Data.Finite
+-- import           Data.Reflection
+-- import           Data.Semigroup
+-- import           Data.Type.Combinator
+-- import           Data.Type.Sum
+-- import           Debug.Trace
 import           Control.Lens
-import           Data.Finite
 import           Data.Maybe
 import           Data.Ord
-import           Data.Reflection
-import           Data.Semigroup
 import           Data.Singletons
-import           Data.Type.Combinator
-import           Data.Type.Sum
-import           Debug.Trace
 import           Egg.Action
 import           Egg.Commodity
 import           Egg.Farm
@@ -33,7 +33,7 @@ import           Egg.Habitat
 import           GHC.TypeLits
 import           Numeric.Natural
 import           Type.Class.Higher
-import qualified Data.PQueue.Prio.Min as PQ
+import qualified Data.PQueue.Prio.Min    as PQ
 
 data Goal = GPop       Natural
           | GFullHabs

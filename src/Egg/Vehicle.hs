@@ -41,7 +41,6 @@ import           Control.Applicative
 import           Control.Lens hiding         ((.=))
 import           Control.Monad
 import           Data.Aeson
-import           Data.Aeson.Types
 import           Data.Dependent.Sum
 import           Data.Finite
 import           Data.Finite.Internal
@@ -99,7 +98,7 @@ data SomeVehicleUpgradeError vs
 makePrisms ''SomeVehicleUpgradeError
 
 data SomeDepotStatus vs
-    = SomeDepotStatus { _sdsSlots :: M.Map Integer (Finite vs) }
+    = SomeDepotStatus { _sdsSlots :: M.Map Natural (Finite vs) }
   deriving (Show, Eq, Ord, Generic)
 
 _SomeDepotStatus
@@ -124,13 +123,13 @@ traverseSomeDepotStatus
     -> f (SomeDepotStatus vs)
 traverseSomeDepotStatus bs f sds0 = withSomeSing fleetSize $ \(SNat :: Sing slots) ->
     let ds0 = DepotStatus
-            . M.mapKeysMonotonic Finite
+            . M.mapKeysMonotonic (Finite . fromIntegral)
             . M.filterWithKey (\k _ -> k < fleetSize)
             $ _sdsSlots sds0
-    in  SomeDepotStatus . M.mapKeysMonotonic getFinite . _dsSlots
+    in  SomeDepotStatus . M.mapKeysMonotonic (fromIntegral . getFinite) . _dsSlots
           <$> f @slots ds0
   where
-    fleetSize :: Integer
+    fleetSize :: Natural
     fleetSize = 4 ^. bonusingFor @Double bs BTFleetSize . to round
 
 vehicleParseOptions :: Options
@@ -240,7 +239,7 @@ vehiclePrice
     -> DepotStatus vs slots
     -> Finite vs
     -> Maybe Bock
-vehiclePrice vd ds v = withKnownNat (SNat @slots %:+ SNat @1) $
+vehiclePrice vd ds v = withKnownNat (SNat @slots %+ SNat @1) $
                            fmap priceOf
                          . strengthen
                          . fromMaybe 0
@@ -316,7 +315,7 @@ vehicleUpgrades
     -> (SV.Vector slots :.: SV.Vector vs :.: Either (Finite vs)) Bock
 vehicleUpgrades vd bs ds = Comp . Comp $ SV.generate go
   where
-    slots1 = SNat @slots %:+ SNat @1
+    slots1 = SNat @slots %+ SNat @1
     hist :: M.Map (Finite vs) (Finite (slots TL.+ 1))
     hist = withKnownNat slots1 $
              vehicleHistory ds

@@ -18,9 +18,8 @@ module Egg.Egg (
   , SomeEggData
   ) where
 
-import           Control.Lens hiding      ((.=))
+import           Control.Lens
 import           Data.Aeson
-import           Data.Aeson.Types
 import           Data.Dependent.Sum
 import           Data.Singletons
 import           Data.Singletons.TypeLits

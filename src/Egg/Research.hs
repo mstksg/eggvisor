@@ -251,6 +251,9 @@ instance ToJSONKey BonusType where
     toJSONKey = toJSONKeyText $
         T.pack . constructorTagModifier bonusTypeParseOptions . show
 
+instance Semigroup Bonuses where
+    (<>) = mappend
+
 instance Monoid Bonuses where
     mempty = Bonuses M.empty
     mappend (Bonuses x) (Bonuses y) =
@@ -331,7 +334,7 @@ instance FromJSON SomeResearchData where
         withV res $ \resV ->
           some (withProd (dsumSome . getI) resV) $ \(_ :&: (unzipP->(resS :&: resP))) ->
             SV.withSized epics   $ \sizedV ->
-              return (STuple2 (prodSing resS) SNat :=> Uncur (ResearchData resP sizedV))
+              return (STuple2 (fromTC @(Prod Sing) resS) SNat :=> Uncur (ResearchData resP sizedV))
 instance ToJSON SomeResearchData where
     toJSON = \case
         _ :=> Uncur r -> toJSON r
@@ -408,7 +411,7 @@ instance FromJSON SomeResearchStatus where
         withV res $ \resV ->
           some (withProd (go . getI) resV) $ \(_ :&: (unzipP->(resS :&: resP))) ->
             SV.withSized epics   $ \sizedV ->
-              return (STuple2 (prodSing resS) SNat :=> Uncur (ResearchStatus resP sizedV))
+              return (STuple2 (fromTC resS) SNat :=> Uncur (ResearchStatus resP sizedV))
       where
         go :: V.Vector Natural -> Some (Sing :&: Flip SV.Vector Natural)
         go v = SV.withSized v $ \u -> Some (SNat :&: Flip u)
@@ -570,7 +573,7 @@ researchIxData = \case
       let g :: forall a. _ a -> _ (_ a)
           g x@(slot :&: (_ :&: SNat)) = (_2 . _1 . rtTechs . ixSV slot) f x
       in  rdCommon $ \rs -> map1 fanFst . fanSnd
-            <$> sumProd g (i :&: zipP (rs :&: singProd sing))
+            <$> sumProd g (i :&: zipP (rs :&: toTC sing))
     RIEpic i   -> rdEpic . ixSV i
 
 -- | A lens into a 'ResearchStatus', given the appropriate index.
@@ -583,7 +586,7 @@ researchIxStatus = \case
       let g :: forall a. _ a -> _ (_ a)
           g x@(slot :&: (_ :&: SNat)) = (_2 . _1 . _Flip . ixSV slot) f x
       in  rsCommon $ \rs -> map1 fanFst . fanSnd
-            <$> sumProd g (i :&: zipP (rs :&: singProd sing))
+            <$> sumProd g (i :&: zipP (rs :&: toTC sing))
     RIEpic i   -> rsEpic . ixSV i
 
 -- | Lens into both the research data and research status common slots
@@ -622,7 +625,7 @@ researchIx = \case
                     e' = e & ixSV slot .~ s
                 in  slot :&: ((c' :&: Flip e') :&: SNat)
       in  rdrsCommon $ \rdrs ->
-            map1 fanFst . fanSnd <$> sumProd g (i :&: zipP (rdrs :&: singProd sing))
+            map1 fanFst . fanSnd <$> sumProd g (i :&: zipP (rdrs :&: toTC sing))
     RIEpic i -> rdrsEpic . ixSV i
 
 withSomeResearch
@@ -650,7 +653,7 @@ researchIxStatusLegal rd = \case
             | _rtUnlock rt <= totCount = (_2 . _1 . _2 . _Flip . ixSV slot) f x
             | otherwise                = pure x
       in  (Uncur rd :&: Uncur rs0) & rdrsCommon %%~ \rtrs ->
-            map1 fanFst . fanSnd <$> sumProd g (i :&: zipP (rtrs :&: singProd sing))
+            map1 fanFst . fanSnd <$> sumProd g (i :&: zipP (rtrs :&: toTC sing))
     RIEpic i   -> rsEpic . ixSV i
 
 -- | All 'ResearchIx' into common researches.
@@ -679,7 +682,7 @@ legalResearchIxesCommon
     -> ResearchStatus tiers epic
     -> Prod (Flip SV.Vector (Either ResearchError (ResearchIx tiers epic Bock))) tiers
 legalResearchIxesCommon rd rs =
-    imap1 (\i -> Flip . go i) (zipP (zipP (_rdCommon rd :&: _rsCommon rs) :&: singProd sing))
+    imap1 (\i -> Flip . go i) (zipP (zipP (_rdCommon rd :&: _rsCommon rs) :&: toTC sing))
   where
     totCount = researchCount rs
     go  :: forall t. ()
@@ -724,7 +727,7 @@ legalResearchesCommon
     -> ResearchStatus tiers epic
     -> Prod (Flip SV.Vector (Either ResearchError Bock)) tiers
 legalResearchesCommon rd rs =
-    map1 (Flip . go) (zipP (zipP (_rdCommon rd :&: _rsCommon rs) :&: singProd sing))
+    map1 (Flip . go) (zipP (zipP (_rdCommon rd :&: _rsCommon rs) :&: toTC sing))
   where
     bs       = totalBonuses rd rs
     totCount = researchCount rs

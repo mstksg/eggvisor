@@ -21,9 +21,9 @@ module Egg.GameData (
   , withSomeGameData
   ) where
 
+-- import           Data.Aeson.Types
 import           Control.Lens hiding           ((.=))
 import           Data.Aeson
-import           Data.Aeson.Types
 import           Data.Dependent.Sum
 import           Data.Kind
 import           Data.Singletons

@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-8.17
+resolver: lts-12.0
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -38,20 +38,25 @@ resolver: lts-8.17
 packages:
 - '.'
 - location:
-    git: git@github.com:mstksg/type-combinators-singletons.git
-    commit: 8bd05539987692ee745f0d78b83e5d72c7af21c4
+    git: https://github.com/mstksg/type-combinators.git
+    commit: 13e7d4bd99b1a80b5fdb436a85ee52cfa0ff799f
   extra-dep: true
 - location:
-    git: git@github.com:mstksg/vector-sized.git
-    commit: a64e119ffec67f64ac7ce88cef34b2c66d436ce1
+    git: git@github.com:mstksg/type-combinators-singletons.git
+    commit: 7851a2067a9ba15e25a3e1be1d75b45cc7a92552
   extra-dep: true
+# - location:
+#     git: git@github.com:mstksg/vector-sized.git
+#     commit: a64e119ffec67f64ac7ce88cef34b2c66d436ce1
+#   extra-dep: true
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps:
 - statistics-linreg-0.3
-- brick-0.19
-- data-clist-0.1.1.0
+# - type-combinators-singletons-0.2.1.0
+# - brick-0.19
+# - data-clist-0.1.1.0
 
 # Override default flag values for local packages and extra-deps
 flags: {}
