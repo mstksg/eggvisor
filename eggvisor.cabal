@@ -37,8 +37,9 @@ library
                      , dependent-sum
                      , finite-typelits
                      , lens
-                     , pqueue
+                     -- , pqueue
                      , reflection
+                     , psqueues
                      , singletons
                      , statistics-linreg
                      , text
