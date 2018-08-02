@@ -10,9 +10,9 @@
 
 module Egg.Search (
     Goal(..)
-  -- , search
+  , search
   , WaitAnd(..)
-  , condenseWaits
+  -- , condenseWaits
   ) where
 
 -- import           Data.Finite
@@ -25,6 +25,7 @@ module Egg.Search (
 import           Control.Lens
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Trans.Writer
+import           Data.List
 import           Data.Maybe
 import           Data.Ord
 import           Data.Semigroup
@@ -93,12 +94,13 @@ goalDist gd fs = \case
       WaitTilSuccess t _ -> GDWait t
       NoWait             -> GDAchieved
       NonStarter         -> GDNever
+    GEggs _ -> undefined
 
-addGD :: Double -> GoalDist -> GoalDist
-addGD x = \case
-    GDAchieved -> GDWait x
-    GDWait y   -> GDWait (x + y)
-    GDNever    -> GDNever
+-- addGD :: Double -> GoalDist -> GoalDist
+-- addGD x = \case
+--     GDAchieved -> GDWait x
+--     GDWait y   -> GDWait (x + y)
+--     GDNever    -> GDNever
 
 type Time = Double
 
@@ -132,21 +134,22 @@ search
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Goal
-    -> Maybe [Either Time (SomeAction eggs '(tiers, epic) habs vehicles)]
-search gd fs0 g = reverse <$> go (Q.singleton fs0 0 [])
+    -> Maybe [WaitAnd (SomeAction eggs '(tiers, epic) habs vehicles)]
+search gd fs0 g = condenseWaits . reverse <$> go (Q.singleton fs0 0 [])
   where
     mkNode
         :: FarmStatus eggs '(tiers, epic) habs vehicles
+        -> Double
         -> [Either Time (SomeAction eggs '(tiers, epic) habs vehicles)]
         -> SomeAction eggs '(tiers, epic) habs vehicles
         -> Maybe (FarmStatus eggs '(tiers, epic) habs vehicles, Double, [Either Time (SomeAction eggs '(tiers, epic) habs vehicles)])
-    mkNode fs1 as sa@(Some a) = case a of
+    mkNode fs1 c as sa@(Some a) = case a of
       APrestige     -> Nothing
       AEggUpgrade _ -> Nothing
       _             -> do
         fs2 <- either (const Nothing) Just $
                   runAction gd a fs1
-        return (fs2, 0, addCondensed (Right sa) as)
+        return (fs2, c, addCondensed (Right sa) as)
     go  :: SearchQueue eggs '(tiers, epic) habs vehicles
         -> Maybe [Either Time (SomeAction eggs '(tiers, epic) habs vehicles)]
     go q0 = do
@@ -155,12 +158,13 @@ search gd fs0 g = reverse <$> go (Q.singleton fs0 0 [])
         GDAchieved        -> pure as
         GDWait t | t <= 0 -> pure as
         _                 -> do
-          let newNodes = Q.fromList
-                       . mapMaybe (mkNode fs1 as . fst)
-                       . actions gd
-                       $ fs1
-          Nothing
-
+          let fs2 = stepFarm gd Calm 5 fs1
+              q2 = insertIfBetter fs2 5 (addCondensed (Left 5) as) q1
+              q3 = foldl' (\q' (fs', c', as') -> insertIfBetter fs' c' as' q') q2
+                 . mapMaybe (mkNode fs1 c as . fst)
+                 . actions gd
+                 $ fs1
+          go q3
     condensor
         :: Either Double (SomeAction eggs '(tiers, epic) habs vehicles)
         -> Either Double (SomeAction eggs '(tiers, epic) habs vehicles)
@@ -227,6 +231,18 @@ search gd fs0 g = reverse <$> go (Q.singleton fs0 0 [])
 -- --       --                | otherwise -> GDWait $ maybe id (+) c $ (t / 100)
 -- --       --     GDNever    -> GDWait 1
 
+insertIfBetter
+    :: (Ord k, Ord p)
+    => k
+    -> p
+    -> v
+    -> Q.OrdPSQ k p v
+    -> Q.OrdPSQ k p v
+insertIfBetter k p v q = case Q.insertView k p v q of
+    (Nothing     , q') -> q'
+    (Just (p', _), q')
+      | p < p'    -> q'
+      | otherwise -> q
 
 condenseWaits :: [Either Time a] -> [WaitAnd a]
 condenseWaits [] = []

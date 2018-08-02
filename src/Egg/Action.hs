@@ -149,7 +149,11 @@ commonResearchActions
     :: forall eggs tiers epic habs vehicles. SingI tiers
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> Prod (Flip SV.Vector (Either (Sum I '[PurchaseError Bock, ResearchError]) (Action eggs '(tiers, epic) habs vehicles '[PurchaseError Bock, ResearchError], Bock))) tiers
+    -> Prod (Flip SV.Vector
+                (Either (Sum I '[PurchaseError Bock, ResearchError])
+                        (Action eggs '(tiers, epic) habs vehicles '[PurchaseError Bock, ResearchError], Bock)
+                )
+            ) tiers
 commonResearchActions gd fs =
     imap1 (\t -> iover (_Flip . imapped) (go t)) (legalResearchesCommon (gd ^. gdResearchData) (fs ^. fsResearch))
   where
@@ -241,6 +245,17 @@ actions gd fs = mconcat [ commonResearchActions gd fs ^.. liftTraversal (_Flip .
         -> (Action eggs '(tiers, epic) habs vehicles errs, a)
         -> (Some (Action eggs '(tiers, epic) habs vehicles), Maybe (Either Bock GoldenEgg))
     wrap f = bimap Some (Just . f)
+
+data ActionCost = ACBock Bock
+                | ACGoldenEgg
+
+-- -- | All possible actions, with their costs
+-- futureActions
+--     :: forall eggs tiers epic habs vehicles.
+--        (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles, 1 TL.<= habs, 1 TL.<= vehicles)
+--     => GameData   eggs '(tiers, epic) habs vehicles
+--     -> FarmStatus eggs '(tiers, epic) habs vehicles
+--     -> [(Some (Action eggs '(tiers, epic) habs vehicles), Maybe (Either Bock GoldenEgg))]
 
 renderAction
     :: (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
