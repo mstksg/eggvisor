@@ -77,9 +77,11 @@ import           Data.Bifunctor
 import           Data.Dependent.Sum
 import           Data.Finite
 import           Data.Foldable
+import           Data.Function
 import           Data.Kind
 import           Data.Maybe
 import           Data.Monoid                     (First(..))
+import           Data.Ord
 import           Data.Singletons
 import           Data.Singletons.Prelude hiding  (Flip)
 import           Data.Singletons.TypeLits
@@ -196,7 +198,15 @@ data ResearchStatus :: [Nat] -> Nat -> Type where
            , _rsEpic   :: SV.Vector epic Natural
            }
         -> ResearchStatus tiers epic
-  deriving (Show, Eq, Ord, Generic)
+  deriving (Show, Generic)
+
+instance Eq (ResearchStatus tiers epic) where
+    x == y = case compare x y of
+              EQ -> True
+              _  -> False
+instance Ord (ResearchStatus tiers epic) where
+    compare x y = foldMap1 (uncurryFan compare) (zipP (_rsCommon x :&: _rsCommon y))
+               <> comparing _rsEpic x y
 
 makeLenses ''ResearchStatus
 

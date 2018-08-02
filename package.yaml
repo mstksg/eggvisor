@@ -1,0 +1,87 @@
+name: eggvisor
+version: '0.1.0.0'
+category: Web
+author: Justin Le
+maintainer: justin@jle.im
+copyright: (c) Justin Le 2016
+license: BSD3
+github: mstksg/eggvisor
+extra-source-files:
+- README.md
+
+dependencies:
+- base >=4.7 && <5
+- aeson
+- finite-typelits
+- lens
+- reflection
+- singletons
+- text
+- transformers
+- type-combinators
+- vector
+- vector-sized
+- yaml
+
+ghc-options:
+- -Wall
+
+library:
+  source-dirs: src
+  other-modules:
+  - Data.Type.Combinator.Util
+  - Data.Singletons.Util
+  - Data.Finite.Util
+  dependencies:
+  - constraints
+  - containers
+  - dependent-map
+  - dependent-sum
+  - psqueues
+  - statistics-linreg
+  - type-combinators-singletons
+  - unordered-containers
+executables:
+  eggvisor-sim-terminal:
+    main: sim-terminal.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    dependencies:
+    - ansi-wl-pprint
+    - auto
+    - brick >=0.19
+    - eggvisor
+    - profunctors
+    - typelits-witnesses
+    - vty
+  eggvisor-plan:
+    main: plan.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    dependencies:
+    - eggvisor
+    - optparse-applicative
+    - typelits-witnesses
+  eggvisor-edit:
+    main: edit.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    dependencies:
+    - brick >=0.19
+    - eggvisor
+    - free
+    - refined
+    - vty
+    - prettyprinter

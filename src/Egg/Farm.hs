@@ -60,8 +60,10 @@ import           Control.Lens hiding       ((.=))
 import           Control.Monad
 import           Data.Aeson
 import           Data.Finite
+import           Data.Function
 import           Data.Functor
 import           Data.Kind
+import           Data.Ord
 import           Data.Semigroup
 import           Data.Singletons
 import           Data.Singletons.TypeLits
@@ -98,10 +100,8 @@ data FarmStatus :: Nat -> ([Nat], Nat) -> Nat -> Nat -> Type where
 
 deriving instance ListC (Show <$> (Flip SV.Vector Natural <$> tiers))
     => Show (FarmStatus eggs '(tiers, epic) habs vehicles)
-deriving instance ListC (Eq <$> (Flip SV.Vector Natural <$> tiers))
-    => Eq (FarmStatus egg '(tiers, epic) habs vehicles)
-deriving instance (ListC (Eq <$> (Flip SV.Vector Natural <$> tiers)), ListC (Ord <$> (Flip SV.Vector Natural <$> tiers)))
-    => Ord (FarmStatus egg '(tiers, epic) habs vehicles)
+deriving instance Eq (FarmStatus eggs '(tiers, epic) habs vehicles)
+deriving instance Ord (FarmStatus eggs '(tiers, epic) habs vehicles)
 
 data IncomeChange
        = ICHabFill (Fin N4)

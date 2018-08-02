@@ -1,116 +1,149 @@
-name:                eggvisor
-version:             0.1.0.0
--- synopsis:
--- description:
-homepage:            https://github.com/mstksg/eggvisor#readme
-license:             BSD3
-license-file:        LICENSE
-author:              Justin Le
-maintainer:          justin@jle.im
-copyright:           (c) Justin Le 2016
-category:            Web
-build-type:          Simple
-extra-source-files:  README.md
-cabal-version:       >=1.10
+-- This file has been generated from package.yaml by hpack version 0.28.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: ea74cb7bd90011b0aacca7faeb6982f8f71a9e5f278000fb3241063fea12d3a6
 
-library
-  hs-source-dirs:      src
-  exposed-modules:     Egg
-                       Egg.Action
-                       Egg.Commodity
-                       Egg.Egg
-                       Egg.Farm
-                       Egg.GameData
-                       Egg.Habitat
-                       Egg.Research
-                       Egg.Search
-                       Egg.Vehicle
-                       Data.Vector.Sized.Util
-  other-modules:       Data.Type.Combinator.Util
-                       Data.Singletons.Util
-                       Data.Finite.Util
-  build-depends:       base >= 4.7 && < 5
-                     , aeson
-                     , constraints
-                     , containers
-                     , dependent-map
-                     , dependent-sum
-                     , finite-typelits
-                     , lens
-                     -- , pqueue
-                     , reflection
-                     , psqueues
-                     , singletons
-                     , statistics-linreg
-                     , text
-                     , transformers
-                     , type-combinators
-                     , type-combinators-singletons
-                     , unordered-containers
-                     , vector
-                     , vector-sized
-                     , yaml
-  ghc-options:         -Wall
-  default-language:    Haskell2010
-
-executable eggvisor-sim-terminal
-  hs-source-dirs:      app
-  main-is:             SimTerminal.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -O2
-  build-depends:       base >= 4.9
-                     , aeson
-                     , ansi-wl-pprint
-                     , auto
-                     , brick >= 0.19
-                     , eggvisor
-                     , finite-typelits
-                     , lens
-                     , profunctors
-                     , singletons
-                     , text
-                     , transformers
-                     , type-combinators
-                     , typelits-witnesses
-                     , vector
-                     , vty
-                     , yaml
-  default-language:    Haskell2010
-
-executable eggvisor-plan
-  hs-source-dirs:      app
-  main-is:             Plan.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -O2
-  build-depends:       base >= 4.9
-                     , eggvisor
-                     , optparse-applicative
-                     , transformers
-                     , type-combinators
-                     , typelits-witnesses
-                     , yaml
-  default-language:    Haskell2010
-
-executable eggvisor-edit
-  hs-source-dirs:      app
-  main-is:             Edit.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -O2
-  build-depends:       base >= 4.9
-                     , brick >= 0.19
-                     , eggvisor
-                     , finite-typelits
-                     , free
-                     , lens
-                     , refined
-                     , reflection
-                     , text
-                     , transformers
-                     , type-combinators
-                     , vector
-                     , vector-sized
-                     , vty
-                     , prettyprinter
-  default-language:    Haskell2010
-
+name:           eggvisor
+version:        0.1.0.0
+category:       Web
+homepage:       https://github.com/mstksg/eggvisor#readme
+bug-reports:    https://github.com/mstksg/eggvisor/issues
+author:         Justin Le
+maintainer:     justin@jle.im
+copyright:      (c) Justin Le 2016
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
+extra-source-files:
+    README.md
 
 source-repository head
-  type:     git
+  type: git
   location: https://github.com/mstksg/eggvisor
+
+library
+  exposed-modules:
+      Data.Vector.Sized.Util
+      Egg
+      Egg.Action
+      Egg.Commodity
+      Egg.Egg
+      Egg.Farm
+      Egg.GameData
+      Egg.Habitat
+      Egg.Research
+      Egg.Search
+      Egg.Vehicle
+  other-modules:
+      Data.Type.Combinator.Util
+      Data.Singletons.Util
+      Data.Finite.Util
+  hs-source-dirs:
+      src
+  ghc-options: -Wall
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , constraints
+    , containers
+    , dependent-map
+    , dependent-sum
+    , finite-typelits
+    , lens
+    , psqueues
+    , reflection
+    , singletons
+    , statistics-linreg
+    , text
+    , transformers
+    , type-combinators
+    , type-combinators-singletons
+    , unordered-containers
+    , vector
+    , vector-sized
+    , yaml
+  default-language: Haskell2010
+
+executable eggvisor-edit
+  main-is: edit.hs
+  other-modules:
+      Paths_eggvisor
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , brick >=0.19
+    , eggvisor
+    , finite-typelits
+    , free
+    , lens
+    , prettyprinter
+    , refined
+    , reflection
+    , singletons
+    , text
+    , transformers
+    , type-combinators
+    , vector
+    , vector-sized
+    , vty
+    , yaml
+  default-language: Haskell2010
+
+executable eggvisor-plan
+  main-is: plan.hs
+  other-modules:
+      Paths_eggvisor
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , eggvisor
+    , finite-typelits
+    , lens
+    , optparse-applicative
+    , reflection
+    , singletons
+    , text
+    , transformers
+    , type-combinators
+    , typelits-witnesses
+    , vector
+    , vector-sized
+    , yaml
+  default-language: Haskell2010
+
+executable eggvisor-sim-terminal
+  main-is: sim-terminal.hs
+  other-modules:
+      Paths_eggvisor
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2
+  build-depends:
+      aeson
+    , ansi-wl-pprint
+    , auto
+    , base >=4.7 && <5
+    , brick >=0.19
+    , eggvisor
+    , finite-typelits
+    , lens
+    , profunctors
+    , reflection
+    , singletons
+    , text
+    , transformers
+    , type-combinators
+    , typelits-witnesses
+    , vector
+    , vector-sized
+    , vty
+    , yaml
+  default-language: Haskell2010

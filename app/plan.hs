@@ -60,7 +60,7 @@ main = do
         -- let path = search gd (initFarmStatus gd) (GCash 100000000)
         -- let path = search gd (initFarmStatus gd) (GPop 50000)
         let path = search gd (initFarmStatus gd) oGoal
-        case condenseWaits <$> path of
+        case path of
           Nothing -> putStrLn "no path found"
           Just ps -> do
             putStrLn "path found"

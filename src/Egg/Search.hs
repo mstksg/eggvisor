@@ -128,8 +128,8 @@ search
      , KnownNat vehicles
      , 1 <= habs
      , 1 <= vehicles
-     , ListC (Eq <$> (Flip SV.Vector Natural <$> tiers))
-     , ListC (Ord <$> (Flip SV.Vector Natural <$> tiers))
+     -- , ListC (Eq <$> (Flip SV.Vector Natural <$> tiers))
+     -- , ListC (Ord <$> (Flip SV.Vector Natural <$> tiers))
      )
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
@@ -155,6 +155,7 @@ search gd fs0 g = condenseWaits . reverse <$> go (Q.singleton fs0 0 [])
     go q0 = do
       (fs1, c, as, q1) <- Q.minView q0
       case goalDist gd fs1 g of
+        -- TODO: need to keep on searching
         GDAchieved        -> pure as
         GDWait t | t <= 0 -> pure as
         _                 -> do
