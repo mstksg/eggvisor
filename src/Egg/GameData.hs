@@ -60,8 +60,7 @@ data GameData :: Nat -> ([Nat], Nat) -> Nat -> Nat -> Type where
                 }
              -> GameData eggs '(tiers, epic) habs vehicles
 
-deriving instance ListC (Show <$> (ResearchTier <$> tiers))
-    => Show (GameData eggs '(tiers, epic) habs vehicles)
+deriving instance Show (GameData eggs '(tiers, epic) habs vehicles)
 
 gdEggData :: Lens (GameData e1 '(t, g) h v) (GameData e2 '(t, g) h v) (EggData e1) (EggData e2)
 gdEggData f gd = (\ed -> gd { _gdEggData = ed }) <$> f (_gdEggData gd)
@@ -96,7 +95,7 @@ data SomeGameData :: Type where
 withSomeGameData
     :: SomeGameData
     -> (forall eggs tiers epic habs vehicles.
-            (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
+            (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles, SingI tiers, SingI epic)
          => GameData eggs '(tiers, epic) habs vehicles
          -> r
        )

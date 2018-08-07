@@ -14,6 +14,7 @@
 {-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE ViewPatterns          #-}
 
 module Egg.Action (
     Action(..)
@@ -30,6 +31,7 @@ module Egg.Action (
   , renderAction
   , renderActionFS
   , bockErrorIx
+  , actionErrors, ActionErrors
   ) where
 
 -- import           Control.Applicative
@@ -52,6 +54,7 @@ import           Data.Type.Product
 import           Data.Type.Sum
 import           Data.Type.Vector          as TCV
 import           Data.Vector.Sized.Util
+import           Debug.Trace
 import           Egg.Commodity
 import           Egg.Egg
 import           Egg.Farm
@@ -68,6 +71,7 @@ import qualified Data.Vector               as V
 import qualified Data.Vector.Sized         as SV
 
 newtype PurchaseError a = PEInsufficientFunds { _peCost :: a }
+  deriving Show
 
 makePrisms ''PurchaseError
 makeWrapped ''PurchaseError
@@ -104,7 +108,8 @@ data Action :: Nat -> ([Nat], Nat) -> Nat -> Nat -> [Type] -> Type where
 
 type SomeAction eggs te habs vehicles = Some (Action eggs te habs vehicles)
 
-deriving instance Show (Sum Finite tiers) => Show (Action eggs '(tiers, epic) habs vehicles errs)
+-- deriving instance Show (Sum Finite tiers) => Show (Action eggs '(tiers, epic) habs vehicles errs)
+deriving instance Show (Action eggs '(tiers, epic) habs vehicles errs)
 
 bockErrorIx
     :: Action eggs '(tiers, epic) habs vehicles errs
@@ -123,6 +128,43 @@ bockErrorIx = \case
       IS i -> case i of {}
     APrestige              -> Disproved $ \case
       IS i -> case i of {}
+
+type ActionErrors habs vehicles
+        = '[ PurchaseError Bock
+           , PurchaseError GoldenEgg
+           , ResearchError
+           , Finite habs
+           , SomeVehicleUpgradeError vehicles
+           , HatchError
+           , Double
+           , UpgradeError
+           , ()
+           ]
+
+actionErrors
+    :: Action  eggs '(tiers, epic) habs vehicles errs
+    -> Sum I errs
+    -> Sum I (ActionErrors habs vehicles)
+actionErrors = \case
+    AResearch i -> \case
+      InL e       -> case i of
+        RICommon _ -> InL e
+        RIEpic   _ -> InR (InL e)
+      InR (InL e) -> InR (InR (InL e))
+    AHab _ _ -> \case
+      InL e       -> InL e
+      InR (InL e) -> InR (InR (InR (InL e)))
+    AVehicle _ _ -> \case
+      InL e       -> InL e
+      InR (InL e) -> InR (InR (InR (InR (InL e))))
+    AHatch _ -> \case
+      InL e       -> InR (InR (InR (InR (InR (InL e)))))
+    AWatchVideo -> \case
+      InL e       -> InR (InR (InR (InR (InR (InR (InL e))))))
+    AEggUpgrade _ -> \case
+      InL e       -> InR (InR (InR (InR (InR (InR (InR (InL e)))))))
+    APrestige -> \case
+      InL e       -> InR (InR (InR (InR (InR (InR (InR (InR (InL e))))))))
 
 -- | Execute an action as a change in a 'FarmStatus'.
 runAction
@@ -207,7 +249,7 @@ eggActions = SV.generate AEggUpgrade
 -- | All possible actions, with their costs
 actions
     :: forall eggs tiers epic habs vehicles.
-       (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs)
+       (SingI tiers, KnownNat habs)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> [SomeAction eggs '(tiers, epic) habs vehicles]

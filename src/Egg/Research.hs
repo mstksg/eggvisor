@@ -185,7 +185,10 @@ data ResearchData :: [Nat] -> Nat -> Type where
            , _rdEpic   :: SV.Vector epic (Research GoldenEgg)
            }
         -> ResearchData tiers epic
-  deriving (Show, Eq, Ord)
+  deriving (Eq, Ord)
+
+instance Show (ResearchData tiers epic) where
+    showsPrec _ _ = showString "ResearchData"
 
 makeLenses ''ResearchData
 
@@ -197,7 +200,10 @@ data ResearchStatus :: [Nat] -> Nat -> Type where
            , _rsEpic   :: SV.Vector epic Natural
            }
         -> ResearchStatus tiers epic
-  deriving (Show, Generic)
+  deriving (Generic)
+
+instance Show (ResearchStatus tiers epic) where
+    showsPrec _ _ = showString "ResearchStatus"
 
 instance Eq (ResearchStatus tiers epic) where
     x == y = case compare x y of
@@ -218,7 +224,9 @@ data ResearchIx :: [Nat] -> Nat -> Type -> Type where
     RICommon :: Sum Finite tiers -> ResearchIx tiers epic Bock
     RIEpic   :: Finite epic      -> ResearchIx tiers epic GoldenEgg
 
-deriving instance Show (Sum Finite tiers) => Show (ResearchIx tiers epic a)
+instance Show (ResearchIx tiers epic a) where
+    showsPrec _ (RICommon _) = showString "RICommon"
+    showsPrec _ (RIEpic _  ) = showString "RIEpic"
 
 _RICommon :: Iso (ResearchIx t1 epic Bock) (ResearchIx t2 epic Bock)
                  (Sum Finite t1          ) (Sum Finite t2          )

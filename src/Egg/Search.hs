@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE DeriveFunctor       #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE LambdaCase          #-}
@@ -23,9 +24,10 @@ module Egg.Search (
 -- import           Debug.Trace
 -- import qualified Data.PQueue.Prio.Min    as PQ
 import           Control.Lens
-import           Control.Monad.Trans.Maybe
 import           Control.Monad
+import           Control.Monad.Trans.Maybe
 import           Control.Monad.Trans.Writer
+import           Data.Either
 import           Data.List
 import           Data.Maybe
 import           Data.Ord
@@ -111,17 +113,31 @@ type Time = Double
 data WaitAnd a = WAWait Time
                | WADo   a
                | WAAnd  Time a
+  deriving (Show, Functor)
+
+-- data Path a = PNil
+--             | PCons [a] Time (Path a)
 
 type SearchQueue eggs te habs vehicles =
       Q.OrdPSQ (FarmStatus eggs te habs vehicles)
                Time
                [Either Time (SomeAction eggs te habs vehicles)]
+               -- (Path (SomeAction eggs te habs vehicles))
 
 -- data SearchNode eggs te habs vehicles =
 --     SN { _snActions :: [Either Double (SomeAction eggs te habs vehicles)]
 --        , _snCost    :: !Double
 --        , _snFarm    :: FarmStatus eggs te habs vehicles
 --        }
+
+-- tracePath
+--     :: (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
+--     => GameData eggs '(tiers, epic) habs vehicles
+--     -> [Either Time (SomeAction eggs '(tiers, epic) habs vehicles)]
+--     -> [Either Time (SomeAction eggs '(tiers, epic) habs vehicles)]
+-- tracePath gd xs = traceShow xs' xs
+--   where
+--     xs' = map (fmap (\case Some a -> renderAction gd a)) xs
 
 search
     :: forall eggs tiers epic habs vehicles.
@@ -155,37 +171,44 @@ search gd fs0 g = condenseWaits . reverse <$> go (Q.singleton fs0 0 [])
           NonStarter               -> Nothing
         let fs3 = emptyHatchery gd fs2
             waitEntry = case t of
-                          Nothing -> []
-                          Just t' -> [Left t']
+              Nothing -> []
+              Just t' -> [Left t']
             as' = Right (Some (AHatch (floor (maxHatch gd fs1))))
                 : waitEntry ++ as
         pure (fs3, c + fromMaybe 0 t, as')
       _             -> case runAction gd a fs1 of
-        Left  e   -> case bockErrorIx a of
-          Proved    i -> case i `TCS.index` e of
-            Just (I (PEInsufficientFunds b)) -> case waitUntilBocks gd Calm b fs1 of
-              WaitTilSuccess t (I fs2) -> return (fs2, c + t, Right sa : Left t : as)
-              NoWait                   -> error "hmm.."
-              NonStarter               -> Nothing
-            Nothing -> Nothing
-          Disproved _ -> Nothing
-        Right fs2 -> return (fs2, c, Right sa : as)
+              Left  e   -> case bockErrorIx a of
+                Proved    i -> case i `TCS.index` e of
+                  Just (I (PEInsufficientFunds b)) -> case waitUntilBocks gd Calm b fs1 of
+                    WaitTilSuccess t (I fs2) -> case runAction gd a fs2 of
+                      Left _    -> Nothing
+                      Right fs3 -> return (fs3, c + t, Right sa : Left t : as)
+                    NoWait                   -> error "hmm.."
+                    NonStarter               -> Nothing
+                  Nothing -> Nothing
+                Disproved _ -> Nothing
+              Right fs2 -> return (fs2, c, Right sa : as)
     go  :: SearchQueue eggs '(tiers, epic) habs vehicles
         -> Maybe [Either Time (SomeAction eggs '(tiers, epic) habs vehicles)]
     go !q0 = do
       (fs1, c, as, q1) <- Q.minView q0
-      traceShow (Q.size q1) $ pure ()
+      -- tracePath gd as `seq` pure ()
+      let q2 = foldl' (\q' (fs', c', as') -> insertIfBetter fs' c' as' q') q1
+             . mapMaybe (mkNode fs1 c as)
+             . actions gd
+             $ fs1
+      -- traceShow (Q.size q1) $ pure ()
       -- traceShow c           $ pure ()
       -- traceShow (fmap (\case Some a -> renderAction gd a) <$> as) $ pure ()
       case goalDist gd fs1 g of
         GDAchieved        -> pure as
-        GDWait t | t <= 0 -> pure as
-        _                 ->
-          let q2 = foldl' (\q' (fs', c', as') -> insertIfBetter fs' c' as' q') q1
-                 . mapMaybe (mkNode fs1 c as)
-                 . actions gd
-                 $ fs1
-          in  go q2
+        GDWait t
+          | t <= 0        -> pure as
+          | otherwise     ->
+            let fs2 = stepFarm gd Calm t fs1
+                q3  = insertIfBetter fs2 (c + t) (Left t : as) q2
+            in  go q3
+        _                 -> go q2
     -- condensor
     --     :: Either Double (SomeAction eggs '(tiers, epic) habs vehicles)
     --     -> Either Double (SomeAction eggs '(tiers, epic) habs vehicles)
@@ -272,14 +295,3 @@ condenseWaits [Right x] = [WADo x]
 condenseWaits (Left x:Left  y:ys) = condenseWaits (Left (x + y) : ys)
 condenseWaits (Left x:Right y:ys) = WAAnd x y : condenseWaits ys
 condenseWaits (Right x:ys) = WADo x : condenseWaits ys
-
--- data GoalDist = GDAchieved
---               | GDWait Double
---               | GDNever
-
--- actions
---     :: forall eggs tiers epic habs vehicles.
---        (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
---     => GameData   eggs '(tiers, epic) habs vehicles
---     -> FarmStatus eggs '(tiers, epic) habs vehicles
---     -> [(Some (Action eggs '(tiers, epic) habs vehicles), Maybe (Either Bock GoldenEgg))]

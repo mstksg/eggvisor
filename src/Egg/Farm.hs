@@ -59,7 +59,6 @@ module Egg.Farm (
   , popDrone
   ) where
 
--- import qualified GHC.TypeLits           as TL
 import           Control.Lens hiding       ((.=))
 import           Control.Monad
 import           Data.Aeson
@@ -82,7 +81,6 @@ import           Egg.Research
 import           Egg.Vehicle
 import           Numeric.Lens
 import           Numeric.Natural
-import           Type.Family.List
 import           Type.Family.Nat
 import qualified Data.Vector.Sized         as SV
 
@@ -100,8 +98,9 @@ data FarmStatus :: Nat -> ([Nat], Nat) -> Nat -> Nat -> Type where
                   }
                -> FarmStatus eggs '(tiers, epic) habs vehicles
 
-deriving instance ListC (Show <$> (Flip SV.Vector Natural <$> tiers))
-    => Show (FarmStatus eggs '(tiers, epic) habs vehicles)
+deriving instance Show (FarmStatus eggs '(tiers, epic) habs vehicles)
+-- deriving instance ListC (Show <$> (Flip SV.Vector Natural <$> tiers))
+--     => Show (FarmStatus eggs '(tiers, epic) habs vehicles)
 deriving instance Eq (FarmStatus eggs '(tiers, epic) habs vehicles)
 deriving instance Ord (FarmStatus eggs '(tiers, epic) habs vehicles)
 
