@@ -48,6 +48,9 @@ module Egg.Farm (
   , waitTilFarmPop
   , waitTilDepotFull
   , hatchChickens
+  , emptyHatchery
+  , maxHatch
+  , waitTilHatcheryFull
   , upgradeEgg
   , eggUpgrades
   , eggsVisible
@@ -56,14 +59,14 @@ module Egg.Farm (
   , popDrone
   ) where
 
+-- import qualified GHC.TypeLits           as TL
 import           Control.Lens hiding       ((.=))
 import           Control.Monad
 import           Data.Aeson
 import           Data.Finite
-import           Data.Function
 import           Data.Functor
 import           Data.Kind
-import           Data.Ord
+import           Data.Maybe
 import           Data.Semigroup
 import           Data.Singletons
 import           Data.Singletons.TypeLits
@@ -82,7 +85,6 @@ import           Numeric.Natural
 import           Type.Family.List
 import           Type.Family.Nat
 import qualified Data.Vector.Sized         as SV
-import qualified GHC.TypeLits              as TL
 
 data FarmStatus :: Nat -> ([Nat], Nat) -> Nat -> Nat -> Type where
     FarmStatus :: { _fsEgg           :: Finite eggs
@@ -206,11 +208,11 @@ instance ToJSON (FarmStatus egg research habs vehicles) where
         ]
 
 initFarmStatus
-    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles, 1 TL.<= eggs, 1 TL.<= habs, 1 TL.<= vehicles)
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
 initFarmStatus gd@(GameData _ rd _ _ _) =
-    FarmStatus 0
+    FarmStatus minBound
                (emptyResearchStatus rd)
                initHabStatus
                initSomeDepotStatus
@@ -240,8 +242,7 @@ farmEggValue gd fs = gd ^. edEggs
 -- Also gives remaining capacity of depots, with 'Nothing' if depots are
 -- at full capacity.
 farmLayingRate
-    :: KnownNat vehicles
-    => GameData   eggs '(tiers, epic) habs vehicles
+    :: GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Double
 farmLayingRate gd fs = fst $ farmLayingRateAvailability gd fs
@@ -254,8 +255,7 @@ farmLayingRate gd fs = fst $ farmLayingRateAvailability gd fs
 -- Also gives remaining capacity of depots, with 'Nothing' if depots are
 -- at full capacity.
 farmLayingRateAvailability
-    :: KnownNat vehicles
-    => GameData   eggs '(tiers, epic) habs vehicles
+    :: GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> (Double, Maybe Double)
 farmLayingRateAvailability gd fs =
@@ -294,7 +294,7 @@ videoDoubling gd fs = case fs ^. fsVideoBonus of
 
 -- | Total income (bocks per second), no bonuses
 farmIncomeNoBonus
-    :: (KnownNat eggs, KnownNat vehicles)
+    :: KnownNat eggs
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Bock
@@ -305,7 +305,7 @@ farmIncomeNoBonus gd fs
 
 -- | Total income (bocks per second), with bonuses
 farmIncome
-    :: (KnownNat eggs, KnownNat vehicles)
+    :: KnownNat eggs
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Bock
@@ -333,7 +333,7 @@ farmIncome gd fs = fs ^. to (farmIncomeNoBonus gd)
 -- totalincome = dt * capped (initHabSize * layingRate) * eggValue
 --
 farmIncomeDT
-    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    :: (KnownNat eggs, KnownNat habs)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> IsCalm
     -> FarmStatus eggs '(tiers, epic) habs vehicles
@@ -360,8 +360,7 @@ farmIncomeDT gd ic fs dt
 
 -- | Total depot capacity of farm, in eggs per second
 farmDepotCapacity
-    :: KnownNat vehicles
-    => GameData   eggs '(tiers, epic) habs vehicles
+    :: GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Double
 farmDepotCapacity gd fs = withSomeDepotStatus bs (fs ^. fsDepot) $
@@ -417,7 +416,7 @@ refillHatcheries gd dt fs0 =
 -- Assumes egg value is not zero.
 --
 farmIncomeDTInv
-    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    :: (KnownNat eggs, KnownNat habs)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> IsCalm
     -> FarmStatus eggs '(tiers, epic) habs vehicles
@@ -469,7 +468,7 @@ farmBonuses gd fs = totalBonuses (gd ^. gdResearchData) (fs ^. fsResearch)
 -- Should be += integral (R c(t)) dt
 --   where c'(t) = rt
 stepFarm
-    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> IsCalm
     -> Double       -- ^ time interval to step
@@ -498,7 +497,7 @@ stepFarm gd ic dt0 fs0 = go dt0 fs0
 --
 -- Useful for stepping continuous simulations.
 stepFarmDT
-    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> IsCalm
     -> Double       -- ^ small (infinitessimal) time interval to step
@@ -512,7 +511,7 @@ stepFarmDT gd ic dt fs = fs
 
 -- | Wait until bocks.
 waitUntilBocks
-    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> IsCalm
     -> Bock       -- ^ goal
@@ -549,7 +548,7 @@ waitUntilBocks gd ic goal fs0
 -- Tag is Nothing if depot fill event, or Just s if hab fill event with
 -- slot.
 waitTilNextIncomeChange
-    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> IsCalm
     -> FarmStatus eggs '(tiers, epic) habs vehicles
@@ -594,7 +593,7 @@ waitTilNextIncomeChange gd ic fs0 = case waitTilNextFilled gd bs ic fs0 of
 --
 -- If Left returned, means that hab maxed out.
 waitTilFarmPop
-    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> IsCalm
     -> Natural    -- ^ goal
@@ -615,7 +614,7 @@ waitTilFarmPop gd ic goal fs0 =
 --
 -- If Left returned, means that hab maxed out.
 waitTilDepotFull
-    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    :: (KnownNat eggs, KnownNat habs)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> IsCalm
     -> FarmStatus eggs '(tiers, epic) habs vehicles
@@ -645,10 +644,46 @@ hatchChickens gd (fromIntegral->n) fs = do
   where
     bs = farmBonuses gd fs
 
+emptyHatchery
+    :: KnownNat habs
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+emptyHatchery gd fs = case addChickens gd bs (fs ^. fsHatchery) fs of
+    (lo, fs') -> fs' & fsHatchery .~ fromMaybe 0 lo
+  where
+    bs = farmBonuses gd fs
+
+maxHatch
+    :: KnownNat habs
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Double
+maxHatch gd fs = min (fs ^. fsHatchery)
+                     (sumOf (availableSpaces gd bs . folded . folded) fs)
+  where
+    bs = farmBonuses gd fs
+
+waitTilHatcheryFull
+    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs)
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> IsCalm
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> WaitTilRes I (FarmStatus eggs '(tiers, epic) habs vehicles)
+waitTilHatcheryFull gd ic fs
+    | rat == 0  = NonStarter            -- ^ can be optimized away?
+    | cur < cap = let t = (cap - cur) / rat
+                  in  WaitTilSuccess t . I $ stepFarm gd ic t fs
+    | otherwise = NoWait
+  where
+    cap = hatcheryCapacity gd fs
+    rat = hatcheryRefillRate gd fs
+    cur = fs ^. fsHatchery
+
 -- | Upgrade your egg!
 --
 upgradeEgg
-    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles, 1 TL.<= habs, 1 TL.<= vehicles)
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
     => GameData  eggs '(tiers, epic) habs vehicles
     -> Finite eggs
     -> FarmStatus eggs '(tiers, epic) habs vehicles
@@ -672,7 +707,7 @@ upgradeEgg gd e fs
 
 -- | Vector of possible upgrades
 eggUpgrades
-    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    :: KnownNat eggs
     => GameData  eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> (SV.Vector eggs :.: Either UpgradeError) (Finite eggs)
@@ -684,7 +719,7 @@ eggUpgrades gd fs = Comp . SV.generate $ \e ->
 
 -- | Vector of visible eggs
 eggsVisible
-    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    :: KnownNat eggs
     => GameData  eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> (SV.Vector eggs :.: Maybe) (Finite eggs)
@@ -702,7 +737,7 @@ eggsVisible gd fs = Comp . SV.generate $ \e ->
 --
 -- TODO: figure out if income should be capped by depot or not
 farmValue
-    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    :: KnownNat eggs
     => GameData  eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Bock
@@ -724,7 +759,7 @@ farmValue gd fs = (x + y + z) ^. bonusingFor bs BTFarmValue
 
 -- | Prestige!  Resets farm, increments soul eggs.
 prestigeFarm
-    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles, 1 TL.<= habs, 1 TL.<= vehicles)
+    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
     => GameData  eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> Maybe (FarmStatus eggs '(tiers, epic) habs vehicles)
@@ -765,7 +800,7 @@ watchVideo gd fs = case fs ^. fsVideoBonus of
                . multiplying 60
 
 popDrone
-    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
+    :: KnownNat eggs
     => GameData   eggs '(tiers, epic) habs vehicles
     -> Drone
     -> FarmStatus eggs '(tiers, epic) habs vehicles

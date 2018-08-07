@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ea74cb7bd90011b0aacca7faeb6982f8f71a9e5f278000fb3241063fea12d3a6
+-- hash: 1613abc4a769b2d64d3cb988b84e326d6747a16a565efe41a2f36536e7e647da
 
 name:           eggvisor
 version:        0.1.0.0
@@ -42,7 +42,7 @@ library
       Data.Finite.Util
   hs-source-dirs:
       src
-  ghc-options: -Wall
+  ghc-options: -Wall -Wredundant-constraints
   build-depends:
       aeson
     , base >=4.7 && <5
@@ -72,7 +72,7 @@ executable eggvisor-edit
       Paths_eggvisor
   hs-source-dirs:
       app
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2
+  ghc-options: -Wall -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -O2
   build-depends:
       aeson
     , base >=4.7 && <5
@@ -100,7 +100,7 @@ executable eggvisor-plan
       Paths_eggvisor
   hs-source-dirs:
       app
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2
+  ghc-options: -Wall -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -O2
   build-depends:
       aeson
     , base >=4.7 && <5
@@ -116,34 +116,5 @@ executable eggvisor-plan
     , typelits-witnesses
     , vector
     , vector-sized
-    , yaml
-  default-language: Haskell2010
-
-executable eggvisor-sim-terminal
-  main-is: sim-terminal.hs
-  other-modules:
-      Paths_eggvisor
-  hs-source-dirs:
-      app
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2
-  build-depends:
-      aeson
-    , ansi-wl-pprint
-    , auto
-    , base >=4.7 && <5
-    , brick >=0.19
-    , eggvisor
-    , finite-typelits
-    , lens
-    , profunctors
-    , reflection
-    , singletons
-    , text
-    , transformers
-    , type-combinators
-    , typelits-witnesses
-    , vector
-    , vector-sized
-    , vty
     , yaml
   default-language: Haskell2010

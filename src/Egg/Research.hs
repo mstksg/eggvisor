@@ -77,7 +77,6 @@ import           Data.Bifunctor
 import           Data.Dependent.Sum
 import           Data.Finite
 import           Data.Foldable
-import           Data.Function
 import           Data.Kind
 import           Data.Maybe
 import           Data.Monoid                     (First(..))
@@ -202,8 +201,8 @@ data ResearchStatus :: [Nat] -> Nat -> Type where
 
 instance Eq (ResearchStatus tiers epic) where
     x == y = case compare x y of
-              EQ -> True
-              _  -> False
+      EQ -> True
+      _  -> False
 instance Ord (ResearchStatus tiers epic) where
     compare x y = foldMap1 (uncurryFan compare) (zipP (_rsCommon x :&: _rsCommon y))
                <> comparing _rsEpic x y
@@ -716,7 +715,7 @@ legalResearchIxesCommon rd rs =
 --
 -- 'Nothing' implies research is maxed-out.
 legalResearchIxesEpic
-    :: forall tiers epic. KnownNat epic
+    :: forall tiers epic. ()
     => ResearchData tiers epic
     -> ResearchStatus tiers epic
     -> (SV.Vector epic :.: Maybe) (ResearchIx tiers epic GoldenEgg)

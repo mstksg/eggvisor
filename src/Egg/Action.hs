@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE EmptyCase             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
@@ -28,19 +29,23 @@ module Egg.Action (
   , actions
   , renderAction
   , renderActionFS
+  , bockErrorIx
   ) where
 
+-- import           Control.Applicative
+-- import           Data.Type.Conjunction
 -- import qualified Data.Map               as M
+-- import qualified GHC.TypeLits           as TL
 import           Control.Lens hiding       ((:<), Index)
 import           Data.Bifunctor
 import           Data.Finite
 import           Data.Kind
 import           Data.Maybe
+import           Data.Singletons.Decide    (Decision(..))
 import           Data.Singletons.TH hiding ((%~))
 import           Data.Singletons.TypeLits
 import           Data.Type.Combinator
 import           Data.Type.Combinator.Util
-import           Data.Type.Conjunction
 import           Data.Type.Fin
 import           Data.Type.Index
 import           Data.Type.Product
@@ -61,7 +66,6 @@ import           Type.Class.Higher
 import           Type.Family.Nat
 import qualified Data.Vector               as V
 import qualified Data.Vector.Sized         as SV
-import qualified GHC.TypeLits              as TL
 
 newtype PurchaseError a = PEInsufficientFunds { _peCost :: a }
 
@@ -102,9 +106,27 @@ type SomeAction eggs te habs vehicles = Some (Action eggs te habs vehicles)
 
 deriving instance Show (Sum Finite tiers) => Show (Action eggs '(tiers, epic) habs vehicles errs)
 
+bockErrorIx
+    :: Action eggs '(tiers, epic) habs vehicles errs
+    -> Decision (Index errs (PurchaseError Bock))
+bockErrorIx = \case
+    AResearch (RICommon _) -> Proved IZ
+    AResearch (RIEpic   _) -> Disproved $ \case
+      IS (IS i) -> case i of {}
+    AHab _ _               -> Proved IZ
+    AVehicle _ _           -> Proved IZ
+    AHatch _               -> Disproved $ \case
+      IS i -> case i of {}
+    AWatchVideo            -> Disproved $ \case
+      IS i -> case i of {}
+    AEggUpgrade _          -> Disproved $ \case
+      IS i -> case i of {}
+    APrestige              -> Disproved $ \case
+      IS i -> case i of {}
+
 -- | Execute an action as a change in a 'FarmStatus'.
 runAction
-    :: (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles, 1 TL.<= habs, 1 TL.<= vehicles)
+    :: (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> Action     eggs '(tiers, epic) habs vehicles errs
     -> FarmStatus eggs '(tiers, epic) habs vehicles
@@ -147,115 +169,60 @@ runAction gd = \case
 -- | All possible common research actions and their costs.
 commonResearchActions
     :: forall eggs tiers epic habs vehicles. SingI tiers
-    => GameData   eggs '(tiers, epic) habs vehicles
-    -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> Prod (Flip SV.Vector
-                (Either (Sum I '[PurchaseError Bock, ResearchError])
-                        (Action eggs '(tiers, epic) habs vehicles '[PurchaseError Bock, ResearchError], Bock)
-                )
+    => Prod (Flip SV.Vector
+                (Action eggs '(tiers, epic) habs vehicles '[PurchaseError Bock, ResearchError])
             ) tiers
-commonResearchActions gd fs =
-    imap1 (\t -> iover (_Flip . imapped) (go t)) (legalResearchesCommon (gd ^. gdResearchData) (fs ^. fsResearch))
-  where
-    go  :: Index tiers a
-        -> Finite a
-        -> Either ResearchError Bock
-        -> Either (Sum I '[PurchaseError Bock, ResearchError]) (Action eggs '(tiers, epic) habs vehicles '[PurchaseError Bock, ResearchError], Bock)
-    go t s e = do
-      cost <- first (inj . I) e
-      if fs ^. fsBocks >= cost
-        then return (AResearch . RICommon . someSum $ Some (t :&: s), cost)
-        else Left . inj . I $ PEInsufficientFunds cost
+commonResearchActions = map1 (Flip . fmap AResearch . getFlip) researchIxesCommon
 
 -- | All possible epic research actions and their costs.
 epicResearchActions
     :: forall eggs tiers epic habs vehicles. (KnownNat epic)
-    => GameData   eggs '(tiers, epic) habs vehicles
-    -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> (SV.Vector epic :.: Either (Sum I '[PurchaseError GoldenEgg, ResearchError])) (Action eggs '(tiers, epic) habs vehicles '[PurchaseError GoldenEgg, ResearchError], GoldenEgg)
-epicResearchActions gd fs =
-    legalResearchesEpic (gd ^. gdResearchData) (fs ^. fsResearch)
-      & (_Comp . imapped) %@~ \i c -> do
-        cost <- maybe (Left . inj . I $ REMaxedOut) Right c
-        if fs ^. fsGoldenEggs >= cost
-          then return (AResearch (RIEpic i), cost)
-          else Left . inj . I $ PEInsufficientFunds cost
+    => SV.Vector epic (Action eggs '(tiers, epic) habs vehicles '[PurchaseError GoldenEgg, ResearchError])
+epicResearchActions = fmap AResearch researchIxesEpic
 
 -- | All possible hab upgrade actions and their costs.
 habActions
     :: KnownNat habs
-    => GameData   eggs '(tiers, epic) habs vehicles
-    -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> VecT N4 (SV.Vector habs :.: Either (Sum I '[PurchaseError Bock, Finite habs])) (Action eggs '(tiers, epic) habs vehicles '[PurchaseError Bock, Finite habs], Bock)
-habActions gd fs =
-    habUpgrades gd (farmBonuses gd fs) fs
-      & (isets TCV.imap <. _Comp) <.> imapped %@~ \(s, h) c -> do
-        cost <- first (inj . I) c
-        if fs ^. fsBocks >= cost
-          then return (AHab s h, cost)
-          else Left . inj . I $ PEInsufficientFunds cost
+    => VecT N4 (SV.Vector habs) (Action eggs '(tiers, epic) habs vehicles '[PurchaseError Bock, Finite habs])
+habActions = vgen_ $ SV.generate . AHab
 
 -- | All possible vehicle upgrade actions and their costs.
+--
+-- Doesn't include potential extra slots
 vehicleActions
-    :: KnownNat vehicles
-    => GameData   eggs '(tiers, epic) habs vehicles
+    :: GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> (V.Vector :.: SV.Vector vehicles :.: Either (Sum I '[PurchaseError Bock, SomeVehicleUpgradeError vehicles])) (Action eggs '(tiers, epic) habs vehicles '[PurchaseError Bock, SomeVehicleUpgradeError vehicles], Bock)
+    -> (V.Vector :.: SV.Vector vehicles) (Action eggs '(tiers, epic) habs vehicles '[PurchaseError Bock, SomeVehicleUpgradeError vehicles])
 vehicleActions gd fs =
     someVehicleUpgrades (gd ^. gdVehicleData) (farmBonuses gd fs) (fs ^. fsDepot)
-      & _Comp . _Comp . imapped <.> imapped %@~ \(s, v) c -> do
-        cost <- first (inj . I . SVUERegression) c
-        if fs ^. fsBocks >= cost
-          then return (AVehicle (fromIntegral s) v, cost)
-          else Left . inj . I $ PEInsufficientFunds cost
+      & _Comp . _Comp . imapped <.> imapped %@~ (\(i,j) _ -> I (AVehicle (fromIntegral i) j))
+      & _Comp %~ (fmap . fmap) getI . getComp
 
 -- | All possible Egg upgrade actions
 eggActions
-    :: (KnownNat eggs, KnownNat habs, KnownNat vehicles)
-    => GameData   eggs '(tiers, epic) habs vehicles
-    -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> (SV.Vector eggs :.: Either (Sum I '[UpgradeError])) (Action eggs '(tiers, epic) habs vehicles '[UpgradeError])
-eggActions gd fs = eggUpgrades gd fs & _Comp . mapped %~ bimap (InL . I) AEggUpgrade
+    :: KnownNat eggs
+    => SV.Vector eggs (Action eggs '(tiers, epic) habs vehicles '[UpgradeError])
+eggActions = SV.generate AEggUpgrade
 
 -- | All possible actions, with their costs
 actions
     :: forall eggs tiers epic habs vehicles.
-       (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles, 1 TL.<= habs, 1 TL.<= vehicles)
+       (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs)
     => GameData   eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
-    -> [(Some (Action eggs '(tiers, epic) habs vehicles), Maybe (Either Bock GoldenEgg))]
-actions gd fs = mconcat [ commonResearchActions gd fs ^.. liftTraversal (_Flip . folded) . folded . to (wrap Left)
-                        , epicResearchActions   gd fs ^.. folded . to (wrap Right)
-                        , habActions            gd fs ^.. folded . to (wrap Left)
-                        , vehicleActions        gd fs ^.. folded . to (wrap Left)
-                        , case hatchChickens gd 1 fs of
-                            Left  _ -> []
-                            Right _ -> [(Some (AHatch 1), Nothing)]
-                        , case watchVideo gd fs of
-                            Left _  -> []
-                            Right _ -> [(Some AWatchVideo, Nothing)]
-                        , eggActions            gd fs ^.. folded . to ((, Nothing) . Some)
-                        , case prestigeFarm gd fs of
-                            Nothing -> []
-                            Just _  -> [(Some APrestige  , Nothing)]
-                        ]
-  where
-    wrap
-        :: (a -> Either Bock GoldenEgg)
-        -> (Action eggs '(tiers, epic) habs vehicles errs, a)
-        -> (Some (Action eggs '(tiers, epic) habs vehicles), Maybe (Either Bock GoldenEgg))
-    wrap f = bimap Some (Just . f)
+    -> [SomeAction eggs '(tiers, epic) habs vehicles]
+actions gd fs = mconcat
+    [ commonResearchActions ^.. liftTraversal (_Flip . folded) . to Some
+    -- , epicResearchActions   ^.. folded                         . to Some
+    , habActions            ^.. folded                         . to Some
+    -- , vehicleActions gd fs  ^.. folded                         . to Some
+    -- , eggActions            ^.. folded                         . to Some
+    ] ++
+    [ Some (AHatch 1)
+    -- , Some AWatchVideo
+    -- , Some APrestige
+    ]
 
-data ActionCost = ACBock Bock
-                | ACGoldenEgg
-
--- -- | All possible actions, with their costs
--- futureActions
---     :: forall eggs tiers epic habs vehicles.
---        (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles, 1 TL.<= habs, 1 TL.<= vehicles)
---     => GameData   eggs '(tiers, epic) habs vehicles
---     -> FarmStatus eggs '(tiers, epic) habs vehicles
---     -> [(Some (Action eggs '(tiers, epic) habs vehicles), Maybe (Either Bock GoldenEgg))]
 
 renderAction
     :: (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)

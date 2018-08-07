@@ -72,7 +72,6 @@ import           Data.Vector.Sized.Util
 import           Egg.Commodity
 import           Egg.Research
 import           GHC.Generics              (Generic)
-import           GHC.TypeLits              as TL
 import           Numeric.Lens
 import           Numeric.Natural
 import           Text.Printf
@@ -174,8 +173,8 @@ data HWaitError = HWENoInternalHatcheries
 makePrisms ''HWaitError
 
 -- | Initial 'HabStatus' to start off the game.
-initHabStatus :: (KnownNat habs, 1 TL.<= habs) => HabStatus habs
-initHabStatus = HabStatus (Just 0 :+ pure Nothing) (pure 0)
+initHabStatus :: KnownNat habs => HabStatus habs
+initHabStatus = HabStatus (Just minBound :+ pure Nothing) (pure 0)
 
 -- | Base capacity of each slot.
 baseHabCapacities
@@ -189,7 +188,7 @@ baseHabCapacities hd = fmap go . view hsSlots
 
 -- | Total base capacity of all slots.
 baseHabCapacity
-    :: forall hd hs habs. (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    :: forall hd hs habs. (HasHabData hd habs, HasHabStatus hs habs)
     => hd
     -> hs
     -> Natural
@@ -202,7 +201,7 @@ baseHabCapacity hd =
 
 -- | Total capacity of all hatcheries, factoring in bonuses.
 totalHabCapacity
-    :: forall hd hs habs. (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    :: forall hd hs habs. (HasHabData hd habs, HasHabStatus hs habs)
     => hd
     -> Bonuses
     -> hs
@@ -226,7 +225,7 @@ habCapacities hd bs = fmap ( bonusEffectFor bs BTHabCapacity
 
 -- | Hab at the given slot
 habAt
-    :: (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    :: (HasHabData hd habs, HasHabStatus hs habs)
     => hd
     -> hs
     -> Fin N4
@@ -324,7 +323,7 @@ upgradeHab hd bs slot hab hs0 =
 
 -- | Get all possible Hab upgrades
 habUpgrades
-    :: forall hd hs habs. (KnownNat habs, HasHabData hd habs, HasHabStatus hs habs)
+    :: forall hd hs habs. (HasHabData hd habs, HasHabStatus hs habs)
     => hd
     -> Bonuses
     -> hs

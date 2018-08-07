@@ -187,16 +187,16 @@ instance ToJSON (SomeDepotStatus vs) where
     toEncoding = toEncoding . _sdsSlots
 
 -- | Initial 'DepotStatus' to start off the game.
-initDepotStatus :: (KnownNat vs, KnownNat slots, 1 TL.<= vs, 1 TL.<= slots) => DepotStatus vs slots
-initDepotStatus = DepotStatus $ M.singleton 0 0
+initDepotStatus :: (KnownNat vs, KnownNat slots) => DepotStatus vs slots
+initDepotStatus = DepotStatus $ M.singleton 0 minBound
 
 -- | Initial 'SomeDepotStatus' to start off the game.
-initSomeDepotStatus :: (KnownNat vs, 1 TL.<= vs) => SomeDepotStatus vs
-initSomeDepotStatus = SomeDepotStatus $ M.singleton 0 0
+initSomeDepotStatus :: (KnownNat vs) => SomeDepotStatus vs
+initSomeDepotStatus = SomeDepotStatus $ M.singleton 0 minBound
 
 -- | Total base capacity of all slots, in eggs per second.
 baseDepotCapacity
-    :: forall vs slots. KnownNat vs
+    :: forall vs slots. ()
     => VehicleData vs
     -> DepotStatus vs slots
     -> Double
@@ -210,7 +210,7 @@ baseDepotCapacity VehicleData{..} =
 
 -- | Total capacity of all vehicles, factoring in bonuses.
 totalDepotCapacity
-    :: forall vs slots. KnownNat vs
+    :: forall vs slots. ()
     => VehicleData vs
     -> Bonuses
     -> DepotStatus vs slots

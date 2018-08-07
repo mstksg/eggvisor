@@ -13,36 +13,36 @@
 {-# LANGUAGE UndecidableInstances   #-}
 {-# LANGUAGE ViewPatterns           #-}
 
+-- import           Control.Applicative.Lift
+-- import           Control.Monad.Trans.Class
+-- import           Control.Monad.Trans.Writer
+-- import           Data.Reflection
+-- import           Data.Semigroup
+-- import qualified Data.Vector.Sized          as SV
 import           Brick
 import           Brick.Focus
 import           Brick.Widgets.Edit
 import           Brick.Widgets.List
 import           Control.Applicative
 import           Control.Applicative.Free
-import           Control.Applicative.Lift
 import           Control.Lens
 import           Control.Monad
 import           Control.Monad.Free
-import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.State
-import           Control.Monad.Trans.Writer
 import           Data.Bifunctor
 import           Data.Finite
 import           Data.Maybe
 import           Data.Proxy
-import           Data.Reflection
-import           Data.Semigroup
-import           Data.Text.Prettyprint.Doc  (pretty)
+import           Data.Text.Prettyprint.Doc     (pretty)
 import           Data.Typeable
 import           Egg
 import           GHC.TypeLits
 import           Refined
 import           Text.Printf
-import           Text.Read                  (readMaybe)
-import qualified Data.Text                  as T
-import qualified Data.Vector                as V
-import qualified Data.Vector.Sized          as SV
-import qualified Graphics.Vty               as Vty
+import           Text.Read                     (readMaybe)
+import qualified Data.Text                     as T
+import qualified Data.Vector                   as V
+import qualified Graphics.Vty                  as Vty
 
 data Input = IText (Maybe T.Text)
            | IArea (Maybe Int) (Maybe T.Text)
@@ -283,7 +283,7 @@ instance KnownNat m => HasForm (MaybeFinite m) where
             nerr | null st   = "Empty input"
                  | otherwise = "No parse: " ++ st
 
-instance KnownNat n => Nullable (Finite n) (MaybeFinite n) where
+instance Nullable (Finite n) (MaybeFinite n) where
     toNull   = MF
     fromNull = getMF
 
