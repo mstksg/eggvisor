@@ -15,6 +15,7 @@ module Egg.Search (
   , search
   , WaitAnd(..)
   , waitAmount
+  , search2, StopCond(..)
   -- , condenseWaits
   ) where
 
@@ -24,11 +25,13 @@ module Egg.Search (
 -- import           Data.Type.Combinator
 -- import           Debug.Trace
 -- import qualified Data.PQueue.Prio.Min    as PQ
+import           Control.Applicative
 import           Control.Lens
 import           Control.Monad
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Trans.Writer
 import           Data.Either
+import           Data.Function
 import           Data.List
 import           Data.Maybe
 import           Data.Ord
@@ -45,10 +48,15 @@ import           Egg.GameData
 import           Egg.Habitat
 import           GHC.TypeLits
 import           Numeric.Natural
+import           Text.Printf
 import           Type.Class.Higher
 import           Type.Family.List
 import qualified Data.OrdPSQ                as Q
 import qualified Data.Vector.Sized          as SV
+
+-- | Time in seconds
+type Time = Double
+
 
 data Goal = GPop       Natural
           | GFullHabs
@@ -59,8 +67,9 @@ data Goal = GPop       Natural
           -- | GEgg       (Finite eggs)
 
 data GoalDist = GDAchieved
-              | GDWait { _gdWait :: Double }
+              | GDWait { _gdWait :: Time }
               | GDNever
+              -- | GDBlocked
   deriving (Show, Eq, Ord)
 
 makeLenses ''GoalDist
@@ -87,6 +96,7 @@ goalDist
     -> GoalDist
 goalDist gd fs = \case
     GPop p -> case waitTilPop gd (farmBonuses gd fs) Calm p fs of
+      -- WaitTilSuccess _ Nothing  -> GDBlocked
       WaitTilSuccess _ Nothing  -> GDNever
       WaitTilSuccess t (Just _) -> GDWait t
       NoWait     -> GDAchieved
@@ -101,15 +111,18 @@ goalDist gd fs = \case
       WaitTilSuccess t _ -> GDWait t
       NoWait             -> GDAchieved
       NonStarter         -> GDNever
-    -- GEggs e -> case
 
--- addGD :: Double -> GoalDist -> GoalDist
--- addGD x = \case
---     GDAchieved -> GDWait x
---     GDWait y   -> GDWait (x + y)
---     GDNever    -> GDNever
+addDist
+    :: Time
+    -> GoalDist
+    -> GoalDist
+addDist 0 = id
+addDist t = \case
+    GDAchieved -> GDWait t
+    GDWait t'  -> GDWait (t + t')
+    GDNever    -> GDNever
+    -- GDBlocked  -> GDBlocked
 
-type Time = Double
 
 data WaitAnd a = WAWait Time
                | WADo   a
@@ -214,6 +227,122 @@ search gd fs0 g = condenseWaits . reverse <$> go (Q.singleton fs0 0 [])
                 q3  = insertIfBetter fs2 (c + t) (Left t : as) q2
             in  go $ capQueue 25 q3
         _                 -> go $ capQueue 25 q2
+
+data StopCond = SCNodes Int
+data Cost = Cost { _cTime :: !Time
+                 , _cRest :: !GoalDist
+                 }
+  deriving Show
+
+trueCost :: Cost -> GoalDist
+trueCost (Cost t r) = addDist t r
+
+instance Eq Cost where
+    (==) = (==) `on` trueCost
+instance Ord Cost where
+    compare = comparing trueCost <> comparing _cTime
+
+
+type SearchQueue2 eggs te habs vehicles =
+      Q.OrdPSQ (FarmStatus eggs te habs vehicles)
+               Cost
+               [Either Time (SomeAction eggs te habs vehicles)]
+
+search2
+    :: forall eggs tiers epic habs vehicles.
+     ( KnownNat eggs
+     , SingI tiers
+     , KnownNat epic
+     , KnownNat habs
+     , KnownNat vehicles
+     )
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Goal
+    -> StopCond
+    -> Maybe [WaitAnd (SomeAction eggs '(tiers, epic) habs vehicles)]
+search2 gd fs0 g sc = condenseWaits . reverse <$> go 0 mempty (Q.singleton fs0 (mkCost fs0 0) [])
+  where
+    mkCost :: FarmStatus eggs '(tiers, epic) habs vehicles
+           -> Double
+           -> Cost
+    mkCost fs t = Cost t (goalDist gd fs g)
+    -- mkCost fs t = let c = Cost t (goalDist gd fs g)
+    --               in  trace ("cost " ++ show c) c
+    mkNode
+        :: FarmStatus eggs '(tiers, epic) habs vehicles
+        -> Double
+        -> [Either Time (SomeAction eggs '(tiers, epic) habs vehicles)]
+        -> SomeAction eggs '(tiers, epic) habs vehicles
+        -> Maybe (FarmStatus eggs '(tiers, epic) habs vehicles, Double, [Either Time (SomeAction eggs '(tiers, epic) habs vehicles)])
+    mkNode !fs1 !c !as sa@(Some !a) = case a of
+      APrestige     -> Nothing
+      AEggUpgrade _ -> Nothing
+      AHatch _      -> do
+        let avail = sumOf (availableSpaces gd (farmBonuses gd fs1) . folded . folded) fs1
+        guard $ avail > 0
+        (t, fs2) <- case waitTilHatcheryFull gd Calm fs1 of
+          WaitTilSuccess t (I fs2) -> Just (Just t , fs2)
+          NoWait                   -> Just (Nothing, fs1)
+          NonStarter               -> Nothing
+        let numHatch = floor $ fs2 ^. fsHatchery
+            waitEntry = case t of
+              Nothing -> []
+              Just t' -> [Left t']
+            as' = Right (Some (AHatch numHatch))
+                : waitEntry ++ as
+        case hatchChickens gd numHatch fs2 of
+          Left _    -> Nothing
+          Right fs3 -> pure (fs3, c + fromMaybe 0 t, as')
+      _             -> case runAction gd a fs1 of
+              Left  e   -> case bockErrorIx a of
+                Proved    i -> case i `TCS.index` e of
+                  Just (I (PEInsufficientFunds b)) -> case waitUntilBocks gd Calm (b*1.01) fs1 of
+                    WaitTilSuccess t (I fs2) -> case runAction gd a fs2 of
+                      Left _    -> Nothing
+                      Right fs3 -> return (fs3, c + t, Right sa : Left t : as)
+                    NoWait                   -> error "hmm.."
+                    NonStarter               -> Nothing
+                  Nothing -> Nothing
+                Disproved _ -> Nothing
+              Right fs2 -> return (fs2, c, Right sa : as)
+    go  :: Int
+        -> Maybe [Either Time (SomeAction eggs '(tiers, epic) habs vehicles)]
+        -> SearchQueue2 eggs '(tiers, epic) habs vehicles
+        -> Maybe [Either Time (SomeAction eggs '(tiers, epic) habs vehicles)]
+    go !i !r !q0 = (<|> r) $ do
+      -- when (i `mod` 100 == 0) $
+      -- traceShow i (pure ())
+      guard $ not (stop i)
+      (fs1, c, as, q1) <- Q.minView q0
+      -- traceShow c $ pure ()
+      let q2 = foldl' (\q' (fs', c', as') -> insertIfBetter fs' c' as' q') q1
+             . map (\(fs', t', as') -> (fs', mkCost fs' t', as'))
+             . mapMaybe (mkNode fs1 (_cTime c) as)
+             . actions gd
+             $ fs1
+          (better, as2) = case r of
+            Nothing   -> ((), as)
+            Just as'
+              | totalWait as < totalWait as' -> (trace (printf "Found better candidate on %d" i) (), as)
+              | otherwise                    -> ((), as')
+      -- traceShow (Q.size q2) $ pure ()
+      case _cRest c of
+        GDAchieved        -> better `seq` go (i + 1) (Just as2) q1
+        GDWait t
+          | t <= 0        -> better `seq` go (i + 1) (Just as2) q1
+          | t <= 10000     -> trace "gdwait" $
+            let fs2 = stepFarm gd Calm t fs1
+                c3  = mkCost fs2 (t + _cTime c)
+                q3  = insertIfBetter fs2 c3 (Left t : as) q2
+            in  go (i + 1) r . capQueue 100 $ q3
+        _                 -> go (i + 1) r . capQueue 100 $ q2
+    totalWait :: [Either Double a] -> Double
+    totalWait xs = sum [ t | Left t <- xs ]
+    stop :: Int -> Bool
+    stop i = case sc of
+      SCNodes l -> i > l
+  
 
 -- greedySearch
 --     :: 

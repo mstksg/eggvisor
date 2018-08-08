@@ -5,15 +5,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
 
--- import           Data.Maybe
--- import           Data.Semigroup hiding  (option)
 import           Control.Monad.Trans.State
 import           Data.Foldable
 import           Data.Monoid
 import           Data.Proxy
-import           Data.Type.Combinator
 import           Data.Type.Equality
-import           Data.Type.Sum
 import           Data.Yaml hiding          (Parser)
 import           Egg
 import           Egg.Search
@@ -22,11 +18,19 @@ import           Options.Applicative
 import           Text.Printf
 import           Type.Class.Higher
 
-data Opts = O { oGoal :: Goal }
+data Opts = O { oGoal :: Goal, oLim :: Int }
 
 parseOpts :: Parser Opts
-parseOpts = O <$> parseGoal
+parseOpts = O <$> parseGoal <*> parseLim
   where
+    parseLim :: Parser Int
+    parseLim = option auto ( long "limit"
+                          <> short 'l'
+                          <> metavar "NODES"
+                          <> help "Search limit"
+                          <> value 1000000
+                          <> showDefault
+                          )
     parseGoal :: Parser Goal
     parseGoal = parsePop <|> parseFull <|> parseCash
     parsePop = GPop <$> option auto ( long "pop"
@@ -62,7 +66,8 @@ main = do
         putStrLn "Loaded data!  Searching..."
         -- let path = search gd (initFarmStatus gd) (GCash 100000000)
         -- let path = search gd (initFarmStatus gd) (GPop 50000)
-        let path = search gd (initFarmStatus gd) oGoal
+        -- let path = search gd (initFarmStatus gd) oGoal
+        let path = search2 gd (initFarmStatus gd) oGoal (SCNodes oLim)
         case path of
           Nothing -> putStrLn "no path found"
           Just ps -> do
