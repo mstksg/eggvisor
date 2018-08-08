@@ -9,6 +9,7 @@
 -- import           Data.Semigroup hiding  (option)
 import           Control.Monad.Trans.State
 import           Data.Foldable
+import           Data.Monoid
 import           Data.Proxy
 import           Data.Type.Combinator
 import           Data.Type.Equality
@@ -66,6 +67,7 @@ main = do
           Nothing -> putStrLn "no path found"
           Just ps -> do
             putStrLn "path found"
+            printf "%.1f seconds\n" $ getSum (foldMap (Sum . waitAmount) ps)
             flip evalStateT (initFarmStatus gd) . forM_ (zip [1 :: Int ..] ps) $ \(i, wa) -> StateT $ \fs0 -> do
               case wa of
                 WAWait w          -> do
@@ -74,11 +76,11 @@ main = do
                 WADo     (Some a) -> do
                   printf "%d)\t%s\n" i (renderActionFS gd fs0 a)
                   return $ case runAction gd a fs0 of
-                    Left e -> error $ "invalid action????\n" ++ show (actionErrors a e)
+                    Left e -> error $ "invalid action????\n" ++ show (actionErrors a e, fs0)
                     Right fs1 -> ((), fs1)
                 WAAnd  w (Some a) -> do
                   let fs1 = stepFarm gd Calm w fs0
                   printf "%d)\tWait %.1f s => %s\n" i w (renderActionFS gd fs1 a)
                   return $ case runAction gd a fs1 of
-                    Left e -> error $ "invalid action????\n" ++ show (actionErrors a e)
+                    Left e -> error $ "invalid action????\n" ++ show (actionErrors a e, fs1)
                     Right fs2 -> ((), fs2)

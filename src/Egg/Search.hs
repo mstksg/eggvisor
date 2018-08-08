@@ -14,6 +14,7 @@ module Egg.Search (
     Goal(..)
   , search
   , WaitAnd(..)
+  , waitAmount
   -- , condenseWaits
   ) where
 
@@ -100,7 +101,7 @@ goalDist gd fs = \case
       WaitTilSuccess t _ -> GDWait t
       NoWait             -> GDAchieved
       NonStarter         -> GDNever
-    GEggs _ -> undefined
+    -- GEggs e -> case
 
 -- addGD :: Double -> GoalDist -> GoalDist
 -- addGD x = \case
@@ -169,17 +170,21 @@ search gd fs0 g = condenseWaits . reverse <$> go (Q.singleton fs0 0 [])
           WaitTilSuccess t (I fs2) -> Just (Just t , fs2)
           NoWait                   -> Just (Nothing, fs1)
           NonStarter               -> Nothing
-        let fs3 = emptyHatchery gd fs2
+        let numHatch = floor $ fs2 ^. fsHatchery
             waitEntry = case t of
               Nothing -> []
               Just t' -> [Left t']
-            as' = Right (Some (AHatch (floor (maxHatch gd fs1))))
+            as' = Right (Some (AHatch numHatch))
                 : waitEntry ++ as
-        pure (fs3, c + fromMaybe 0 t, as')
+        case hatchChickens gd numHatch fs2 of
+          Left _    -> Nothing
+          Right fs3 -> pure (fs3, c + fromMaybe 0 t, as')
       _             -> case runAction gd a fs1 of
               Left  e   -> case bockErrorIx a of
                 Proved    i -> case i `TCS.index` e of
-                  Just (I (PEInsufficientFunds b)) -> case waitUntilBocks gd Calm b fs1 of
+                  Just (I (PEInsufficientFunds b)) -> case waitUntilBocks gd Calm (b*1.01) fs1 of
+                    -- WaitTilSuccess t (I fs2) ->
+                    --   return (fs2, c + t, Left t : as)
                     WaitTilSuccess t (I fs2) -> case runAction gd a fs2 of
                       Left _    -> Nothing
                       Right fs3 -> return (fs3, c + t, Right sa : Left t : as)
@@ -207,8 +212,12 @@ search gd fs0 g = condenseWaits . reverse <$> go (Q.singleton fs0 0 [])
           | otherwise     ->
             let fs2 = stepFarm gd Calm t fs1
                 q3  = insertIfBetter fs2 (c + t) (Left t : as) q2
-            in  go q3
-        _                 -> go q2
+            in  go $ capQueue 25 q3
+        _                 -> go $ capQueue 25 q2
+
+-- greedySearch
+--     :: 
+
     -- condensor
     --     :: Either Double (SomeAction eggs '(tiers, epic) habs vehicles)
     --     -> Either Double (SomeAction eggs '(tiers, epic) habs vehicles)
@@ -220,60 +229,6 @@ search gd fs0 g = condenseWaits . reverse <$> go (Q.singleton fs0 0 [])
     -- addCondensed x (y : ys) = case condensor x y of
     --                             Nothing -> x : y : ys
     --                             Just z  -> z : ys
-
-    -- -> [(Some (Action eggs '(tiers, epic) habs vehicles), Maybe (Either Bock GoldenEgg))]
-        -- flip fmap (Q.minView q0) $ \(fs1, c, as, q1) ->
--- deriving instance (ListC (Eq <$> (Flip SV.Vector Natural <$> tiers)), ListC (Ord <$> (Flip SV.Vector Natural <$> tiers)))
-
--- search gd fs0 g = reverse <$> go (PQ.singleton (heurOf))
--- -- search gd fs0 g = reverse <$> go (PQ.singleton (heurOf Nothing fs0) (SN [] 0 fs0))
--- --   where
--- --     costOf
--- --         :: Either Double (SomeAction eggs '(tiers, epic) habs vehicles)
--- --         -> Double
--- --     costOf (Left w ) = w
--- --     costOf (Right _) = 0
--- --     go  :: PQ.MinPQueue GoalHeur (SearchNode eggs '(tiers, epic) habs vehicles)
--- --         -> Maybe [Either Double (SomeAction eggs '(tiers, epic) habs vehicles)]
--- --     go q0 = case PQ.minViewWithKey q0 of
--- --       Nothing      -> Nothing
--- --       Just ((h, SN as c fs1), q1) -> case h ^. gdDist of
--- --         GDAchieved        -> Just as
--- --         GDWait t | t == 0 -> Just as
--- --         _ -> let branches = fst <$> actions gd fs1
--- --                  newNodes = PQ.fromList
--- --                           . mapMaybe (\case
--- --                                 Some a -> do
--- --                                   case a of
--- --                                     APrestige -> Nothing
--- --                                     AEggUpgrade _ -> Nothing
--- --                                     _ -> Just ()
--- --                                   fs2 <- either (const Nothing) Just $ runAction gd a fs1
--- --                                   return (heurOf (Just c) fs2, SN (addCondensed (Right (Some a)) as) c fs2)
--- --                               )
--- --                           $ branches
--- --                  (waitH, waitN) = (heurOf (Just (c + 5)) fs2, SN (addCondensed (Left 5) as) (c + 5) fs2)
--- --                    where fs2 = stepFarm gd Calm 5 fs1
--- --                  q2 = PQ.insert waitH waitN $ q1 `PQ.union` newNodes
--- --              -- in  go . PQ.fromAscList . PQ.take 10 $ q2
--- --              in  go q2
--- --     heurOf :: Maybe Double -> FarmStatus eggs '(tiers, epic) habs vehicles -> GoalHeur
--- --     -- heurOf c fs = GH (maybe id addGD c . over gdWait (max 0 . logBase 2) $ goalDist gd fs g)
--- --     -- heurOf c fs = GH gdh
--- --     -- heurOf c fs = GH (maybe id addGD (0 <$ c) $ goalDist gd fs g)
--- --     heurOf c fs = GH (goalDist gd fs g)
--- --     -- heurOf c fs = GH (maybe GDNever GDWait c)
--- --                      (Down $ farmIncome gd fs)
--- --                      (Down $ totalChickens fs)
--- --                      (Down $ internalHatcheryRate (farmBonuses gd fs) Calm)
--- --                      (Down $ farmValue gd fs)
--- --                      (Down $ farmDepotCapacity gd fs)
--- --       -- where
--- --       --   gdh = case goalDist gd fs g of
--- --       --     GDAchieved -> maybe GDAchieved GDWait c
--- --       --     GDWait t   | t <= 1    -> GDWait $ maybe id (+) c $ t
--- --       --                | otherwise -> GDWait $ maybe id (+) c $ (t / 100)
--- --       --     GDNever    -> GDWait 1
 
 insertIfBetter
     :: (Ord k, Ord p)
@@ -295,3 +250,21 @@ condenseWaits [Right x] = [WADo x]
 condenseWaits (Left x:Left  y:ys) = condenseWaits (Left (x + y) : ys)
 condenseWaits (Left x:Right y:ys) = WAAnd x y : condenseWaits ys
 condenseWaits (Right x:ys) = WADo x : condenseWaits ys
+
+waitAmount
+    :: WaitAnd a
+    -> Time
+waitAmount = \case
+    WAWait w   -> w
+    WADo     _ -> 0
+    WAAnd  w _ -> w
+
+capQueue
+    :: (Ord k, Ord p)
+    => Int
+    -> Q.OrdPSQ k p v
+    -> Q.OrdPSQ k p v
+capQueue n = Q.fromList
+           . take n
+           . unfoldr (fmap (\(k,p,v,q) -> ((k,p,v),q)) . Q.minView)
+

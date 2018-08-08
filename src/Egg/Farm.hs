@@ -85,16 +85,17 @@ import           Type.Family.Nat
 import qualified Data.Vector.Sized         as SV
 
 data FarmStatus :: Nat -> ([Nat], Nat) -> Nat -> Nat -> Type where
-    FarmStatus :: { _fsEgg           :: Finite eggs
-                  , _fsResearch      :: ResearchStatus tiers epic
-                  , _fsHabs          :: HabStatus habs
-                  , _fsDepot         :: SomeDepotStatus vehicles
-                  , _fsHatchery      :: Double
-                  , _fsBocks         :: Bock
-                  , _fsGoldenEggs    :: GoldenEgg
-                  , _fsSoulEggs      :: SoulEgg
-                  , _fsVideoBonus    :: Maybe Double   -- ^ in seconds
-                  , _fsPrestEarnings :: Bock
+    FarmStatus :: { _fsEgg           :: !(Finite eggs)
+                  , _fsResearch      :: !(ResearchStatus tiers epic)
+                  , _fsHabs          :: !(HabStatus habs)
+                  , _fsDepot         :: !(SomeDepotStatus vehicles)
+                  , _fsHatchery      :: !Double
+                  , _fsBocks         :: !Bock
+                  , _fsGoldenEggs    :: !GoldenEgg
+                  , _fsSoulEggs      :: !SoulEgg
+                  , _fsVideoBonus    :: !(Maybe Double)   -- ^ in seconds
+                  , _fsPrestEarnings :: !Bock
+                  , _fsFarmDelivered :: !Double
                   }
                -> FarmStatus eggs '(tiers, epic) habs vehicles
 
@@ -137,6 +138,7 @@ fsResearch :: Lens (FarmStatus e '(t1, g1) h v) (FarmStatus e '(t2, g2) h v) (Re
 fsResearch f fs = f (_fsResearch fs) <&> \r ->
     (FarmStatus <$> _fsEgg <*> pure r <*> _fsHabs <*> _fsDepot <*> _fsHatchery <*> _fsBocks
                 <*> _fsGoldenEggs <*> _fsSoulEggs <*> _fsVideoBonus <*> _fsPrestEarnings
+                <*> _fsFarmDelivered
     ) fs
 fsHabs :: Lens (FarmStatus e '(t, g) h1 v) (FarmStatus e '(t, g) h2 v) (HabStatus h1) (HabStatus h2)
 fsHabs f fs = (\h -> fs { _fsHabs = h }) <$> f (_fsHabs fs)
@@ -152,6 +154,8 @@ fsSoulEggs :: Lens' (FarmStatus e '(t, g) h v) SoulEgg
 fsSoulEggs f fs = (\s -> fs { _fsSoulEggs = max 0 s }) <$> f (_fsSoulEggs fs)
 fsPrestEarnings :: Lens' (FarmStatus e '(t, g) h v) Bock
 fsPrestEarnings f fs = (\pe -> fs { _fsPrestEarnings = max 0 pe }) <$> f (_fsPrestEarnings fs)
+fsFarmDelivered :: Lens' (FarmStatus e '(t, g) h v) Double
+fsFarmDelivered f fs = (\fd -> fs { _fsFarmDelivered = max 0 fd }) <$> f (_fsFarmDelivered fs)
 
 -- | Only for incrementing
 fsBocksAndPrest :: Traversal' (FarmStatus e '(t, g) h v) Bock
@@ -179,6 +183,7 @@ instance (KnownNat egg, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehi
                    <*> v .: "soul-eggs"
                    <*> v .: "video-bonus"
                    <*> v .: "prest-earnings"
+                   <*> v .: "farm-delivered"
 
 instance ToJSON (FarmStatus egg research habs vehicles) where
     toJSON FarmStatus{..} = object
@@ -192,6 +197,7 @@ instance ToJSON (FarmStatus egg research habs vehicles) where
         , "soul-eggs"      .= _fsSoulEggs
         , "video-bonus"    .= _fsVideoBonus
         , "prest-earnings" .= _fsPrestEarnings
+        , "farm-delivered" .= _fsFarmDelivered
         ]
     toEncoding FarmStatus{..} = pairs . mconcat $
         [ "egg"            .= _fsEgg
@@ -204,6 +210,7 @@ instance ToJSON (FarmStatus egg research habs vehicles) where
         , "soul-eggs"      .= _fsSoulEggs
         , "video-bonus"    .= _fsVideoBonus
         , "prest-earnings" .= _fsPrestEarnings
+        , "farm-delivered" .= _fsFarmDelivered
         ]
 
 initFarmStatus
@@ -220,6 +227,7 @@ initFarmStatus gd@(GameData _ rd _ _ _) =
                0
                0
                Nothing
+               0
                0
 
 -- | Egg value
@@ -503,10 +511,14 @@ stepFarmDT
     -> FarmStatus eggs '(tiers, epic) habs vehicles
     -> FarmStatus eggs '(tiers, epic) habs vehicles
 stepFarmDT gd ic dt fs = fs
-    & fsBocksAndPrest       +~ farmIncomeDT gd ic fs dt
+    & fsBocksAndPrest       +~ inc
+    & fsFarmDelivered       +~ _bock (inc / eggVal)
     & stepHabs gd (farmBonuses gd fs) ic dt
     & fsVideoBonus . mapped -~ dt
     & refillHatcheries gd dt
+  where
+    eggVal = farmEggValue gd fs
+    inc    = farmIncomeDT gd ic fs dt
 
 -- | Wait until bocks.
 waitUntilBocks
@@ -679,6 +691,54 @@ waitTilHatcheryFull gd ic fs
     rat = hatcheryRefillRate gd fs
     cur = fs ^. fsHatchery
 
+-- waitTilEggsDelivered
+--     :: forall eggs tiers epic habs vehicles. (KnownNat eggs, KnownNat habs)
+--     => GameData   eggs '(tiers, epic) habs vehicles
+--     -> IsCalm
+--     -> Natural                  -- ^ goal
+--     -> FarmStatus eggs '(tiers, epic) habs vehicles
+--     -> WaitTilRes I (FarmStatus eggs '(tiers, epic) habs vehicles)
+-- waitTilEggsDelivered gd ic g fs0 = case waitTilNextIncomeChange of
+--     NonStarter ->
+--       let lr = farmLayingRate gd fs0
+--           t  = lr
+--       in  _
+
+-- data IncomeChange
+--        = ICHabFill (Fin N4)
+--        | ICDepotFill
+--        | ICVideoDoublerExpire
+
+--     NonStarter ->
+--       let lr = farmLayingRate gd fs0
+--           t  = 
+--       in  if lr <= 0
+--             then NonStarter
+--             else WaitTilSuccess _
+-- -- farmLayingRate
+-- --     :: GameData   eggs '(tiers, epic) habs vehicles
+-- --     -> FarmStatus eggs '(tiers, epic) habs vehicles
+-- --     -> Double
+-- -- farmLayingRate gd fs = fst $ farmLayingRateAvailability gd fs
+
+-- data WaitTilRes f a
+--     = WaitTilSuccess { _wtrTime :: Double, _wtrRes :: f a }
+--     -- | MaxPopIn       { _wtrTime :: Double }
+--     | NoWait
+--     | NonStarter
+
+
+
+-- -- If Left returned, means that hab maxed out.
+-- waitTilDepotFull
+--     :: (KnownNat eggs, KnownNat habs)
+--     => GameData   eggs '(tiers, epic) habs vehicles
+--     -> IsCalm
+--     -> FarmStatus eggs '(tiers, epic) habs vehicles
+--     -> WaitTilRes (Either (FarmStatus eggs '(tiers, epic) habs vehicles))
+--                   (FarmStatus eggs '(tiers, epic) habs vehicles)
+-- waitTilDepotFull gd ic fs0 = waitTilFarmPop gd ic (ceiling chickensAtCap) fs0
+
 -- | Upgrade your egg!
 --
 upgradeEgg
@@ -701,6 +761,7 @@ upgradeEgg gd e fs
            & fsSoulEggs      %~ id
            & fsVideoBonus    %~ id
            & fsPrestEarnings %~ id
+           & fsFarmDelivered .~ 0
   where
     unlock = gd ^. edEggs . ixSV e . eggUnlock
 
@@ -773,6 +834,7 @@ prestigeFarm gd fs = guard (round @_ @Int pBonus > 0) $>
         & fsSoulEggs      +~ round pBonus
         & fsVideoBonus    %~ id
         & fsPrestEarnings .~ 0
+        & fsFarmDelivered .~ 0
     )
   where
     pBonus = fs ^. fsPrestEarnings
