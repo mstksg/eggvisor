@@ -311,8 +311,8 @@ search2 gd fs0 g sc = condenseWaits . reverse <$> go 0 mempty (Q.singleton fs0 (
         -> SearchQueue2 eggs '(tiers, epic) habs vehicles
         -> Maybe [Either Time (SomeAction eggs '(tiers, epic) habs vehicles)]
     go !i !r !q0 = (<|> r) $ do
-      -- when (i `mod` 100 == 0) $
-      -- traceShow i (pure ())
+      when (i `mod` 1000 == 0) $
+        traceShow i (pure ())
       guard $ not (stop i)
       (fs1, c, as, q1) <- Q.minView q0
       -- traceShow c $ pure ()
@@ -331,11 +331,13 @@ search2 gd fs0 g sc = condenseWaits . reverse <$> go 0 mempty (Q.singleton fs0 (
         GDAchieved        -> better `seq` go (i + 1) (Just as2) q1
         GDWait t
           | t <= 0        -> better `seq` go (i + 1) (Just as2) q1
-          | t <= 10000     -> trace "gdwait" $
-            let fs2 = stepFarm gd Calm t fs1
-                c3  = mkCost fs2 (t + _cTime c)
-                q3  = insertIfBetter fs2 c3 (Left t : as) q2
-            in  go (i + 1) r . capQueue 100 $ q3
+          -- TODO: stepFarm seems to be causing an infinite loop or
+          -- something
+          -- | t <= 10000    ->
+          --   let fs2 = stepFarm gd Calm t fs1
+          --       c3  = mkCost fs2 (t + _cTime c)
+          --       q3  = insertIfBetter fs2 c3 (Left t : as) q2
+          --   in  go (i + 1) r . capQueue 100 $ q3
         _                 -> go (i + 1) r . capQueue 100 $ q2
     totalWait :: [Either Double a] -> Double
     totalWait xs = sum [ t | Left t <- xs ]

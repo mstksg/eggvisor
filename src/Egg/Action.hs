@@ -32,6 +32,7 @@ module Egg.Action (
   , renderActionFS
   , bockErrorIx
   , actionErrors, ActionErrors
+  , runActions
   ) where
 
 -- import           Control.Applicative
@@ -42,6 +43,7 @@ import           Control.Lens hiding       ((:<), Index)
 import           Data.Bifunctor
 import           Data.Finite
 import           Data.Kind
+import           Data.List
 import           Data.Maybe
 import           Data.Singletons.Decide    (Decision(..))
 import           Data.Singletons.TH hiding ((%~))
@@ -208,6 +210,15 @@ runAction gd = \case
     AEggUpgrade e -> first (inj . I) . upgradeEgg gd e
     APrestige     -> maybe (Left (inj (I ()))) Right . prestigeFarm gd
 
+runSomeAction
+    :: (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> SomeAction eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Either (Sum I (ActionErrors habs vehicles)) (FarmStatus eggs '(tiers, epic) habs vehicles)
+runSomeAction gd = \case
+    Some a -> first (actionErrors a) . runAction gd a
+
 -- | All possible common research actions and their costs.
 commonResearchActions
     :: forall eggs tiers epic habs vehicles. SingI tiers
@@ -318,3 +329,14 @@ renderActionFS gd fs = \case
                        (gd ^. edEggs . ixSV e . eggName)
                        (gd ^. edEggs . ixSV (fs ^. fsEgg) . eggName)
     APrestige     -> "Prestige"
+
+runActions
+    :: (Foldable t, KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
+    => GameData eggs '(tiers, epic) habs vehicles
+    -> t (Either Double (Some (Action eggs '(tiers, epic) habs vehicles)))
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Either (Sum I (ActionErrors habs vehicles)) (FarmStatus eggs '(tiers, epic) habs vehicles)
+runActions gd as = flip (foldl' (\fs a -> go a =<< fs)) as . Right
+  where
+    go (Left t)  = Right . stepFarm gd Calm t
+    go (Right a) = runSomeAction gd a
