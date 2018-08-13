@@ -31,6 +31,7 @@ import           Control.Category
 import           Control.Concurrent
 import           Control.Lens
 import           Control.Monad
+import           Control.Monad.IO.Class
 import           Data.Foldable
 import           Data.Maybe
 import           Data.Proxy
@@ -76,7 +77,7 @@ makePrisms ''UIEvent
 
 type AppState eggs te habs vehicles
     = A.Auto Maybe
-        (Either (FarmEvent eggs te habs vehicles) UIEvent) (Widget ())
+        (Either (FarmEvent eggs te habs vehicles) UIEvent) (Widget (), FarmStatus eggs te habs vehicles)
 
 farmAuto
     :: forall eggs tiers epic habs vehicles. (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
@@ -95,7 +96,7 @@ farmAuto gd = proc inp -> do
       , habs
       , vehs
       ] -< (fs, uEs)
-    id -< vBox $ disp ++ [men]
+    id -< (vBox $ disp ++ [men], fs)
       -- ++ [txt . T.unlines . take 20 . T.lines . T.decodeUtf8 $ encode fs]
   where
     processEvent fs0 = \case
@@ -285,7 +286,9 @@ app gd = App draw cursor handle return am
       Nothing -> continue (a0, o0)
       Just fe -> case A.stepAuto a0 fe of
         Nothing       -> halt (a0, o0)
-        Just (o1, a1) -> continue (a1, o1)
+        Just ((o1, fs), a1) -> do
+          liftIO $ encodeFile "data/sim-state.yaml" fs
+          continue (a1, o1)
     am _ = attrMap defAttr $
         [(progressIncompleteAttr, white `on` black)
         ,(progressCompleteAttr  , black `on` white)

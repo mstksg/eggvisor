@@ -52,6 +52,7 @@ module Egg.Habitat (
   , wtrTime, wtrRes
   , waitTilPop
   , fillTimes
+  , maxedHabs
   ) where
 
 import           Control.Applicative
@@ -630,3 +631,10 @@ addChickens hd bs c = availableSpaces hd bs $ \avails ->
     in  if c >= (totAvail + 0.1)
           then (Just (c - totAvail), pure Nothing                            )
           else (Nothing            , avails & mapped . mapped *~ newAvailPerc)
+
+-- | Max out hab purchases (not number of chickens)
+maxedHabs
+    :: (KnownNat habs, HasHabStatus hs habs)
+    => hs
+    -> hs
+maxedHabs = set (hsSlots . mapped) (Just maxBound)

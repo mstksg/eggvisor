@@ -35,6 +35,8 @@ module Egg.Vehicle (
   , upgradeSomeVehicle
   , vehicleUpgrades
   , someVehicleUpgrades
+  , maxedDepot
+  , maxedSomeDepot
   ) where
 
 import           Control.Applicative
@@ -47,6 +49,7 @@ import           Data.Finite.Internal
 import           Data.Finite.Util            ()
 import           Data.Functor
 import           Data.Maybe
+import           Data.Semigroup
 import           Data.Singletons
 import           Data.Singletons.Prelude.Num
 import           Data.Singletons.TypeLits
@@ -60,6 +63,7 @@ import           Numeric.Natural
 import           Statistics.LinearRegression
 import           Text.Printf
 import qualified Data.Map                    as M
+import qualified Data.Set                    as S
 import qualified Data.Text                   as T
 import qualified Data.Vector                 as V
 import qualified Data.Vector.Sized           as SV
@@ -100,6 +104,13 @@ makePrisms ''SomeVehicleUpgradeError
 data SomeDepotStatus vs
     = SomeDepotStatus { _sdsSlots :: M.Map Natural (Finite vs) }
   deriving (Show, Eq, Ord, Generic)
+
+toSomeDepotStatus
+    :: DepotStatus vs slots
+    -> SomeDepotStatus vs
+toSomeDepotStatus = SomeDepotStatus
+                  . M.mapKeysMonotonic (fromIntegral . getFinite)
+                  . _dsSlots
 
 _SomeDepotStatus
     :: Functor f
@@ -191,7 +202,7 @@ initDepotStatus :: (KnownNat vs, KnownNat slots) => DepotStatus vs slots
 initDepotStatus = DepotStatus $ M.singleton 0 minBound
 
 -- | Initial 'SomeDepotStatus' to start off the game.
-initSomeDepotStatus :: (KnownNat vs) => SomeDepotStatus vs
+initSomeDepotStatus :: KnownNat vs => SomeDepotStatus vs
 initSomeDepotStatus = SomeDepotStatus $ M.singleton 0 minBound
 
 -- | Total base capacity of all slots, in eggs per second.
@@ -353,3 +364,38 @@ someVehicleUpgrades vd bs = view $ _SomeDepotStatus bs go
        . _Wrapped
        . _Wrapped
        . to SV.fromSized
+
+-- maxFleetSize
+--     :: forall tiers epic. ()
+--     => ResearchData tiers epic
+--     -> Natural
+-- maxFleetSize = getSum . foldResearchData (Sum . go . either _rBaseBonuses _rBaseBonuses)
+--   where
+--     go :: Bonuses -> Natural
+  --   go
+
+-- | Maxed out depot
+maxedDepot
+    :: (KnownNat vs, KnownNat slots)
+    => DepotStatus vs slots
+maxedDepot = DepotStatus $ M.fromSet (const maxBound) (S.fromList [minBound..maxBound])
+
+-- | Maxed out some depot
+maxedSomeDepot
+    :: forall vs. KnownNat vs
+    => Bonuses
+    -> SomeDepotStatus vs
+maxedSomeDepot bs = withSomeDepotStatus bs initSomeDepotStatus $ \(_ :: DepotStatus vs slots) ->
+    toSomeDepotStatus (maxedDepot @vs @slots)
+
+-- initSomeDepotStatus = SomeDepotStatus $ M.singleton 0 minBound
+-- withSomeDepotStatus
+--     :: Bonuses
+--     -> SomeDepotStatus vs
+--     -> (forall slots. KnownNat slots => DepotStatus vs slots -> r)
+--     -> r
+
+-- data DepotStatus vs slots
+--     = DepotStatus { _dsSlots :: M.Map (Finite slots) (Finite vs) }
+
+    -- = DepotStatus { _dsSlots :: M.Map (Finite slots) (Finite vs) }

@@ -51,6 +51,7 @@ module Egg.Research (
   , researchCount
   , legalTiers
   , foldResearch
+  , foldResearchData
   , purchaseResearch
   , researchIxNum
   , researchIxData
@@ -63,6 +64,9 @@ module Egg.Research (
   , legalResearchIxesEpic
   , legalResearchesCommon
   , legalResearchesEpic
+  , maxedCommonResearch
+  , maxedEpicResearch
+  , maxedResearch
   -- * Why?
   , rdrsCommon
   , rdrsEpic
@@ -500,6 +504,17 @@ emptyResearchStatus ResearchData{..} =
     clear :: ResearchTier a -> Flip SV.Vector Natural a
     clear = Flip . set mapped 0 . view rtTechs
 
+-- | Fold all research data and research statuses into an accumulator.
+foldResearchData
+    :: Monoid b
+    => (Either (Research Bock) (Research GoldenEgg) -> b)
+    -> ResearchData tiers epic
+    -> b
+foldResearchData f ResearchData{..} = mconcat
+    [ foldMap1 (\case d -> foldMap (f . Left) (_rtTechs d)) _rdCommon
+    , foldMap (f . Right) _rdEpic
+    ]
+
 -- | Zips together all research data and research statuses into an
 -- accumulator.
 foldResearch
@@ -773,3 +788,28 @@ legalResearchesEpic rd rs = Comp $ do
     currLevel <- _rsEpic rs
     pure $ fromMaybe 0 <$> r ^? rCosts . ix (fromIntegral currLevel)
 
+-- | Maxed out common research
+maxedCommonResearch
+    :: forall tiers epic. ()
+    => ResearchData tiers epic
+    -> Prod (Flip SV.Vector Natural) tiers
+maxedCommonResearch = map1 (Flip . go) . view rdCommon
+  where
+    go :: ResearchTier n -> SV.Vector n Natural
+    go = SV.map (fromIntegral . length . view rCosts) . view rtTechs
+
+-- | Maxed out epic research
+maxedEpicResearch
+    :: forall tiers epic. ()
+    => ResearchData tiers epic
+    -> SV.Vector epic Natural
+maxedEpicResearch = SV.map (fromIntegral . length . view rCosts) . view rdEpic
+
+-- | Maxed out all research
+maxedResearch
+    :: forall tiers epic. ()
+    => ResearchData tiers epic
+    -> ResearchStatus tiers epic
+maxedResearch rd = ResearchStatus (maxedCommonResearch rd)
+                                  (maxedEpicResearch   rd)
+    

@@ -36,6 +36,7 @@ import           Egg.Habitat
 import           Egg.Research
 import           Egg.Vehicle
 import           GHC.Generics                  (Generic)
+import           Numeric.Natural
 
 data GameConstants =
     GameConstants { _gcBaseLayingRate         :: Double     -- ^ eggs per minute
@@ -46,6 +47,7 @@ data GameConstants =
                   , _gcPrestigeFactor         :: Double
                   , _gcBaseHatcheryCapacity   :: Double
                   , _gcBaseHatcheryRefillRate :: Double     -- ^ per minute
+                  , _gcBaseFleetSize          :: Natural
                   }
   deriving (Show, Eq, Ord, Generic)
 

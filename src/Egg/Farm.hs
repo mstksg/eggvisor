@@ -57,6 +57,7 @@ module Egg.Farm (
   , prestigeFarm
   , watchVideo
   , popDrone
+  , maxOutFarm
   ) where
 
 import           Control.Lens hiding       ((.=))
@@ -841,6 +842,18 @@ prestigeFarm gd fs = guard (round @_ @Int pBonus > 0) $>
                  . dividing (realToFrac (gd ^. gcPrestigeFactor))
                  . exponentiating 0.15
                  . bonusingFor (farmBonuses gd fs) BTPrestigeEggs
+
+-- | Max out a farm's upgrades, habs, and vehicles.
+maxOutFarm
+    :: (KnownNat habs, KnownNat vehicles)
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+maxOutFarm gd fs = fs & fsResearch .~ maxedResearch (gd ^. gdResearchData)
+                      & fsHabs     %~ maxedHabs
+                      & fsDepot    .~ maxedSomeDepot bs
+  where
+    bs = farmBonuses gd fs
 
 -- | Watch Video Doubler video.
 --
