@@ -22,6 +22,7 @@ module Egg.GameData (
   ) where
 
 -- import           Data.Aeson.Types
+-- import           Type.Family.List
 import           Control.Lens hiding           ((.=))
 import           Data.Aeson
 import           Data.Dependent.Sum
@@ -35,7 +36,6 @@ import           Egg.Habitat
 import           Egg.Research
 import           Egg.Vehicle
 import           GHC.Generics                  (Generic)
-import           Type.Family.List
 
 data GameConstants =
     GameConstants { _gcBaseLayingRate         :: Double     -- ^ eggs per minute

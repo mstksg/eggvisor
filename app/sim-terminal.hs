@@ -16,6 +16,7 @@
 -- import           Numeric.Lens
 -- import qualified Data.Text               as T
 -- import qualified Data.Text.Encoding      as T
+-- import qualified GHC.TypeLits            as TL
 import           Brick
 import           Brick.BChan
 import           Brick.Widgets.Center
@@ -50,7 +51,6 @@ import           Text.Printf
 import           Type.Class.Higher
 import qualified Control.Auto               as A
 import qualified Data.Vector                as V
-import qualified GHC.TypeLits               as TL
 
 data FarmEvent eggs te habs vehicles =
       FEClock Double
@@ -162,6 +162,9 @@ farmAuto gd = proc inp -> do
                                   ACNoCost      -> Just Nothing
                                   ACBock b      -> Just (Just (Left b))
                                   ACGoldenEgg e -> Just (Just (Right e))
+                    , case c of Just (Left b)  -> fs ^. fsBocks >= b
+                                Just (Right e) -> fs ^. fsGoldenEggs >= e
+                                Nothing        -> True
                     ]
             -- flip mapMaybe (actions gd fs) $ \a -> do
         lst <- A.accum_ processList (list () mempty 1) . substituteB

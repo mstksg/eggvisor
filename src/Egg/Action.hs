@@ -38,6 +38,7 @@ module Egg.Action (
 
 -- import           Control.Applicative
 -- import           Data.Type.Conjunction
+-- import           Debug.Trace
 -- import qualified Data.Map               as M
 -- import qualified GHC.TypeLits           as TL
 import           Control.Lens hiding       ((:<), Index)
@@ -57,7 +58,6 @@ import           Data.Type.Product
 import           Data.Type.Sum
 import           Data.Type.Vector          as TCV
 import           Data.Vector.Sized.Util
-import           Debug.Trace
 import           Egg.Commodity
 import           Egg.Egg
 import           Egg.Farm
