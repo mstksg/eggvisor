@@ -79,7 +79,7 @@ type AppState eggs te habs vehicles
         (Either (FarmEvent eggs te habs vehicles) UIEvent) (Widget ())
 
 farmAuto
-    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles, 1 TL.<= eggs, 1 TL.<= habs, 1 TL.<= vehicles)
+    :: forall eggs tiers epic habs vehicles. (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
     => GameData eggs '(tiers, epic) habs vehicles
     -> AppState eggs '(tiers, epic) habs vehicles
 farmAuto gd = proc inp -> do
@@ -155,14 +155,22 @@ farmAuto gd = proc inp -> do
       id -< progShow "Depot" r (r + fromMaybe 0 c)
     menu = proc (fs, pEs) -> do
         -- lst <- scanB_ processList (list () mempty 1) -< (pEs `description` _)
-        let upgrs = actions gd fs
+        let upgrs = [ (sa, c)
+                    | sa@(Some a) <- actions gd fs
+                    , Just c <- pure $ case actionCost gd fs a of
+                                  ACForbidden   -> Nothing
+                                  ACNoCost      -> Just Nothing
+                                  ACBock b      -> Just (Just (Left b))
+                                  ACGoldenEgg e -> Just (Just (Right e))
+                    ]
+            -- flip mapMaybe (actions gd fs) $ \a -> do
         lst <- A.accum_ processList (list () mempty 1) . substituteB
             -< (Left upgrs, Right <$> pEs)
         purch <- mapMaybeB (preview _PESelect) -< pEs
         let pB = case listSelectedElement lst of
                    Nothing -> NoBlip
-                   Just e  -> FEAction (fst (lst ^?! listElementsL . ix (fst e))) <$ purch
-        id -< (pB, renderList (renderAction fs) True lst)
+                   Just e  -> FEAction (lst ^?! listElementsL . ix (fst e) . _1) <$ purch
+        id -< (pB, renderList (renderAction' fs) True lst)
       where
         processList l = \case
           Left  acts -> l & listElementsL . iso V.toList V.fromList .~ acts
@@ -173,12 +181,12 @@ farmAuto gd = proc inp -> do
             PEHomeEnd True  -> listMoveTo 0 l
             PEHomeEnd False -> listMoveTo (lengthOf (listElementsL . folded) l) l
             _               -> l
-        renderAction
+        renderAction'
             :: FarmStatus eggs '(tiers, epic) habs vehicles
             -> Bool
             -> (SomeAction eggs '(tiers, epic) habs vehicles, Maybe (Either Bock GoldenEgg))
             -> Widget ()
-        renderAction fs b (Some a, cost) = str $ printf "%s%s (%s)" s d c
+        renderAction' fs b (Some a, cost) = str $ printf "%s%s (%s)" s d c
           where
             s, d, c :: String
             s | b         = "* "
@@ -253,7 +261,7 @@ toFarmEvent = \case
 --         avails  = fs ^. fsHabs . availableSpaces (gd ^. gdHabData) bs
 
 app
-    :: (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles, 1 TL.<= eggs, 1 TL.<= habs, 1 TL.<= vehicles)
+    :: ()
     => GameData eggs '(tiers, epic) habs vehicles
     -> App (AppState eggs '(tiers, epic) habs vehicles, Widget ()) Double ()
 app gd = App draw cursor handle return am

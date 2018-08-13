@@ -43,22 +43,22 @@ library:
   - type-combinators-singletons
   - unordered-containers
 executables:
-  # eggvisor-sim-terminal:
-  #   main: sim-terminal.hs
-  #   source-dirs: app
-  #   ghc-options:
-  #   - -threaded
-  #   - -rtsopts
-  #   - -with-rtsopts=-N
-  #   - -O2
-  #   dependencies:
-  #   - ansi-wl-pprint
-  #   - auto
-  #   - brick >=0.19
-  #   - eggvisor
-  #   - profunctors
-  #   - typelits-witnesses
-  #   - vty
+  eggvisor-sim-terminal:
+    main: sim-terminal.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    dependencies:
+    - ansi-wl-pprint
+    - auto
+    - brick >=0.19
+    - eggvisor
+    - profunctors
+    - typelits-witnesses
+    - vty
   eggvisor-plan:
     main: plan.hs
     source-dirs: app

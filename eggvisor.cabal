@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1613abc4a769b2d64d3cb988b84e326d6747a16a565efe41a2f36536e7e647da
+-- hash: e46bc9562ad3d6237ad98470ed499545ca7dc9cc0d1ab32dc44068a6b952fd43
 
 name:           eggvisor
 version:        0.1.0.0
@@ -116,5 +116,34 @@ executable eggvisor-plan
     , typelits-witnesses
     , vector
     , vector-sized
+    , yaml
+  default-language: Haskell2010
+
+executable eggvisor-sim-terminal
+  main-is: sim-terminal.hs
+  other-modules:
+      Paths_eggvisor
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -O2
+  build-depends:
+      aeson
+    , ansi-wl-pprint
+    , auto
+    , base >=4.7 && <5
+    , brick >=0.19
+    , eggvisor
+    , finite-typelits
+    , lens
+    , profunctors
+    , reflection
+    , singletons
+    , text
+    , transformers
+    , type-combinators
+    , typelits-witnesses
+    , vector
+    , vector-sized
+    , vty
     , yaml
   default-language: Haskell2010

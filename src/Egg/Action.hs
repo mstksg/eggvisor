@@ -22,6 +22,7 @@ module Egg.Action (
   , PurchaseError(..)
   , _PEInsufficientFunds
   , runAction
+  , actionCost, ActionCost(..)
   , commonResearchActions
   , epicResearchActions
   , habActions
@@ -275,6 +276,46 @@ actions gd fs = mconcat
     -- , Some AWatchVideo
     -- , Some APrestige
     ]
+
+
+data ActionCost = ACForbidden
+                | ACNoCost
+                | ACBock Bock
+                | ACGoldenEgg GoldenEgg
+
+actionCost
+    :: forall eggs tiers epic habs vehicles err.
+       (KnownNat eggs, SingI tiers, KnownNat epic, KnownNat habs, KnownNat vehicles)
+    => GameData   eggs '(tiers, epic) habs vehicles
+    -> FarmStatus eggs '(tiers, epic) habs vehicles
+    -> Action     eggs '(tiers, epic) habs vehicles err
+    -> ActionCost
+actionCost gd fs = \case
+    AResearch i -> case purchaseResearch (gd ^. gdResearchData) i (fs ^. fsResearch) of
+      Left  _      -> ACForbidden
+      Right (c, _) -> case i of
+        RICommon _ -> ACBock c
+        RIEpic   _ -> ACGoldenEgg c
+    AHab s h -> case upgradeHab gd bs s h fs of
+      Left  _      -> ACForbidden
+      Right (c, _) -> ACBock c
+    AVehicle s v -> case upgradeSomeVehicle (gd ^. gdVehicleData) bs s v (fs ^. fsDepot) of
+      Left  _      -> ACForbidden
+      Right (c, _) -> ACBock c
+    AHatch c -> case hatchChickens gd c fs of
+      Left  _ -> ACForbidden
+      Right _ -> ACNoCost
+    AWatchVideo -> case watchVideo gd fs of
+      Left  _ -> ACForbidden
+      Right _ -> ACNoCost
+    AEggUpgrade e -> case upgradeEgg gd e fs of
+      Left  _ -> ACForbidden
+      Right _ -> ACNoCost
+    APrestige -> case prestigeFarm gd fs of
+      Nothing -> ACForbidden
+      Just _  -> ACNoCost
+  where
+    bs = farmBonuses gd fs
 
 
 renderAction
